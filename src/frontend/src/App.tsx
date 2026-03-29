@@ -40,17 +40,25 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import CardAnalysisTab from "./components/CardAnalysisTab";
+import type { Transaction } from "./components/CardAnalysisTab";
 import DnaReportTab from "./components/DnaReportTab";
+import GoalPlannerTab from "./components/GoalPlannerTab";
 import GoldSgbTab from "./components/GoldSgbTab";
 import InflationTrackerTab from "./components/InflationTrackerTab";
 import InvestmentCalculatorTab from "./components/InvestmentCalculatorTab";
 import KycChecklistTab from "./components/KycChecklistTab";
 import LifeStageRoadmapTab from "./components/LifeStageRoadmapTab";
 import LoanPrepaymentTab from "./components/LoanPrepaymentTab";
+import OnboardingWizard from "./components/OnboardingWizard";
+import PolicyAnalyzerTab from "./components/PolicyAnalyzerTab";
 import RebalancingSimulatorTab from "./components/RebalancingSimulatorTab";
+import ReferralCard from "./components/ReferralCard";
+import RiskProfileTab from "./components/RiskProfileTab";
 import SipCalculatorTab from "./components/SipCalculatorTab";
 import StressTestTab from "./components/StressTestTab";
 import TaxOptimizerTab from "./components/TaxOptimizerTab";
+import UlipVsSipTab from "./components/UlipVsSipTab";
 import { useActor } from "./hooks/useActor";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
 
@@ -174,7 +182,6 @@ function computeScoreBreakdown(entries: Entry[]) {
     .filter((e) => e.category === "Cash")
     .reduce((s, e) => s + e.amount, 0);
   const cashPct = cashAmt / totalAssets;
-  // Emergency fund: 10-20% ideal=25, 5-10%=15, 20-30%=18, >30%=8, <5%=5
   let efScore = 5;
   if (cashPct >= 0.1 && cashPct <= 0.2) efScore = 25;
   else if (cashPct >= 0.05 && cashPct < 0.1) efScore = 15;
@@ -189,7 +196,6 @@ function computeScoreBreakdown(entries: Entry[]) {
     ),
   );
   const maxCatPct = totalAssets > 0 ? maxCatAmt / totalAssets : 0;
-  // Allocation balance: maxCatPct<=0.4 and cats>=3=25, <=0.5 and cats>=2=18, <=0.6=12, >0.6=5
   let allocScore = 5;
   if (maxCatPct <= 0.4 && assetCats >= 3) allocScore = 25;
   else if (maxCatPct <= 0.5 && assetCats >= 2) allocScore = 18;
@@ -230,113 +236,121 @@ function computeInsights(entries: Entry[]): Insight[] {
 
   const insights: Insight[] = [];
 
-  // Net worth overview
   insights.push({
     message: `Net Worth: ${formatINR(netWorth)} (Assets: ${formatINR(totalAssets)}, Liabilities: ${formatINR(totalLiabilities)})`,
     severity: netWorth >= 0 ? "success" : "danger",
   });
 
-  // Equity insights
   if (equityAmt > 0) {
     if (equityPct > 75) {
       insights.push({
-        message: `Equity allocation is ${equityPct.toFixed(1)}% (${formatINR(equityAmt)}) — above recommended 40–70% range, indicating high risk`,
+        message: `Equity is ${equityPct.toFixed(1)}% (${formatINR(equityAmt)}) — above recommended 60–70%, indicating high risk`,
         severity: "warning",
       });
     } else if (equityPct < 40) {
       insights.push({
-        message: `Equity allocation is only ${equityPct.toFixed(1)}% (${formatINR(equityAmt)}) — below recommended 40% minimum, limiting growth potential`,
+        message: `Equity is only ${equityPct.toFixed(1)}% (${formatINR(equityAmt)}) — below recommended 40% minimum, limiting growth`,
         severity: "info",
       });
     } else {
       insights.push({
-        message: `Equity allocation is ${equityPct.toFixed(1)}% (${formatINR(equityAmt)}) — within the healthy 40–70% range`,
+        message: `Equity is ${equityPct.toFixed(1)}% (${formatINR(equityAmt)}) — within the healthy 40–70% range ✓`,
         severity: "success",
       });
     }
   } else {
     insights.push({
       message:
-        "No equity holdings detected — consider adding equity for long-term growth",
+        "No equity holdings — consider adding equity for long-term growth",
       severity: "info",
     });
   }
 
-  // Cash/Emergency fund insights
   if (cashPct > 30) {
     insights.push({
-      message: `Cash holding is ${cashPct.toFixed(1)}% (${formatINR(cashAmt)}) — excessively idle; ideal range is 10–20% of assets`,
+      message: `Cash is ${cashPct.toFixed(1)}% (${formatINR(cashAmt)}) — too idle; loses ${formatINR(cashAmt * 0.06)}/year to inflation at 6%`,
       severity: "warning",
     });
   } else if (cashPct < 5) {
     insights.push({
-      message: `Cash is only ${cashPct.toFixed(1)}% (${formatINR(cashAmt)}) — insufficient emergency fund; aim for at least 10% of assets`,
+      message: `Cash is only ${cashPct.toFixed(1)}% (${formatINR(cashAmt)}) — insufficient emergency fund; aim for at least 10%`,
       severity: "danger",
     });
   } else if (cashPct >= 10 && cashPct <= 20) {
     insights.push({
-      message: `Cash/Emergency fund is ${cashPct.toFixed(1)}% (${formatINR(cashAmt)}) — in the ideal 10–20% range`,
+      message: `Cash/Emergency fund is ${cashPct.toFixed(1)}% (${formatINR(cashAmt)}) — ideal 10–20% range ✓`,
       severity: "success",
     });
   } else {
     insights.push({
-      message: `Cash holding is ${cashPct.toFixed(1)}% (${formatINR(cashAmt)}) — slightly outside ideal 10–20% range`,
+      message: `Cash is ${cashPct.toFixed(1)}% — slightly outside ideal 10–20% range`,
       severity: "info",
     });
   }
 
-  // Debt/Liability ratio
   if (liabRatioPct > 60) {
     insights.push({
-      message: `Debt ratio is ${liabRatioPct.toFixed(1)}% (${formatINR(totalLiabilities)}) — critical risk; safe threshold is below 40%`,
+      message: `Debt-to-asset ratio is ${liabRatioPct.toFixed(1)}% (${formatINR(totalLiabilities)}) — critical; safe threshold < 30%`,
       severity: "danger",
     });
   } else if (liabRatioPct > 40) {
     insights.push({
-      message: `Debt ratio is ${liabRatioPct.toFixed(1)}% (${formatINR(totalLiabilities)}) — above the 40% safe threshold; work on reducing liabilities`,
+      message: `Debt-to-asset ratio is ${liabRatioPct.toFixed(1)}% — above 40% safe threshold; reduce liabilities`,
       severity: "warning",
     });
   } else if (liabRatioPct > 0) {
     insights.push({
-      message: `Debt ratio is ${liabRatioPct.toFixed(1)}% (${formatINR(totalLiabilities)}) — within safe range (below 40%)`,
+      message: `Debt-to-asset ratio is ${liabRatioPct.toFixed(1)}% — within safe range (< 40%) ✓`,
       severity: "success",
     });
   }
 
-  // Gold insights
-  if (goldAmt > 0) {
+  if (goldAmt > 0)
     insights.push({
-      message: `Gold allocation is ${goldPct.toFixed(1)}% (${formatINR(goldAmt)}) — provides inflation hedge and portfolio diversification`,
+      message: `Gold is ${goldPct.toFixed(1)}% (${formatINR(goldAmt)}) — good inflation hedge`,
       severity: "info",
     });
-  }
 
-  // Mutual Funds insights
-  if (mfAmt > 0) {
+  if (mfAmt > 0)
     insights.push({
-      message: `Mutual Funds allocation is ${mfPct.toFixed(1)}% (${formatINR(mfAmt)}) — good for systematic, diversified investing`,
+      message: `Mutual Funds is ${mfPct.toFixed(1)}% (${formatINR(mfAmt)}) — well-suited for systematic investing`,
       severity: "info",
     });
-  }
 
-  // Diversification
   if (distinctCats < 3) {
     insights.push({
-      message: `Portfolio has only ${distinctCats} asset ${distinctCats === 1 ? "category" : "categories"} — poor diversification; aim for 3+ categories`,
+      message: `Only ${distinctCats} asset ${distinctCats === 1 ? "category" : "categories"} — poor diversification; aim for 3+ categories`,
       severity: "warning",
     });
   } else {
     insights.push({
-      message: `Portfolio spans ${distinctCats} asset categories — good diversification`,
+      message: `Portfolio spans ${distinctCats} asset categories — good diversification ✓`,
       severity: "success",
     });
   }
 
-  // Inflation erosion insight for cash
-  if (cashAmt > 0) {
+  if (cashAmt > 0 && cashPct <= 30) {
     insights.push({
-      message: `Cash of ${formatINR(cashAmt)} loses ~${formatINR(cashAmt * 0.06)}/year to inflation at 6%`,
+      message: `Cash ₹${formatINR(cashAmt)} loses ~${formatINR(cashAmt * 0.06)}/year to inflation at 6%`,
       severity: cashPct > 20 ? "warning" : "info",
+    });
+  }
+
+  // Enhanced insights
+  if (cashPct > 25 && totalAssets > 0) {
+    insights.push({
+      message: `₹${formatINR(cashAmt)} idle in cash losing ${formatINR(cashAmt * 0.06)}/year to inflation — consider deploying into SIP or debt funds`,
+      severity: "warning",
+    });
+  }
+
+  const eqMfPct =
+    ((getCatAmt("Equity") + getCatAmt("Mutual Funds")) / (totalAssets || 1)) *
+    100;
+  if (eqMfPct > 75) {
+    insights.push({
+      message: `Growth assets (Equity+MF) at ${eqMfPct.toFixed(0)}% — consider partial shift to debt for stability`,
+      severity: "warning",
     });
   }
 
@@ -417,9 +431,8 @@ function validateAndParse(rawRows: Record<string, unknown>[]): {
 
   for (let i = 0; i < rawRows.length; i++) {
     const raw = rawRows[i];
-    const rowNum = i + 2; // 1-indexed, header is row 1
+    const rowNum = i + 2;
 
-    // Normalise keys
     const normalised: Record<string, string> = {};
     for (const k of Object.keys(raw)) {
       normalised[k.trim().toLowerCase()] = String(raw[k] ?? "").trim();
@@ -429,7 +442,7 @@ function validateAndParse(rawRows: Record<string, unknown>[]): {
     const catRaw = normalised.category ?? "";
     const amtRaw = normalised.amount ?? "";
 
-    if (!typeRaw && !catRaw && !amtRaw) continue; // skip blank rows
+    if (!typeRaw && !catRaw && !amtRaw) continue;
 
     const typeNorm = typeRaw.toLowerCase();
     if (typeNorm !== "asset" && typeNorm !== "liability") {
@@ -477,11 +490,9 @@ function HealthGauge({ score }: { score: number }) {
   const cy = size / 2 + 20;
   const R = 80;
   const circumference = Math.PI * R;
-
   const scoreColor =
     score >= 70 ? "#B8FF4A" : score >= 40 ? "#FFB84A" : "#FF4A4A";
   const label = score >= 80 ? "Strong" : score >= 50 ? "Moderate" : "Weak";
-
   const filledAngle = (score / 100) * Math.PI;
   const dashOffset = circumference - (filledAngle / Math.PI) * circumference;
 
@@ -605,11 +616,7 @@ function MetricCard({
   label,
   value,
   color,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
+}: { label: string; value: string; color?: string }) {
   return (
     <div
       className="fintech-card p-4 flex flex-col gap-1"
@@ -628,10 +635,7 @@ function MetricCard({
 const CustomTooltip = ({
   active,
   payload,
-}: {
-  active?: boolean;
-  payload?: { name: string; value: number }[];
-}) => {
+}: { active?: boolean; payload?: { name: string; value: number }[] }) => {
   if (active && payload?.length) {
     return (
       <div
@@ -661,10 +665,7 @@ const CustomTooltip = ({
 const TrendTooltip = ({
   active,
   payload,
-}: {
-  active?: boolean;
-  payload?: { value: number }[];
-}) => {
+}: { active?: boolean; payload?: { value: number }[] }) => {
   if (active && payload?.length) {
     return (
       <div
@@ -748,7 +749,6 @@ function LoginScreen({
             FinPulse
           </span>
         </div>
-
         <div>
           <h1 className="text-xl font-bold mb-2" style={{ color: "#EAF0F6" }}>
             Your AI-Powered Financial Advisor
@@ -758,7 +758,6 @@ function LoginScreen({
             for your portfolio.
           </p>
         </div>
-
         <div className="w-full grid grid-cols-3 gap-3">
           {["Secure", "Private", "Decentralized"].map((f) => (
             <div
@@ -774,7 +773,6 @@ function LoginScreen({
             </div>
           ))}
         </div>
-
         <button
           type="button"
           data-ocid="auth.primary_button"
@@ -794,7 +792,6 @@ function LoginScreen({
             </>
           )}
         </button>
-
         <p className="text-xs" style={{ color: "#9AA6B2" }}>
           Your data is stored on-chain — only you control it.
         </p>
@@ -806,9 +803,7 @@ function LoginScreen({
 // ─── Upload Section ───────────────────────────────────────────────────────────
 function UploadSection({
   onImport,
-}: {
-  onImport: (rows: ParsedRow[]) => void;
-}) {
+}: { onImport: (rows: ParsedRow[]) => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [previewRows, setPreviewRows] = useState<ParsedRow[] | null>(null);
@@ -826,7 +821,6 @@ function UploadSection({
       setFileName(file.name);
       setPreviewRows(null);
       setErrors([]);
-
       if (file.name.endsWith(".csv")) {
         Papa.parse(file, {
           header: true,
@@ -856,12 +850,7 @@ function UploadSection({
             >[];
             processRows(json);
           } catch {
-            setErrors([
-              {
-                row: 0,
-                message: "Failed to parse Excel file. Please check the format.",
-              },
-            ]);
+            setErrors([{ row: 0, message: "Failed to parse Excel file." }]);
           }
         };
         reader.readAsArrayBuffer(file);
@@ -869,8 +858,7 @@ function UploadSection({
         setErrors([
           {
             row: 0,
-            message:
-              "Unsupported file format. Please upload a .csv or .xlsx file.",
+            message: "Unsupported file format. Please upload .csv or .xlsx.",
           },
         ]);
       }
@@ -910,15 +898,12 @@ function UploadSection({
         <CloudUpload size={18} style={{ color: "#B8FF4A" }} />
         Upload Portfolio
       </h2>
-
       <p className="text-xs mb-4" style={{ color: "#9AA6B2" }}>
         Upload a .csv or .xlsx file with columns:{" "}
         <code style={{ color: "#B8FF4A" }}>type</code>,{" "}
         <code style={{ color: "#B8FF4A" }}>category</code>,{" "}
         <code style={{ color: "#B8FF4A" }}>amount</code>
       </p>
-
-      {/* Drop zone */}
       <div
         data-ocid="upload.dropzone"
         onClick={() => fileInputRef.current?.click()}
@@ -961,7 +946,6 @@ function UploadSection({
           </span>
         )}
       </div>
-
       <input
         ref={fileInputRef}
         type="file"
@@ -970,8 +954,6 @@ function UploadSection({
         onChange={handleInputChange}
         data-ocid="upload.button"
       />
-
-      {/* Errors */}
       {errors.length > 0 && (
         <div className="mt-4 space-y-1.5" data-ocid="upload.error_state">
           {errors.map((err) => (
@@ -986,8 +968,6 @@ function UploadSection({
           ))}
         </div>
       )}
-
-      {/* Preview table */}
       {previewRows && previewRows.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -1083,7 +1063,6 @@ function UploadSection({
           </div>
         </motion.div>
       )}
-
       {previewRows !== null && previewRows.length === 0 && (
         <div
           className="mt-4 text-xs text-center py-4"
@@ -1121,10 +1100,10 @@ export default function App() {
     amount: "",
   });
   const [editingId, setEditingId] = useState<string | null>(null);
-
   const [analyzed, setAnalyzed] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [activeTab, setActiveTab] = useState("portfolio");
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [analysisSubTab, setAnalysisSubTab] = useState("financial-analysis");
   const [toolsSubTab, setToolsSubTab] = useState("stress-test");
   const [history, setHistory] = useState<NetWorthSnapshot[]>(() =>
     loadHistory(),
@@ -1138,34 +1117,52 @@ export default function App() {
     "Short" | "Medium" | "Long" | null
   >(null);
   const portfolioLoadedRef = useRef(false);
+  const [userProfile, setUserProfile] = useState<{
+    name: string;
+    onboardingComplete: boolean;
+    income: number;
+    goals: string[];
+    riskProfile: string;
+  } | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const dataLoadedRef = useRef(false);
 
-  // Load portfolio from backend on login
   useEffect(() => {
     if (identity && actor && !actorFetching && !portfolioLoadedRef.current) {
       portfolioLoadedRef.current = true;
-      actor
-        .getPortfolio()
-        .then((data) => {
+      Promise.all([
+        actor.getPortfolio(),
+        actor.getTransactions(),
+        actor.getCallerUserProfile(),
+      ])
+        .then(([portfolioData, txData, profile]) => {
           try {
-            const parsed = JSON.parse(data) as Entry[];
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setEntries(parsed);
-              toast.success("Portfolio loaded from your account!");
-            }
-          } catch {
-            // invalid JSON — start fresh
+            const parsed = JSON.parse(portfolioData) as Entry[];
+            if (Array.isArray(parsed) && parsed.length > 0) setEntries(parsed);
+          } catch {}
+          try {
+            const parsedTx = JSON.parse(txData) as Transaction[];
+            if (Array.isArray(parsedTx)) setTransactions(parsedTx);
+          } catch {}
+          if (profile) {
+            setUserProfile({ ...profile, income: Number(profile.income) });
+            if (!profile.onboardingComplete) setShowOnboarding(true);
+          } else {
+            setShowOnboarding(true);
           }
+          toast.success("Account loaded!");
         })
-        .catch(() => {
-          // no portfolio yet — keep defaults
-        });
+        .catch(() => {});
     }
   }, [identity, actor, actorFetching]);
 
-  // Reset load flag on logout
   useEffect(() => {
     if (!identity) {
       portfolioLoadedRef.current = false;
+      dataLoadedRef.current = false;
+      setUserProfile(null);
+      setShowOnboarding(false);
     }
   }, [identity]);
 
@@ -1185,7 +1182,36 @@ export default function App() {
     }
   };
 
-  // Derived values
+  const handleTransactionsChange = async (txns: Transaction[]) => {
+    setTransactions(txns);
+    if (actor && identity) {
+      try {
+        await actor.saveTransactions(JSON.stringify(txns));
+      } catch {}
+    }
+  };
+
+  const handleOnboardingComplete = async (data: {
+    income: number;
+    riskProfile: string;
+    goals: string[];
+  }) => {
+    const profile = {
+      name: userProfile?.name ?? "",
+      onboardingComplete: true,
+      income: BigInt(data.income),
+      goals: data.goals,
+      riskProfile: data.riskProfile,
+    };
+    setUserProfile({ ...data, name: profile.name, onboardingComplete: true });
+    setShowOnboarding(false);
+    if (actor && identity) {
+      try {
+        await actor.saveCallerUserProfile(profile);
+      } catch {}
+    }
+  };
+
   const totalAssets = entries
     .filter((e) => e.type === "Asset")
     .reduce((s, e) => s + e.amount, 0);
@@ -1193,9 +1219,84 @@ export default function App() {
     .filter((e) => e.type === "Liability")
     .reduce((s, e) => s + e.amount, 0);
   const netWorth = totalAssets - totalLiabilities;
-  const scoreBreakdown = computeScoreBreakdown(entries);
-  const score = scoreBreakdown.total;
-  const insights = computeInsights(entries);
+  const _scoreBreakdown = computeScoreBreakdown(entries);
+
+  // 5-Dimension FinHealth Score (20 pts each = 100 total)
+  const fhDimensionScores = (() => {
+    const assets = entries.filter((e) => e.type === "Asset");
+    const totalA = assets.reduce((s, e) => s + e.amount, 0);
+    if (totalA === 0)
+      return {
+        diversification: 0,
+        inflation: 0,
+        insurance: 0,
+        goalReadiness: 0,
+        expenseControl: 0,
+        total: 0,
+      };
+    const cats = new Set(assets.map((e) => e.category)).size;
+    const diversification =
+      cats >= 4 ? 20 : cats === 3 ? 15 : cats === 2 ? 10 : cats === 1 ? 5 : 0;
+    const eqMfPct =
+      (assets
+        .filter((e) => e.category === "Equity" || e.category === "Mutual Funds")
+        .reduce((s, e) => s + e.amount, 0) /
+        totalA) *
+      100;
+    const inflation =
+      eqMfPct > 40 ? 20 : eqMfPct >= 30 ? 15 : eqMfPct >= 20 ? 10 : 5;
+    const loanRatio = totalA > 0 ? totalLiabilities / totalA : 0;
+    const insurance = loanRatio > 0.5 ? 5 : cats >= 4 ? 15 : cats >= 3 ? 10 : 5;
+    const goalReadiness =
+      userProfile?.goals && userProfile.goals.length > 0 && totalA > 0 ? 18 : 5;
+    const cPct =
+      totalA > 0
+        ? (assets
+            .filter((e) => e.category === "Cash")
+            .reduce((s, e) => s + e.amount, 0) /
+            totalA) *
+          100
+        : 0;
+    const expenseControl =
+      cPct >= 10 && cPct <= 20
+        ? 20
+        : cPct >= 5 && cPct < 10
+          ? 15
+          : cPct < 5
+            ? 5
+            : cPct > 30
+              ? 10
+              : 12;
+    return {
+      diversification,
+      inflation,
+      insurance,
+      goalReadiness,
+      expenseControl,
+      total: Math.min(
+        100,
+        diversification +
+          inflation +
+          insurance +
+          goalReadiness +
+          expenseControl,
+      ),
+    };
+  })();
+  const score = fhDimensionScores.total;
+  const baseInsights = computeInsights(entries);
+  const insights = [
+    ...baseInsights,
+    ...(!userProfile?.goals || userProfile.goals.length === 0
+      ? [
+          {
+            message:
+              "💡 Set specific goals in your profile to track goal readiness and improve your FinHealth Score",
+            severity: "info" as const,
+          },
+        ]
+      : []),
+  ];
   const actions = computeActions(entries);
 
   const getCatAmt = (cat: Category) =>
@@ -1212,7 +1313,6 @@ export default function App() {
     totalAssets > 0 ? (getCatAmt("Mutual Funds") / totalAssets) * 100 : 0;
   const liabToAsset = totalAssets > 0 ? totalLiabilities / totalAssets : 0;
 
-  // Risk/liquidity labels
   const riskLevel =
     equityPct > 75 ? "High" : equityPct >= 40 ? "Medium" : "Low";
   const riskPositive: boolean | null =
@@ -1228,6 +1328,47 @@ export default function App() {
     name: cat,
     value: getCatAmt(cat),
   })).filter((d) => d.value > 0);
+
+  const trendData = history.map((h) => ({
+    date: new Date(h.timestamp).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+    }),
+    netWorth: h.netWorth,
+  }));
+
+  const trendGrowth =
+    history.length >= 2
+      ? (
+          ((history[history.length - 1].netWorth - history[0].netWorth) /
+            Math.abs(history[0].netWorth || 1)) *
+          100
+        ).toFixed(1)
+      : null;
+
+  const scoreItems = [
+    {
+      label: "Diversification",
+      score: fhDimensionScores.diversification,
+      maxScore: 20,
+    },
+    {
+      label: "Inflation Returns",
+      score: fhDimensionScores.inflation,
+      maxScore: 20,
+    },
+    { label: "Insurance", score: fhDimensionScores.insurance, maxScore: 20 },
+    {
+      label: "Goal Readiness",
+      score: fhDimensionScores.goalReadiness,
+      maxScore: 20,
+    },
+    {
+      label: "Expense Control",
+      score: fhDimensionScores.expenseControl,
+      maxScore: 20,
+    },
+  ];
 
   const addEntry = () => {
     const amt = Number.parseFloat(form.amount);
@@ -1260,7 +1401,6 @@ export default function App() {
     setEditingId(null);
     setForm({ type: "Asset", category: "Equity", amount: "" });
   };
-
   const startEdit = (entry: Entry) => {
     setEditingId(entry.id);
     setForm({
@@ -1269,7 +1409,6 @@ export default function App() {
       amount: String(entry.amount),
     });
   };
-
   const deleteEntry = (id: string) => {
     if (!window.confirm("Delete this entry?")) return;
     setEntries((prev) => prev.filter((e) => e.id !== id));
@@ -1296,46 +1435,10 @@ export default function App() {
       setIsAnalyzing(false);
       setAnalyzed(true);
       setActiveTab("analysis");
+      setAnalysisSubTab("financial-analysis");
     }, 1200);
   };
 
-  const scoreItems = [
-    {
-      label: "Diversification",
-      score: scoreBreakdown.diversification,
-      maxScore: 25,
-    },
-    { label: "Debt Ratio", score: scoreBreakdown.debtRatio, maxScore: 25 },
-    {
-      label: "Emergency Fund",
-      score: scoreBreakdown.emergencyFund,
-      maxScore: 25,
-    },
-    {
-      label: "Asset Allocation",
-      score: scoreBreakdown.allocation,
-      maxScore: 25,
-    },
-  ];
-
-  const trendData = history.map((h) => ({
-    date: new Date(h.timestamp).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "2-digit",
-    }),
-    netWorth: h.netWorth,
-  }));
-
-  const trendGrowth =
-    history.length >= 2
-      ? (
-          ((history[history.length - 1].netWorth - history[0].netWorth) /
-            Math.abs(history[0].netWorth || 1)) *
-          100
-        ).toFixed(1)
-      : null;
-
-  // Loading / initializing
   if (isInitializing) {
     return (
       <div
@@ -1366,7 +1469,31 @@ export default function App() {
   }
 
   const principal = identity.getPrincipal().toString();
-  const shortPrincipal = `${principal.slice(0, 5)}...${principal.slice(-4)}`;
+  const shortPrincipal = userProfile?.name
+    ? userProfile.name
+    : `${principal.slice(0, 5)}...${principal.slice(-4)}`;
+
+  // Sub-nav button helper
+  const SubNavBtn = ({
+    id,
+    label,
+    current,
+    onClick,
+  }: { id: string; label: string; current: string; onClick: () => void }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      data-ocid={`analysis.${id}.tab`}
+      className="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+      style={{
+        background: current === id ? "#B8FF4A" : "#0F141B",
+        color: current === id ? "#060A10" : "#9AA6B2",
+        border: `1px solid ${current === id ? "#B8FF4A" : "#24303A"}`,
+      }}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <div
@@ -1374,6 +1501,11 @@ export default function App() {
       style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}
     >
       <Toaster />
+
+      {/* Onboarding Wizard */}
+      {showOnboarding && (
+        <OnboardingWizard onComplete={handleOnboardingComplete} />
+      )}
 
       {/* Header */}
       <header
@@ -1397,7 +1529,6 @@ export default function App() {
               FinPulse
             </span>
           </div>
-
           <div className="flex items-center gap-3">
             <span
               className="hidden sm:block text-xs px-2.5 py-1 rounded-full"
@@ -1409,7 +1540,6 @@ export default function App() {
             >
               {shortPrincipal}
             </span>
-
             <button
               type="button"
               data-ocid="portfolio.save_button"
@@ -1429,7 +1559,6 @@ export default function App() {
               )}
               {isSaving ? "Saving..." : "Save"}
             </button>
-
             <button
               type="button"
               data-ocid="auth.button"
@@ -1480,7 +1609,7 @@ export default function App() {
           </p>
         </div>
 
-        {/* Tabs */}
+        {/* ── 4 Top-Level Tabs ── */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList
             className="w-full mb-6"
@@ -1492,12 +1621,12 @@ export default function App() {
             }}
           >
             <TabsTrigger
-              value="portfolio"
-              data-ocid="portfolio.tab"
+              value="dashboard"
+              data-ocid="dashboard.tab"
               className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
               style={{ borderRadius: 10, fontSize: 14 }}
             >
-              Portfolio
+              Dashboard
             </TabsTrigger>
             <TabsTrigger
               value="analysis"
@@ -1506,39 +1635,6 @@ export default function App() {
               style={{ borderRadius: 10, fontSize: 14 }}
             >
               Analysis
-            </TabsTrigger>
-            <TabsTrigger
-              value="trends"
-              data-ocid="trends.tab"
-              className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
-              style={{ borderRadius: 10, fontSize: 14 }}
-            >
-              Trends
-            </TabsTrigger>
-            <TabsTrigger
-              value="investor-protection"
-              data-ocid="investor_protection.tab"
-              className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
-              style={{ borderRadius: 10, fontSize: 14 }}
-            >
-              <Shield size={13} className="inline mr-1" />
-              Investor Protection
-            </TabsTrigger>
-            <TabsTrigger
-              value="sip-calculator"
-              data-ocid="sip_calculator.tab"
-              className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
-              style={{ borderRadius: 10, fontSize: 14 }}
-            >
-              SIP Calculator
-            </TabsTrigger>
-            <TabsTrigger
-              value="kyc-checklist"
-              data-ocid="kyc_checklist.tab"
-              className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
-              style={{ borderRadius: 10, fontSize: 14 }}
-            >
-              KYC Checklist
             </TabsTrigger>
             <TabsTrigger
               value="tools"
@@ -1554,16 +1650,14 @@ export default function App() {
               className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
               style={{ borderRadius: 10, fontSize: 14 }}
             >
-              DNA Report
+              Reports
             </TabsTrigger>
           </TabsList>
 
-          {/* ── PORTFOLIO TAB ── */}
-          <TabsContent value="portfolio">
-            {/* Upload Section */}
+          {/* ── DASHBOARD TAB ── */}
+          <TabsContent value="dashboard">
             <UploadSection onImport={handleImportRows} />
 
-            {/* Manual Entry */}
             <section className="fintech-card p-6 mb-6">
               <h2
                 className="text-base font-bold mb-5 flex items-center gap-2"
@@ -1572,7 +1666,6 @@ export default function App() {
                 <Plus size={18} style={{ color: "#B8FF4A" }} />
                 Add Portfolio Entry
               </h2>
-
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
                 <div>
                   <label
@@ -1648,7 +1741,6 @@ export default function App() {
                   />
                 </div>
               </div>
-
               <div className="flex items-center gap-3 mb-6">
                 <button
                   type="button"
@@ -1675,7 +1767,6 @@ export default function App() {
                   </button>
                 )}
               </div>
-
               {entries.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -1790,7 +1881,6 @@ export default function App() {
                   </div>
                 </div>
               )}
-
               <div className="mt-6 flex justify-center">
                 <button
                   type="button"
@@ -1822,270 +1912,288 @@ export default function App() {
 
           {/* ── ANALYSIS TAB ── */}
           <TabsContent value="analysis">
-            {!analyzed ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="fintech-card p-12 flex flex-col items-center justify-center gap-4 text-center"
-                data-ocid="analysis.empty_state"
-              >
-                <BarChart3 size={48} style={{ color: "#24303A" }} />
-                <p className="text-sm" style={{ color: "#9AA6B2" }}>
-                  Go to Portfolio tab and click{" "}
-                  <span style={{ color: "#B8FF4A" }}>Analyze Portfolio</span> to
-                  see your results.
-                </p>
-              </motion.div>
-            ) : !consentGiven ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="fintech-card p-10 flex flex-col items-center justify-center gap-6 text-center"
-                data-ocid="consent.section"
-              >
-                <Shield size={48} style={{ color: "#B8FF4A" }} />
-                <div>
-                  <h3
-                    className="text-lg font-bold mb-2"
-                    style={{ color: "#EAF0F6" }}
-                  >
-                    Before viewing your analysis
-                  </h3>
-                  <p className="text-sm" style={{ color: "#9AA6B2" }}>
-                    Please acknowledge the disclaimer below to proceed.
-                  </p>
-                </div>
-                <label
-                  className="flex items-center gap-3 cursor-pointer group"
-                  data-ocid="consent.checkbox"
-                >
-                  <input
-                    type="checkbox"
-                    checked={consentGiven}
-                    onChange={(e) => setConsentGiven(e.target.checked)}
-                    className="w-5 h-5 accent-[#B8FF4A] cursor-pointer"
-                  />
-                  <span
-                    className="text-sm font-medium"
-                    style={{ color: "#EAF0F6" }}
-                  >
-                    I understand this is{" "}
-                    <span style={{ color: "#B8FF4A" }}>
-                      not investment advice
-                    </span>{" "}
-                    and investments are subject to market risks.
-                  </span>
-                </label>
-              </motion.div>
-            ) : (
-              <AnimatePresence>
+            {/* Analysis Sub-Navigation */}
+            <div
+              className="mb-5 flex flex-wrap gap-2"
+              data-ocid="analysis.panel"
+            >
+              {[
+                { id: "financial-analysis", label: "📊 Financial Analysis" },
+                { id: "trends", label: "📈 Trends" },
+                { id: "investor-protection", label: "🛡 Investor Protection" },
+                { id: "sip-calculator", label: "💰 SIP Calculator" },
+                { id: "kyc-checklist", label: "✅ KYC Checklist" },
+                { id: "risk-profile", label: "🧠 Risk Profile" },
+              ].map((t) => (
+                <SubNavBtn
+                  key={t.id}
+                  id={t.id}
+                  label={t.label}
+                  current={analysisSubTab}
+                  onClick={() => setAnalysisSubTab(t.id)}
+                />
+              ))}
+            </div>
+
+            {/* Financial Analysis Sub-Tab */}
+            {analysisSubTab === "financial-analysis" &&
+              (!analyzed ? (
                 <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  data-ocid="dashboard.section"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="fintech-card p-12 flex flex-col items-center justify-center gap-4 text-center"
+                  data-ocid="analysis.empty_state"
                 >
-                  {/* Summary Cards Row 1 */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-                    <SummaryCard
-                      icon={<Wallet size={16} />}
-                      label="Total Assets"
-                      value={formatINR(totalAssets)}
-                      sub={`${entries.filter((e) => e.type === "Asset").length} entries`}
-                      highlight="neon"
-                    />
-                    <SummaryCard
-                      icon={<Scale size={16} />}
-                      label="Total Liabilities"
-                      value={formatINR(totalLiabilities)}
-                      sub={`${entries.filter((e) => e.type === "Liability").length} entries`}
-                      highlight="red"
-                    />
-                    <SummaryCard
-                      icon={<BarChart3 size={16} />}
-                      label="Net Worth"
-                      value={formatINR(netWorth)}
-                      sub={
-                        netWorth >= 0
-                          ? "Positive net worth"
-                          : "Negative — focus on debt"
-                      }
-                      highlight={netWorth >= 0 ? "neon" : "red"}
-                    />
-                  </div>
-
-                  {/* Advanced Metrics Row 2 */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-                    <MetricCard
-                      label="Equity %"
-                      value={`${equityPct.toFixed(1)}%`}
-                      color="#B8FF4A"
-                    />
-                    <MetricCard
-                      label="Debt %"
-                      value={`${debtPct.toFixed(1)}%`}
-                      color="#4AB8FF"
-                    />
-                    <MetricCard
-                      label="Cash %"
-                      value={`${cashPct.toFixed(1)}%`}
-                      color="#FFD74A"
-                    />
-                    <MetricCard
-                      label="Gold %"
-                      value={`${goldPct.toFixed(1)}%`}
-                      color="#FF9A4A"
-                    />
-                    <MetricCard
-                      label="Liability/Asset"
-                      value={liabToAsset.toFixed(2)}
-                      color={
-                        liabToAsset > 0.6
-                          ? "#FF4A4A"
-                          : liabToAsset > 0.4
-                            ? "#FFB84A"
-                            : "#B8FF4A"
-                      }
-                    />
-                    <MetricCard
-                      label="Mutual Funds %"
-                      value={`${mfPct.toFixed(1)}%`}
-                      color="#C74AFF"
-                    />
-                  </div>
-
-                  {/* Financial Summary */}
-                  <div className="fintech-card p-6 mb-6">
-                    <h2
-                      className="text-sm font-bold mb-5 flex items-center gap-2"
-                      style={{ color: "#EAF0F6" }}
-                    >
-                      <Info size={16} style={{ color: "#B8FF4A" }} />
-                      Financial Summary
-                    </h2>
-                    <div className="grid grid-cols-3 gap-6">
-                      <StatusBadge
-                        label="Risk Level"
-                        status={riskLevel}
-                        positive={riskPositive}
-                      />
-                      <StatusBadge
-                        label="Liquidity Status"
-                        status={liquidityStatus}
-                        positive={liquidityPositive}
-                      />
-                      <StatusBadge
-                        label="Overall Health"
-                        status={healthLabel}
-                        positive={healthPositive}
-                      />
-                    </div>
-                  </div>
+                  <BarChart3 size={48} style={{ color: "#24303A" }} />
+                  <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                    Go to Dashboard tab and click{" "}
+                    <span style={{ color: "#B8FF4A" }}>Analyze Portfolio</span>{" "}
+                    to see your results.
+                  </p>
                 </motion.div>
-
-                {/* Health Score + Pie */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="fintech-card p-6">
-                    <h2
-                      className="text-sm font-bold mb-4 flex items-center gap-2"
+              ) : !consentGiven ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="fintech-card p-10 flex flex-col items-center justify-center gap-6 text-center"
+                  data-ocid="consent.section"
+                >
+                  <Shield size={48} style={{ color: "#B8FF4A" }} />
+                  <div>
+                    <h3
+                      className="text-lg font-bold mb-2"
                       style={{ color: "#EAF0F6" }}
                     >
-                      <Activity size={16} style={{ color: "#B8FF4A" }} />
-                      Financial Health Score
-                    </h2>
-                    <HealthGauge score={score} />
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      {scoreItems.map((item) => {
-                        const pct = (item.score / item.maxScore) * 100;
-                        return (
-                          <div
-                            key={item.label}
-                            className="rounded-xl p-3"
-                            style={{
-                              background: "#0F141B",
-                              border: "1px solid #24303A",
-                            }}
-                          >
-                            <div
-                              className="text-xs mb-1.5"
-                              style={{ color: "#9AA6B2" }}
-                            >
-                              {item.label}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="flex-1 h-1.5 rounded-full"
-                                style={{ background: "#1F2A38" }}
-                              >
-                                <div
-                                  className="h-full rounded-full transition-all"
-                                  style={{
-                                    width: `${pct}%`,
-                                    background:
-                                      pct >= 70
-                                        ? "#B8FF4A"
-                                        : pct >= 40
-                                          ? "#FFB84A"
-                                          : "#FF4A4A",
-                                    transition: "width 1s ease",
-                                  }}
-                                />
-                              </div>
-                              <span
-                                className="text-xs font-bold"
-                                style={{ color: "#EAF0F6" }}
-                              >
-                                {item.score}/{item.maxScore}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                      Before viewing your analysis
+                    </h3>
+                    <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                      Please acknowledge the disclaimer below to proceed.
+                    </p>
                   </div>
-
-                  <div className="fintech-card p-6">
-                    <h2
-                      className="text-sm font-bold mb-4 flex items-center gap-2"
+                  <label
+                    className="flex items-center gap-3 cursor-pointer group"
+                    data-ocid="consent.checkbox"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={consentGiven}
+                      onChange={(e) => setConsentGiven(e.target.checked)}
+                      className="w-5 h-5 accent-[#B8FF4A] cursor-pointer"
+                    />
+                    <span
+                      className="text-sm font-medium"
                       style={{ color: "#EAF0F6" }}
                     >
-                      <BarChart3 size={16} style={{ color: "#B8FF4A" }} />
-                      Asset Allocation
-                    </h2>
-                    {pieData.length > 0 ? (
-                      <>
-                        <ResponsiveContainer width="100%" height={200}>
-                          <PieChart>
-                            <Pie
-                              data={pieData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={55}
-                              outerRadius={85}
-                              paddingAngle={3}
-                              dataKey="value"
+                      I understand this is{" "}
+                      <span style={{ color: "#B8FF4A" }}>
+                        not investment advice
+                      </span>{" "}
+                      and investments are subject to market risks.
+                    </span>
+                  </label>
+                </motion.div>
+              ) : (
+                <AnimatePresence>
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    data-ocid="dashboard.section"
+                  >
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+                      <SummaryCard
+                        icon={<Wallet size={16} />}
+                        label="Total Assets"
+                        value={formatINR(totalAssets)}
+                        sub={`${entries.filter((e) => e.type === "Asset").length} entries`}
+                        highlight="neon"
+                      />
+                      <SummaryCard
+                        icon={<Scale size={16} />}
+                        label="Total Liabilities"
+                        value={formatINR(totalLiabilities)}
+                        sub={`${entries.filter((e) => e.type === "Liability").length} entries`}
+                        highlight="red"
+                      />
+                      <SummaryCard
+                        icon={<BarChart3 size={16} />}
+                        label="Net Worth"
+                        value={formatINR(netWorth)}
+                        sub={
+                          netWorth >= 0
+                            ? "Positive net worth"
+                            : "Negative — focus on debt"
+                        }
+                        highlight={netWorth >= 0 ? "neon" : "red"}
+                      />
+                    </div>
+                    {/* Metrics */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                      <MetricCard
+                        label="Equity %"
+                        value={`${equityPct.toFixed(1)}%`}
+                        color="#B8FF4A"
+                      />
+                      <MetricCard
+                        label="Debt %"
+                        value={`${debtPct.toFixed(1)}%`}
+                        color="#4AB8FF"
+                      />
+                      <MetricCard
+                        label="Cash %"
+                        value={`${cashPct.toFixed(1)}%`}
+                        color="#FFD74A"
+                      />
+                      <MetricCard
+                        label="Gold %"
+                        value={`${goldPct.toFixed(1)}%`}
+                        color="#FF9A4A"
+                      />
+                      <MetricCard
+                        label="Liability/Asset"
+                        value={liabToAsset.toFixed(2)}
+                        color={
+                          liabToAsset > 0.6
+                            ? "#FF4A4A"
+                            : liabToAsset > 0.4
+                              ? "#FFB84A"
+                              : "#B8FF4A"
+                        }
+                      />
+                      <MetricCard
+                        label="Mutual Funds %"
+                        value={`${mfPct.toFixed(1)}%`}
+                        color="#C74AFF"
+                      />
+                    </div>
+                    {/* Financial Summary */}
+                    <div className="fintech-card p-6 mb-6">
+                      <h2
+                        className="text-sm font-bold mb-5 flex items-center gap-2"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        <Info size={16} style={{ color: "#B8FF4A" }} />
+                        Financial Summary
+                      </h2>
+                      <div className="grid grid-cols-3 gap-6">
+                        <StatusBadge
+                          label="Risk Level"
+                          status={riskLevel}
+                          positive={riskPositive}
+                        />
+                        <StatusBadge
+                          label="Liquidity Status"
+                          status={liquidityStatus}
+                          positive={liquidityPositive}
+                        />
+                        <StatusBadge
+                          label="Overall Health"
+                          status={healthLabel}
+                          positive={healthPositive}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Health Score + Pie */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="fintech-card p-6">
+                      <h2
+                        className="text-sm font-bold mb-4 flex items-center gap-2"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        <Activity size={16} style={{ color: "#B8FF4A" }} />
+                        Financial Health Score
+                      </h2>
+                      <HealthGauge score={score} />
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        {scoreItems.map((item) => {
+                          const pct = (item.score / item.maxScore) * 100;
+                          return (
+                            <div
+                              key={item.label}
+                              className="rounded-xl p-3"
+                              style={{
+                                background: "#0F141B",
+                                border: "1px solid #24303A",
+                              }}
                             >
-                              {pieData.map((entry) => (
-                                <Cell
-                                  key={entry.name}
-                                  fill={
-                                    CATEGORY_COLORS[entry.name as Category] ||
-                                    "#B8FF4A"
-                                  }
-                                  stroke="#0F141B"
-                                  strokeWidth={2}
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip content={<CustomTooltip />} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                          {pieData.map((d) => {
-                            const pct = ((d.value / totalAssets) * 100).toFixed(
-                              1,
-                            );
-                            return (
+                              <div
+                                className="text-xs mb-1.5"
+                                style={{ color: "#9AA6B2" }}
+                              >
+                                {item.label}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="flex-1 h-1.5 rounded-full"
+                                  style={{ background: "#1F2A38" }}
+                                >
+                                  <div
+                                    className="h-full rounded-full transition-all"
+                                    style={{
+                                      width: `${pct}%`,
+                                      background:
+                                        pct >= 70
+                                          ? "#B8FF4A"
+                                          : pct >= 40
+                                            ? "#FFB84A"
+                                            : "#FF4A4A",
+                                      transition: "width 1s ease",
+                                    }}
+                                  />
+                                </div>
+                                <span
+                                  className="text-xs font-bold"
+                                  style={{ color: "#EAF0F6" }}
+                                >
+                                  {item.score}/{item.maxScore}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="fintech-card p-6">
+                      <h2
+                        className="text-sm font-bold mb-4 flex items-center gap-2"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        <BarChart3 size={16} style={{ color: "#B8FF4A" }} />
+                        Asset Allocation
+                      </h2>
+                      {pieData.length > 0 ? (
+                        <>
+                          <ResponsiveContainer width="100%" height={200}>
+                            <PieChart>
+                              <Pie
+                                data={pieData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={85}
+                                paddingAngle={3}
+                                dataKey="value"
+                              >
+                                {pieData.map((entry) => (
+                                  <Cell
+                                    key={entry.name}
+                                    fill={
+                                      CATEGORY_COLORS[entry.name as Category] ||
+                                      "#B8FF4A"
+                                    }
+                                    stroke="#0F141B"
+                                    strokeWidth={2}
+                                  />
+                                ))}
+                              </Pie>
+                              <Tooltip content={<CustomTooltip />} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            {pieData.map((d) => (
                               <div
                                 key={d.name}
                                 className="flex items-center gap-2 text-xs"
@@ -2104,445 +2212,532 @@ export default function App() {
                                   className="font-bold ml-auto"
                                   style={{ color: "#EAF0F6" }}
                                 >
-                                  {pct}%
+                                  {((d.value / totalAssets) * 100).toFixed(1)}%
                                 </span>
                               </div>
-                            );
-                          })}
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div
+                          className="flex items-center justify-center h-40"
+                          style={{ color: "#9AA6B2", fontSize: 13 }}
+                        >
+                          No asset data to display
                         </div>
-                      </>
-                    ) : (
-                      <div
-                        className="flex items-center justify-center h-40"
-                        style={{ color: "#9AA6B2", fontSize: 13 }}
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Insights + Actions */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="fintech-card p-6">
+                      <h2
+                        className="text-sm font-bold mb-4 flex items-center gap-2"
+                        style={{ color: "#EAF0F6" }}
                       >
-                        No asset data to display
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Insights + Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="fintech-card p-6">
-                    <h2
-                      className="text-sm font-bold mb-4 flex items-center gap-2"
-                      style={{ color: "#EAF0F6" }}
-                    >
-                      <AlertTriangle size={16} style={{ color: "#B8FF4A" }} />
-                      Smart Insights
-                    </h2>
-                    <div className="space-y-2">
-                      {insights.map((ins, idx) => (
-                        <motion.div
-                          key={ins.message}
-                          data-ocid={`insight.item.${idx + 1}`}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: idx * 0.1 }}
-                          className={`insight-tile ${ins.severity}`}
-                        >
-                          <div className="flex items-start gap-2">
-                            <span className="flex-shrink-0 mt-0.5">
-                              {insightIcon(ins.severity)}
-                            </span>
-                            <span
-                              className="text-sm"
-                              style={{ color: "#EAF0F6", lineHeight: 1.5 }}
-                            >
-                              {ins.message}
-                            </span>
-                            <ChevronRight
-                              size={14}
-                              style={{
-                                color: "#9AA6B2",
-                                flexShrink: 0,
-                                marginLeft: "auto",
-                              }}
-                            />
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="fintech-card p-6">
-                    <h2
-                      className="text-sm font-bold mb-4 flex items-center gap-2"
-                      style={{ color: "#EAF0F6" }}
-                    >
-                      <TrendingUp size={16} style={{ color: "#B8FF4A" }} />
-                      Action Recommendations
-                    </h2>
-                    <div className="space-y-3">
-                      {actions.map((action, idx) => (
-                        <motion.div
-                          key={action.message}
-                          data-ocid={`action.item.${idx + 1}`}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: idx * 0.12 + 0.1 }}
-                          className="rounded-xl p-4"
-                          style={{
-                            background: "#0F141B",
-                            border: "1px solid #24303A",
-                          }}
-                        >
-                          <div className="flex gap-3">
-                            <div
-                              className="w-1 rounded-full flex-shrink-0"
-                              style={{
-                                background:
-                                  action.severity === "danger"
-                                    ? "#FF4A4A"
-                                    : action.severity === "warning"
-                                      ? "#FFB84A"
-                                      : action.severity === "info"
-                                        ? "#4AB8FF"
-                                        : "#B8FF4A",
-                              }}
-                            />
-                            <p
-                              className="text-sm"
-                              style={{ color: "#9AA6B2", lineHeight: 1.6 }}
-                            >
-                              {action.message}
-                            </p>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Portfolio Breakdown Bars */}
-                <div className="fintech-card p-6 mb-6">
-                  <h2
-                    className="text-sm font-bold mb-4 flex items-center gap-2"
-                    style={{ color: "#EAF0F6" }}
-                  >
-                    <BarChart3 size={16} style={{ color: "#B8FF4A" }} />
-                    Portfolio Breakdown
-                  </h2>
-                  <div className="space-y-3">
-                    {pieData.map((d) => {
-                      const pct =
-                        totalAssets > 0 ? (d.value / totalAssets) * 100 : 0;
-                      return (
-                        <div key={d.name}>
-                          <div className="flex justify-between text-xs mb-1.5">
-                            <span
-                              className="font-medium"
-                              style={{ color: "#EAF0F6" }}
-                            >
-                              {d.name}
-                            </span>
-                            <span
-                              style={{
-                                color: CATEGORY_COLORS[d.name as Category],
-                              }}
-                            >
-                              {pct.toFixed(1)}% — {formatINR(d.value)}
-                            </span>
-                          </div>
-                          <div
-                            className="h-2 rounded-full"
-                            style={{ background: "#1F2A38" }}
+                        <AlertTriangle size={16} style={{ color: "#B8FF4A" }} />
+                        Smart Insights
+                      </h2>
+                      <div className="space-y-2">
+                        {insights.map((ins, idx) => (
+                          <motion.div
+                            key={ins.message}
+                            data-ocid={`insight.item.${idx + 1}`}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            className={`insight-tile ${ins.severity}`}
                           >
-                            <motion.div
-                              className="h-full rounded-full"
-                              style={{
-                                background: CATEGORY_COLORS[d.name as Category],
-                              }}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${pct}%` }}
-                              transition={{
-                                duration: 1,
-                                ease: "easeOut",
-                                delay: 0.2,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* ─── Peer Benchmarks ─── */}
-                <div
-                  className="fintech-card p-6 mt-6"
-                  data-ocid="peer_benchmarks.section"
-                >
-                  <h3
-                    className="text-sm font-bold mb-4 flex items-center gap-2"
-                    style={{ color: "#EAF0F6" }}
-                  >
-                    <Activity size={16} style={{ color: "#B8FF4A" }} />
-                    Peer Benchmarks
-                    <span
-                      className="text-xs font-normal ml-1"
-                      style={{ color: "#9AA6B2" }}
-                    >
-                      vs FinHealth India users
-                    </span>
-                  </h3>
-                  {(() => {
-                    const assets = entries.filter((e) => e.type === "Asset");
-                    const total = assets.reduce((s, e) => s + e.amount, 0);
-                    const liabilities = entries
-                      .filter((e) => e.type === "Liability")
-                      .reduce((s, e) => s + e.amount, 0);
-                    const cats = new Set(assets.map((e) => e.category)).size;
-                    const netWorthVal = total - liabilities;
-
-                    // Hardcoded percentile benchmarks
-                    const divPercentile =
-                      cats >= 5
-                        ? 92
-                        : cats >= 4
-                          ? 78
-                          : cats >= 3
-                            ? 55
-                            : cats >= 2
-                              ? 35
-                              : 15;
-                    const scorePercentile =
-                      score >= 75
-                        ? 88
-                        : score >= 60
-                          ? 65
-                          : score >= 45
-                            ? 42
-                            : 22;
-                    const nwPercentile =
-                      netWorthVal >= 5000000
-                        ? 85
-                        : netWorthVal >= 2000000
-                          ? 68
-                          : netWorthVal >= 500000
-                            ? 45
-                            : netWorthVal >= 100000
-                              ? 28
-                              : 12;
-
-                    const getBadgeColor = (pct: number) =>
-                      pct >= 75 ? "#B8FF4A" : pct >= 50 ? "#FFD74A" : "#FF4A4A";
-                    const getLabel = (pct: number) =>
-                      pct >= 75
-                        ? `Top ${100 - pct}%`
-                        : pct >= 50
-                          ? "Above Average"
-                          : "Room to Grow";
-
-                    return (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {[
-                          {
-                            label: "Diversification",
-                            pct: divPercentile,
-                            detail: `${cats} asset classes`,
-                          },
-                          {
-                            label: "Health Score",
-                            pct: scorePercentile,
-                            detail: `${score}/100`,
-                          },
-                          {
-                            label: "Net Worth",
-                            pct: nwPercentile,
-                            detail: formatINR(netWorthVal),
-                          },
-                        ].map((b) => (
-                          <div
-                            key={b.label}
-                            className="p-4 rounded-xl flex items-center gap-3"
+                            <div className="flex items-start gap-2">
+                              <span className="flex-shrink-0 mt-0.5">
+                                {insightIcon(ins.severity)}
+                              </span>
+                              <span
+                                className="text-sm"
+                                style={{ color: "#EAF0F6", lineHeight: 1.5 }}
+                              >
+                                {ins.message}
+                              </span>
+                              <ChevronRight
+                                size={14}
+                                style={{
+                                  color: "#9AA6B2",
+                                  flexShrink: 0,
+                                  marginLeft: "auto",
+                                }}
+                              />
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="fintech-card p-6">
+                      <h2
+                        className="text-sm font-bold mb-4 flex items-center gap-2"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        <TrendingUp size={16} style={{ color: "#B8FF4A" }} />
+                        Action Recommendations
+                      </h2>
+                      <div className="space-y-3">
+                        {actions.map((action, idx) => (
+                          <motion.div
+                            key={action.message}
+                            data-ocid={`action.item.${idx + 1}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.12 + 0.1 }}
+                            className="rounded-xl p-4"
                             style={{
                               background: "#0F141B",
                               border: "1px solid #24303A",
                             }}
                           >
-                            <div
-                              className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold"
-                              style={{
-                                background: `${getBadgeColor(b.pct)}22`,
-                                color: getBadgeColor(b.pct),
-                                border: `1.5px solid ${getBadgeColor(b.pct)}55`,
-                              }}
-                            >
-                              {b.pct}%
+                            <div className="flex gap-3">
+                              <div
+                                className="w-1 rounded-full flex-shrink-0"
+                                style={{
+                                  background:
+                                    action.severity === "danger"
+                                      ? "#FF4A4A"
+                                      : action.severity === "warning"
+                                        ? "#FFB84A"
+                                        : action.severity === "info"
+                                          ? "#4AB8FF"
+                                          : "#B8FF4A",
+                                }}
+                              />
+                              <p
+                                className="text-sm"
+                                style={{ color: "#9AA6B2", lineHeight: 1.6 }}
+                              >
+                                {action.message}
+                              </p>
                             </div>
-                            <div>
-                              <div
-                                className="text-xs font-semibold"
-                                style={{ color: "#EAF0F6" }}
-                              >
-                                {b.label}
-                              </div>
-                              <div
-                                className="text-xs"
-                                style={{ color: getBadgeColor(b.pct) }}
-                              >
-                                {getLabel(b.pct)}
-                              </div>
-                              <div
-                                className="text-xs mt-0.5"
-                                style={{ color: "#9AA6B2" }}
-                              >
-                                {b.detail}
-                              </div>
-                            </div>
-                          </div>
+                          </motion.div>
                         ))}
                       </div>
-                    );
-                  })()}
-                  <p className="text-xs mt-3" style={{ color: "#9AA6B2" }}>
-                    * Based on anonymized FinHealth India user data (percentile
-                    rankings)
-                  </p>
-                </div>
-              </AnimatePresence>
-            )}
-          </TabsContent>
+                    </div>
+                  </div>
 
-          {/* ── TRENDS TAB ── */}
-          <TabsContent value="trends">
-            <div className="fintech-card p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2
-                  className="text-base font-bold flex items-center gap-2"
-                  style={{ color: "#EAF0F6" }}
-                >
-                  <TrendingUp size={18} style={{ color: "#B8FF4A" }} />
-                  Net Worth Trend
-                </h2>
-                {trendGrowth !== null && (
-                  <span
-                    className="text-sm font-bold px-3 py-1 rounded-full"
-                    style={{
-                      background:
-                        Number(trendGrowth) >= 0
-                          ? "rgba(184,255,74,0.1)"
-                          : "rgba(255,74,74,0.1)",
-                      color: Number(trendGrowth) >= 0 ? "#B8FF4A" : "#FF4A4A",
-                      border: `1px solid ${Number(trendGrowth) >= 0 ? "rgba(184,255,74,0.3)" : "rgba(255,74,74,0.3)"}`,
-                    }}
+                  {/* Alerts Panel */}
+                  <div
+                    className="fintech-card p-5 mb-6"
+                    data-ocid="dashboard.alerts.panel"
                   >
-                    {Number(trendGrowth) >= 0 ? "+" : ""}
-                    {trendGrowth}% overall
-                  </span>
-                )}
-              </div>
-
-              {trendData.length >= 2 ? (
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart
-                    data={trendData}
-                    margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                  >
-                    <CartesianGrid stroke="#1A2230" strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fill: "#9AA6B2", fontSize: 11 }}
-                      axisLine={{ stroke: "#24303A" }}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tickFormatter={(v: number) => formatINR(v)}
-                      tick={{ fill: "#9AA6B2", fontSize: 11 }}
-                      axisLine={{ stroke: "#24303A" }}
-                      tickLine={false}
-                      width={80}
-                    />
-                    <Tooltip content={<TrendTooltip />} />
-                    <Line
-                      type="monotone"
-                      dataKey="netWorth"
-                      stroke="#B8FF4A"
-                      strokeWidth={2.5}
-                      dot={{ fill: "#B8FF4A", r: 4, strokeWidth: 0 }}
-                      activeDot={{ fill: "#B8FF4A", r: 6, strokeWidth: 0 }}
-                      style={{
-                        filter: "drop-shadow(0 0 6px rgba(184,255,74,0.5))",
-                      }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div
-                  className="flex flex-col items-center justify-center gap-3 py-16"
-                  data-ocid="trends.empty_state"
-                >
-                  <TrendingUp size={40} style={{ color: "#24303A" }} />
-                  <p
-                    className="text-sm text-center"
-                    style={{ color: "#9AA6B2" }}
-                  >
-                    No trend data yet.{" "}
-                    <span style={{ color: "#B8FF4A" }}>
-                      Analyze your portfolio
-                    </span>{" "}
-                    at least twice to see the net worth trend.
-                  </p>
-                  <p className="text-xs" style={{ color: "#9AA6B2" }}>
-                    Current net worth:{" "}
-                    <span
-                      style={{
-                        color: netWorth >= 0 ? "#B8FF4A" : "#FF4A4A",
-                        fontWeight: 700,
-                      }}
+                    <h2
+                      className="text-sm font-bold mb-4 flex items-center gap-2"
+                      style={{ color: "#EAF0F6" }}
                     >
-                      {formatINR(netWorth)}
-                    </span>
-                  </p>
-                </div>
-              )}
-
-              {history.length > 0 && (
-                <div className="mt-6">
-                  <h3
-                    className="text-xs font-semibold uppercase tracking-wider mb-3"
-                    style={{ color: "#9AA6B2" }}
-                  >
-                    History ({history.length} snapshots)
-                  </h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {[...history].reverse().map((h, i) => (
-                      <div
-                        key={h.timestamp}
-                        data-ocid={`trends.item.${i + 1}`}
-                        className="flex items-center justify-between text-xs px-3 py-2 rounded-lg"
-                        style={{
-                          background: "#0F141B",
-                          border: "1px solid #24303A",
-                        }}
-                      >
-                        <span style={{ color: "#9AA6B2" }}>
-                          {new Date(h.timestamp).toLocaleString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                        <span
-                          className="font-bold"
+                      <AlertTriangle size={16} style={{ color: "#FFBE0B" }} />
+                      Portfolio Alerts
+                    </h2>
+                    <div className="space-y-2">
+                      {cashPct < 10 && totalAssets > 0 && (
+                        <div
+                          className="flex items-start gap-3 p-3 rounded-xl text-xs"
                           style={{
-                            color: h.netWorth >= 0 ? "#B8FF4A" : "#FF4A4A",
+                            background: "rgba(255,190,11,0.08)",
+                            border: "1px solid rgba(255,190,11,0.25)",
                           }}
                         >
-                          {formatINR(h.netWorth)}
-                        </span>
-                      </div>
-                    ))}
+                          <span style={{ color: "#FFBE0B" }}>⚠️</span>
+                          <span style={{ color: "#EAF0F6" }}>
+                            Low emergency fund — less than 10% in cash. Add at
+                            least{" "}
+                            {formatINR(totalAssets * 0.1 - getCatAmt("Cash"))}{" "}
+                            to reach safety threshold.
+                          </span>
+                        </div>
+                      )}
+                      {(!userProfile?.goals ||
+                        userProfile.goals.length === 0) && (
+                        <div
+                          className="flex items-start gap-3 p-3 rounded-xl text-xs"
+                          style={{
+                            background: "rgba(74,184,255,0.08)",
+                            border: "1px solid rgba(74,184,255,0.25)",
+                          }}
+                        >
+                          <span style={{ color: "#4AB8FF" }}>⚠️</span>
+                          <span style={{ color: "#EAF0F6" }}>
+                            No financial goals set — complete your profile to
+                            track goal readiness and improve your FinHealth
+                            Score.
+                          </span>
+                        </div>
+                      )}
+                      {equityPct > 80 && (
+                        <div
+                          className="flex items-start gap-3 p-3 rounded-xl text-xs"
+                          style={{
+                            background: "rgba(255,74,74,0.08)",
+                            border: "1px solid rgba(255,74,74,0.25)",
+                          }}
+                        >
+                          <span style={{ color: "#FF4A4A" }}>⚠️</span>
+                          <span style={{ color: "#EAF0F6" }}>
+                            High equity concentration ({equityPct.toFixed(0)}%)
+                            — consider rebalancing. Shift{" "}
+                            {formatINR(getCatAmt("Equity") - totalAssets * 0.7)}{" "}
+                            to debt/gold.
+                          </span>
+                        </div>
+                      )}
+                      {cashPct >= 10 &&
+                        (userProfile?.goals?.length ?? 0) > 0 &&
+                        equityPct <= 80 && (
+                          <div
+                            className="flex items-center gap-3 p-3 rounded-xl text-xs"
+                            style={{
+                              background: "rgba(184,255,74,0.06)",
+                              border: "1px solid rgba(184,255,74,0.2)",
+                            }}
+                          >
+                            <span>✅</span>
+                            <span style={{ color: "#B8FF4A" }}>
+                              No critical alerts — your portfolio looks
+                              well-structured.
+                            </span>
+                          </div>
+                        )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
 
-            {/* ── INVESTOR PROTECTION TAB ── */}
-            <TabsContent value="investor-protection">
+                  {/* Referral Card */}
+                  <div className="mb-6">
+                    <ReferralCard />
+                  </div>
+
+                  {/* Portfolio Breakdown */}
+                  <div className="fintech-card p-6 mb-6">
+                    <h2
+                      className="text-sm font-bold mb-4 flex items-center gap-2"
+                      style={{ color: "#EAF0F6" }}
+                    >
+                      <BarChart3 size={16} style={{ color: "#B8FF4A" }} />
+                      Portfolio Breakdown
+                    </h2>
+                    <div className="space-y-3">
+                      {pieData.map((d) => {
+                        const pct =
+                          totalAssets > 0 ? (d.value / totalAssets) * 100 : 0;
+                        return (
+                          <div key={d.name}>
+                            <div className="flex justify-between text-xs mb-1.5">
+                              <span
+                                className="font-medium"
+                                style={{ color: "#EAF0F6" }}
+                              >
+                                {d.name}
+                              </span>
+                              <span
+                                style={{
+                                  color: CATEGORY_COLORS[d.name as Category],
+                                }}
+                              >
+                                {pct.toFixed(1)}% — {formatINR(d.value)}
+                              </span>
+                            </div>
+                            <div
+                              className="h-2 rounded-full"
+                              style={{ background: "#1F2A38" }}
+                            >
+                              <motion.div
+                                className="h-full rounded-full"
+                                style={{
+                                  background:
+                                    CATEGORY_COLORS[d.name as Category],
+                                }}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{
+                                  duration: 1,
+                                  ease: "easeOut",
+                                  delay: 0.2,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Peer Benchmarks */}
+                  <div
+                    className="fintech-card p-6 mt-6"
+                    data-ocid="peer_benchmarks.section"
+                  >
+                    <h3
+                      className="text-sm font-bold mb-4 flex items-center gap-2"
+                      style={{ color: "#EAF0F6" }}
+                    >
+                      <Activity size={16} style={{ color: "#B8FF4A" }} />
+                      Peer Benchmarks
+                      <span
+                        className="text-xs font-normal ml-1"
+                        style={{ color: "#9AA6B2" }}
+                      >
+                        vs FinHealth India users
+                      </span>
+                    </h3>
+                    {(() => {
+                      const assets2 = entries.filter((e) => e.type === "Asset");
+                      const total2 = assets2.reduce((s, e) => s + e.amount, 0);
+                      const liabilities2 = entries
+                        .filter((e) => e.type === "Liability")
+                        .reduce((s, e) => s + e.amount, 0);
+                      const cats2 = new Set(assets2.map((e) => e.category))
+                        .size;
+                      const nw2 = total2 - liabilities2;
+                      const divPct =
+                        cats2 >= 5
+                          ? 92
+                          : cats2 >= 4
+                            ? 78
+                            : cats2 >= 3
+                              ? 55
+                              : cats2 >= 2
+                                ? 35
+                                : 15;
+                      const scorePct =
+                        score >= 75
+                          ? 88
+                          : score >= 60
+                            ? 65
+                            : score >= 45
+                              ? 42
+                              : 22;
+                      const nwPct =
+                        nw2 >= 5000000
+                          ? 85
+                          : nw2 >= 2000000
+                            ? 68
+                            : nw2 >= 500000
+                              ? 45
+                              : nw2 >= 100000
+                                ? 28
+                                : 12;
+                      const bc = (p: number) =>
+                        p >= 75 ? "#B8FF4A" : p >= 50 ? "#FFD74A" : "#FF4A4A";
+                      const bl = (p: number) =>
+                        p >= 75
+                          ? `Top ${100 - p}%`
+                          : p >= 50
+                            ? "Above Average"
+                            : "Room to Grow";
+                      return (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {[
+                            {
+                              label: "Diversification",
+                              pct: divPct,
+                              detail: `${cats2} asset classes`,
+                            },
+                            {
+                              label: "Health Score",
+                              pct: scorePct,
+                              detail: `${score}/100`,
+                            },
+                            {
+                              label: "Net Worth",
+                              pct: nwPct,
+                              detail: formatINR(nw2),
+                            },
+                          ].map((b) => (
+                            <div
+                              key={b.label}
+                              className="p-4 rounded-xl flex items-center gap-3"
+                              style={{
+                                background: "#0F141B",
+                                border: "1px solid #24303A",
+                              }}
+                            >
+                              <div
+                                className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold"
+                                style={{
+                                  background: `${bc(b.pct)}22`,
+                                  color: bc(b.pct),
+                                  border: `1.5px solid ${bc(b.pct)}55`,
+                                }}
+                              >
+                                {b.pct}%
+                              </div>
+                              <div>
+                                <div
+                                  className="text-xs font-semibold"
+                                  style={{ color: "#EAF0F6" }}
+                                >
+                                  {b.label}
+                                </div>
+                                <div
+                                  className="text-xs"
+                                  style={{ color: bc(b.pct) }}
+                                >
+                                  {bl(b.pct)}
+                                </div>
+                                <div
+                                  className="text-xs mt-0.5"
+                                  style={{ color: "#9AA6B2" }}
+                                >
+                                  {b.detail}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    <p className="text-xs mt-3" style={{ color: "#9AA6B2" }}>
+                      * Based on anonymized FinHealth India user data
+                      (percentile rankings)
+                    </p>
+                  </div>
+                </AnimatePresence>
+              ))}
+
+            {/* Trends Sub-Tab */}
+            {analysisSubTab === "trends" && (
+              <div className="fintech-card p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2
+                    className="text-base font-bold flex items-center gap-2"
+                    style={{ color: "#EAF0F6" }}
+                  >
+                    <TrendingUp size={18} style={{ color: "#B8FF4A" }} />
+                    Net Worth Trend
+                  </h2>
+                  {trendGrowth !== null && (
+                    <span
+                      className="text-sm font-bold px-3 py-1 rounded-full"
+                      style={{
+                        background:
+                          Number(trendGrowth) >= 0
+                            ? "rgba(184,255,74,0.1)"
+                            : "rgba(255,74,74,0.1)",
+                        color: Number(trendGrowth) >= 0 ? "#B8FF4A" : "#FF4A4A",
+                        border: `1px solid ${Number(trendGrowth) >= 0 ? "rgba(184,255,74,0.3)" : "rgba(255,74,74,0.3)"}`,
+                      }}
+                    >
+                      {Number(trendGrowth) >= 0 ? "+" : ""}
+                      {trendGrowth}% overall
+                    </span>
+                  )}
+                </div>
+                {trendData.length >= 2 ? (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart
+                      data={trendData}
+                      margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                    >
+                      <CartesianGrid stroke="#1A2230" strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fill: "#9AA6B2", fontSize: 11 }}
+                        axisLine={{ stroke: "#24303A" }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tickFormatter={(v: number) => formatINR(v)}
+                        tick={{ fill: "#9AA6B2", fontSize: 11 }}
+                        axisLine={{ stroke: "#24303A" }}
+                        tickLine={false}
+                        width={80}
+                      />
+                      <Tooltip content={<TrendTooltip />} />
+                      <Line
+                        type="monotone"
+                        dataKey="netWorth"
+                        stroke="#B8FF4A"
+                        strokeWidth={2.5}
+                        dot={{ fill: "#B8FF4A", r: 4, strokeWidth: 0 }}
+                        activeDot={{ fill: "#B8FF4A", r: 6, strokeWidth: 0 }}
+                        style={{
+                          filter: "drop-shadow(0 0 6px rgba(184,255,74,0.5))",
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div
+                    className="flex flex-col items-center justify-center gap-3 py-16"
+                    data-ocid="trends.empty_state"
+                  >
+                    <TrendingUp size={40} style={{ color: "#24303A" }} />
+                    <p
+                      className="text-sm text-center"
+                      style={{ color: "#9AA6B2" }}
+                    >
+                      No trend data yet.{" "}
+                      <span style={{ color: "#B8FF4A" }}>
+                        Analyze your portfolio
+                      </span>{" "}
+                      at least twice to see the net worth trend.
+                    </p>
+                    <p className="text-xs" style={{ color: "#9AA6B2" }}>
+                      Current net worth:{" "}
+                      <span
+                        style={{
+                          color: netWorth >= 0 ? "#B8FF4A" : "#FF4A4A",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {formatINR(netWorth)}
+                      </span>
+                    </p>
+                  </div>
+                )}
+                {history.length > 0 && (
+                  <div className="mt-6">
+                    <h3
+                      className="text-xs font-semibold uppercase tracking-wider mb-3"
+                      style={{ color: "#9AA6B2" }}
+                    >
+                      History
+                    </h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {[...history].reverse().map((h, i) => (
+                        <div
+                          key={h.timestamp}
+                          data-ocid={`trends.item.${i + 1}`}
+                          className="flex items-center justify-between px-4 py-2.5 rounded-xl"
+                          style={{
+                            background: "#0F141B",
+                            border: "1px solid #24303A",
+                          }}
+                        >
+                          <span
+                            className="text-xs"
+                            style={{ color: "#9AA6B2" }}
+                          >
+                            {new Date(h.timestamp).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                          <span
+                            className="font-bold text-sm"
+                            style={{
+                              color: h.netWorth >= 0 ? "#B8FF4A" : "#FF4A4A",
+                            }}
+                          >
+                            {formatINR(h.netWorth)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Investor Protection Sub-Tab */}
+            {analysisSubTab === "investor-protection" && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2581,7 +2776,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Risk Awareness Module */}
+                {/* Risk Awareness */}
                 <div className="fintech-card p-6">
                   <h3
                     className="text-base font-bold mb-4 flex items-center gap-2"
@@ -2724,13 +2919,7 @@ export default function App() {
                         Investment Horizon
                       </p>
                       <div className="flex gap-3 flex-wrap">
-                        {(
-                          [
-                            ["Short", "< 3 yrs"],
-                            ["Medium", "3–7 yrs"],
-                            ["Long", "> 7 yrs"],
-                          ] as const
-                        ).map(([v, label]) => (
+                        {(["Short", "Medium", "Long"] as const).map((v) => (
                           <button
                             type="button"
                             key={v}
@@ -2747,19 +2936,16 @@ export default function App() {
                               border: `1px solid ${investmentHorizon === v ? "#B8FF4A" : "#24303A"}`,
                             }}
                           >
-                            {v}{" "}
-                            <span className="opacity-70 text-xs">{label}</span>
+                            {v}
                           </button>
                         ))}
                       </div>
                     </div>
-
-                    {/* Mismatch Alert */}
                     {entries.length > 0 &&
                       riskAppetite &&
                       investmentHorizon &&
                       (() => {
-                        const portfolioRisk =
+                        const pRisk =
                           equityPct > 60
                             ? "High"
                             : equityPct > 30
@@ -2767,10 +2953,8 @@ export default function App() {
                               : "Low";
                         const riskMismatch =
                           (riskAppetite === "Low" &&
-                            (portfolioRisk === "High" ||
-                              portfolioRisk === "Medium")) ||
-                          (riskAppetite === "Medium" &&
-                            portfolioRisk === "High");
+                            (pRisk === "High" || pRisk === "Medium")) ||
+                          (riskAppetite === "Medium" && pRisk === "High");
                         const horizonMismatch =
                           equityPct > 60 && investmentHorizon === "Short";
                         const hasMismatch = riskMismatch || horizonMismatch;
@@ -2798,7 +2982,7 @@ export default function App() {
                               />
                             )}
                             {hasMismatch
-                              ? "⚠ Your allocation may not match your risk profile. Consider rebalancing your portfolio."
+                              ? "⚠ Your allocation may not match your risk profile. Consider rebalancing."
                               : "✓ Your portfolio aligns with your risk profile."}
                           </div>
                         );
@@ -2806,7 +2990,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Fraud Awareness Tips */}
+                {/* Fraud Awareness */}
                 <div className="fintech-card p-6">
                   <h3
                     className="text-base font-bold mb-4 flex items-center gap-2"
@@ -2850,8 +3034,7 @@ export default function App() {
                         ✅ Verify SEBI Registration
                       </p>
                       <p className="text-sm" style={{ color: "#9AA6B2" }}>
-                        Always check the SEBI registration of your advisor or
-                        investment product at{" "}
+                        Always check the SEBI registration of your advisor at{" "}
                         <a
                           href="https://sebi.gov.in"
                           target="_blank"
@@ -2869,7 +3052,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Transparency Section */}
+                {/* Transparency */}
                 <div className="fintech-card p-6">
                   <h3
                     className="text-base font-bold mb-4 flex items-center gap-2"
@@ -2959,26 +3142,44 @@ export default function App() {
                   )}
                 </div>
               </motion.div>
-            </TabsContent>
+            )}
+
+            {/* SIP Calculator Sub-Tab */}
+            {analysisSubTab === "sip-calculator" && (
+              <Tabs defaultValue="sip-calculator">
+                <SipCalculatorTab />
+              </Tabs>
+            )}
+
+            {/* KYC Checklist Sub-Tab */}
+            {analysisSubTab === "kyc-checklist" && (
+              <Tabs defaultValue="kyc-checklist">
+                <KycChecklistTab />
+              </Tabs>
+            )}
+
+            {/* Risk Profile Sub-Tab */}
+            {analysisSubTab === "risk-profile" && (
+              <RiskProfileTab entries={entries} />
+            )}
           </TabsContent>
 
-          {/* ── SIP CALCULATOR TAB ── */}
-          <SipCalculatorTab />
-
-          {/* ── KYC CHECKLIST TAB ── */}
-          <KycChecklistTab />
-          {/* -- TOOLS TAB -- */}
+          {/* ── TOOLS TAB ── */}
           <TabsContent value="tools">
             <div className="mb-4 flex flex-wrap gap-2" data-ocid="tools.panel">
               {[
-                { id: "stress-test", label: "Stress Test" },
-                { id: "inflation", label: "Inflation" },
-                { id: "rebalancing", label: "Rebalance" },
-                { id: "tax", label: "Tax Optimizer" },
-                { id: "lifestage", label: "Life Stage" },
-                { id: "gold-sgb", label: "Gold vs SGB" },
-                { id: "investment", label: "Investment Calc" },
-                { id: "loan", label: "Loan Prepayment" },
+                { id: "stress-test", label: "🔥 Stress Test" },
+                { id: "inflation", label: "📉 Inflation" },
+                { id: "rebalancing", label: "⚖️ Rebalance" },
+                { id: "tax", label: "🧾 Tax Optimizer" },
+                { id: "lifestage", label: "🗺 Life Stage" },
+                { id: "gold-sgb", label: "🥇 Gold vs SGB" },
+                { id: "investment", label: "📈 Investment Calc" },
+                { id: "loan", label: "🏠 Loan Prepayment" },
+                { id: "policy-analyzer", label: "📋 Policy Analyzer" },
+                { id: "ulip-sip", label: "⚖️ ULIP vs SIP" },
+                { id: "goal-planner", label: "🎯 Goal Planner" },
+                { id: "spending-analysis", label: "💳 Spending Analysis" },
               ].map((t) => (
                 <button
                   key={t.id}
@@ -3014,9 +3215,23 @@ export default function App() {
               <InvestmentCalculatorTab entries={entries} />
             )}
             {toolsSubTab === "loan" && <LoanPrepaymentTab entries={entries} />}
+            {toolsSubTab === "policy-analyzer" && (
+              <PolicyAnalyzerTab entries={entries} />
+            )}
+            {toolsSubTab === "ulip-sip" && <UlipVsSipTab entries={entries} />}
+            {toolsSubTab === "goal-planner" && (
+              <GoalPlannerTab entries={entries} />
+            )}
+            {toolsSubTab === "spending-analysis" && (
+              <CardAnalysisTab
+                transactions={transactions}
+                onTransactionsChange={handleTransactionsChange}
+                monthlyIncome={userProfile?.income ?? 0}
+              />
+            )}
           </TabsContent>
 
-          {/* -- DNA REPORT TAB -- */}
+          {/* ── REPORTS TAB ── */}
           <TabsContent value="reports">
             <DnaReportTab entries={entries} healthScore={score} />
           </TabsContent>
@@ -3036,10 +3251,11 @@ export default function App() {
             className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs"
             style={{ color: "#9AA6B2" }}
           >
-            <div className="flex gap-4">
-              <span>Support</span>
-              <span>Privacy</span>
-              <span>Legal</span>
+            <div>
+              <p className="text-xs text-center" style={{ color: "#4A5568" }}>
+                ⚠️ This platform is for educational purposes only. Not investment
+                advice. Investments are subject to market risks.
+              </p>
             </div>
             <p>
               © {new Date().getFullYear()}. Built with ♥ using{" "}

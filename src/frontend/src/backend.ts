@@ -90,8 +90,13 @@ export class ExternalBlob {
     }
 }
 export type Portfolio = string;
+export type Transactions = string;
 export interface UserProfile {
     name: string;
+    onboardingComplete: boolean;
+    income: bigint;
+    goals: Array<string>;
+    riskProfile: string;
 }
 export enum UserRole {
     admin = "admin",
@@ -103,11 +108,18 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getFinHealthScore(): Promise<bigint>;
     getPortfolio(): Promise<Portfolio>;
+    getReferralCode(): Promise<string>;
+    getReferralCount(user: Principal): Promise<bigint>;
+    getTransactions(): Promise<Transactions>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    saveFinHealthScore(newScore: bigint): Promise<void>;
     savePortfolio(newPortfolio: Portfolio): Promise<void>;
+    saveTransactions(newTransactions: Transactions): Promise<void>;
+    useReferralCode(referredBy: Principal): Promise<void>;
 }
 import type { UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -168,6 +180,20 @@ export class Backend implements backendInterface {
             return from_candid_UserRole_n4(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getFinHealthScore(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getFinHealthScore();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getFinHealthScore();
+            return result;
+        }
+    }
     async getPortfolio(): Promise<Portfolio> {
         if (this.processError) {
             try {
@@ -179,6 +205,48 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getPortfolio();
+            return result;
+        }
+    }
+    async getReferralCode(): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getReferralCode();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getReferralCode();
+            return result;
+        }
+    }
+    async getReferralCount(arg0: Principal): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getReferralCount(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getReferralCount(arg0);
+            return result;
+        }
+    }
+    async getTransactions(): Promise<Transactions> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getTransactions();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getTransactions();
             return result;
         }
     }
@@ -224,6 +292,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async saveFinHealthScore(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveFinHealthScore(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveFinHealthScore(arg0);
+            return result;
+        }
+    }
     async savePortfolio(arg0: Portfolio): Promise<void> {
         if (this.processError) {
             try {
@@ -235,6 +317,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.savePortfolio(arg0);
+            return result;
+        }
+    }
+    async saveTransactions(arg0: Transactions): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveTransactions(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveTransactions(arg0);
+            return result;
+        }
+    }
+    async useReferralCode(arg0: Principal): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.useReferralCode(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.useReferralCode(arg0);
             return result;
         }
     }

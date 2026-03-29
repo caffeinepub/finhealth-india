@@ -13,15 +13,26 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const UserProfile = IDL.Record({
+  'name' : IDL.Text,
+  'onboardingComplete' : IDL.Bool,
+  'income' : IDL.Nat,
+  'goals' : IDL.Vec(IDL.Text),
+  'riskProfile' : IDL.Text,
+});
 export const Portfolio = IDL.Text;
+export const Transactions = IDL.Text;
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getFinHealthScore' : IDL.Func([], [IDL.Nat], ['query']),
   'getPortfolio' : IDL.Func([], [Portfolio], ['query']),
+  'getReferralCode' : IDL.Func([], [IDL.Text], ['query']),
+  'getReferralCount' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
+  'getTransactions' : IDL.Func([], [Transactions], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -29,7 +40,10 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'saveFinHealthScore' : IDL.Func([IDL.Nat], [], []),
   'savePortfolio' : IDL.Func([Portfolio], [], []),
+  'saveTransactions' : IDL.Func([Transactions], [], []),
+  'useReferralCode' : IDL.Func([IDL.Principal], [], []),
 });
 
 export const idlInitArgs = [];
@@ -40,15 +54,26 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const UserProfile = IDL.Record({
+    'name' : IDL.Text,
+    'onboardingComplete' : IDL.Bool,
+    'income' : IDL.Nat,
+    'goals' : IDL.Vec(IDL.Text),
+    'riskProfile' : IDL.Text,
+  });
   const Portfolio = IDL.Text;
+  const Transactions = IDL.Text;
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getFinHealthScore' : IDL.Func([], [IDL.Nat], ['query']),
     'getPortfolio' : IDL.Func([], [Portfolio], ['query']),
+    'getReferralCode' : IDL.Func([], [IDL.Text], ['query']),
+    'getReferralCount' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
+    'getTransactions' : IDL.Func([], [Transactions], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
@@ -56,7 +81,10 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'saveFinHealthScore' : IDL.Func([IDL.Nat], [], []),
     'savePortfolio' : IDL.Func([Portfolio], [], []),
+    'saveTransactions' : IDL.Func([Transactions], [], []),
+    'useReferralCode' : IDL.Func([IDL.Principal], [], []),
   });
 };
 

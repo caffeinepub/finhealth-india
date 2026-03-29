@@ -11,7 +11,14 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export type Portfolio = string;
-export interface UserProfile { 'name' : string }
+export type Transactions = string;
+export interface UserProfile {
+  'name' : string,
+  'onboardingComplete' : boolean,
+  'income' : bigint,
+  'goals' : Array<string>,
+  'riskProfile' : string,
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -20,11 +27,18 @@ export interface _SERVICE {
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getFinHealthScore' : ActorMethod<[], bigint>,
   'getPortfolio' : ActorMethod<[], Portfolio>,
+  'getReferralCode' : ActorMethod<[], string>,
+  'getReferralCount' : ActorMethod<[Principal], bigint>,
+  'getTransactions' : ActorMethod<[], Transactions>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'saveFinHealthScore' : ActorMethod<[bigint], undefined>,
   'savePortfolio' : ActorMethod<[Portfolio], undefined>,
+  'saveTransactions' : ActorMethod<[Transactions], undefined>,
+  'useReferralCode' : ActorMethod<[Principal], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

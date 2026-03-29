@@ -1,4 +1,11 @@
-import { AlertTriangle, CheckCircle, Download, Share2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle,
+  Download,
+  Mail,
+  MessageCircle,
+  Share2,
+} from "lucide-react";
 import { useRef } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { toast } from "sonner";
@@ -209,13 +216,24 @@ export default function DnaReportTab({
 
   const shareText = `My FinHealth India Report \ud83d\udcca\nArchetype: ${archetype.icon} ${archetype.name}\nHealth Score: ${healthScore}/100\nNet Worth: ${formatINR(netWorth)}\nTop Risk: ${risks[0] ?? "None"}\n\nPowered by FinHealth India`;
 
-  const handleShare = async () => {
+  const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareText);
-      toast.success("Report copied to clipboard!");
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied!");
     } catch {
-      toast.error("Could not copy to clipboard");
+      toast.error("Could not copy link");
     }
+  };
+
+  const handleWhatsApp = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(`Check out my FinHealth Score on FinPulse! My score is ${healthScore}/100\n\n${shareText}`)}`;
+    window.open(url, "_blank");
+  };
+
+  const handleEmail = () => {
+    const subject = encodeURIComponent("My FinHealth Report");
+    const body = encodeURIComponent(shareText);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
   const handleDownload = () => {
@@ -504,20 +522,45 @@ export default function DnaReportTab({
           ))}
         </div>
 
-        <div className="flex gap-3">
+        {/* Action buttons */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
           <button
             type="button"
-            onClick={handleShare}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+            onClick={handleWhatsApp}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+            style={{ background: "#25D366", color: "#ffffff" }}
+            data-ocid="dna.whatsapp.button"
+          >
+            <MessageCircle size={15} /> WhatsApp
+          </button>
+          <button
+            type="button"
+            onClick={handleEmail}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+            style={{
+              background: "rgba(74,184,255,0.15)",
+              color: "#4AB8FF",
+              border: "1px solid rgba(74,184,255,0.3)",
+            }}
+            data-ocid="dna.email.button"
+          >
+            <Mail size={15} /> Email
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
             style={{ background: "#B8FF4A", color: "#060A10" }}
             data-ocid="dna.share.button"
           >
-            <Share2 size={16} /> Share Report
+            <Share2 size={15} /> Copy Link
           </button>
           <button
             type="button"
             onClick={handleDownload}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all hover:opacity-80"
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-80"
             style={{
               background: "#1F2A38",
               color: "#EAF0F6",
@@ -525,7 +568,7 @@ export default function DnaReportTab({
             }}
             data-ocid="dna.download.button"
           >
-            <Download size={16} /> Download PDF
+            <Download size={15} /> Download
           </button>
         </div>
       </div>
