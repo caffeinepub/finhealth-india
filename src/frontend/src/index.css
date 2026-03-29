@@ -1,0 +1,203 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 1rem;
+    --background: 0.085 0.018 222;
+    --foreground: 0.94 0.01 222;
+    --card: 0.135 0.018 222;
+    --card-foreground: 0.94 0.01 222;
+    --popover: 0.135 0.018 222;
+    --popover-foreground: 0.94 0.01 222;
+    --primary: 0.9 0.25 130;
+    --primary-foreground: 0.08 0.02 222;
+    --secondary: 0.18 0.02 222;
+    --secondary-foreground: 0.94 0.01 222;
+    --muted: 0.18 0.02 222;
+    --muted-foreground: 0.65 0.03 222;
+    --accent: 0.9 0.25 130;
+    --accent-foreground: 0.08 0.02 222;
+    --destructive: 0.65 0.22 25;
+    --destructive-foreground: 0.98 0 0;
+    --border: 0.22 0.02 222;
+    --input: 0.12 0.018 222;
+    --ring: 0.9 0.25 130;
+    --chart-1: 0.9 0.25 130;
+    --chart-2: 0.7 0.18 200;
+    --chart-3: 0.75 0.2 280;
+    --chart-4: 0.82 0.18 60;
+    --chart-5: 0.65 0.22 340;
+    --sidebar: 0.12 0.018 222;
+    --sidebar-foreground: 0.94 0.01 222;
+    --sidebar-primary: 0.9 0.25 130;
+    --sidebar-primary-foreground: 0.08 0.02 222;
+    --sidebar-accent: 0.18 0.02 222;
+    --sidebar-accent-foreground: 0.94 0.01 222;
+    --sidebar-border: 0.22 0.02 222;
+    --sidebar-ring: 0.9 0.25 130;
+    --neon: #b8ff4a;
+    --neon-glow: rgba(184, 255, 74, 0.25);
+    --page-bg-start: #060a10;
+    --page-bg-end: #0b1218;
+    --card-bg-start: #141a22;
+    --card-bg-end: #0f141b;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    background: linear-gradient(
+      135deg,
+      var(--page-bg-start) 0%,
+      var(--page-bg-end) 100%
+    );
+    color: oklch(var(--foreground));
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+.neon-bg {
+  background: linear-gradient(135deg, #060a10 0%, #0b1218 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.neon-bg::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+      ellipse 600px 300px at 20% 10%,
+      rgba(184, 255, 74, 0.04) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 400px 200px at 80% 80%,
+      rgba(124, 255, 58, 0.03) 0%,
+      transparent 70%
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fintech-card {
+  background: linear-gradient(135deg, #141a22 0%, #0f141b 100%);
+  border: 1px solid #24303a;
+  border-radius: 18px;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.fintech-card:hover {
+  box-shadow: 0 0 30px rgba(184, 255, 74, 0.08), 0 8px 32px rgba(0, 0, 0, 0.4);
+  border-color: rgba(184, 255, 74, 0.2);
+}
+
+.neon-text {
+  color: #b8ff4a;
+  text-shadow: 0 0 20px rgba(184, 255, 74, 0.5);
+}
+
+.dark-input {
+  background: #0f141b;
+  border: 1px solid #24303a;
+  color: #eaf0f6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  font-family: inherit;
+}
+
+.dark-input:focus {
+  outline: none;
+  border-color: #b8ff4a;
+  box-shadow: 0 0 0 3px rgba(184, 255, 74, 0.15);
+}
+
+.dark-input option {
+  background: #141a22;
+  color: #eaf0f6;
+}
+
+.neon-btn {
+  background: #b8ff4a;
+  color: #060a10;
+  font-weight: 700;
+  font-size: 15px;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: box-shadow 0.25s, transform 0.15s;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+}
+
+.neon-btn:hover {
+  box-shadow: 0 0 24px rgba(184, 255, 74, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.neon-btn:active {
+  transform: translateY(0);
+}
+
+.neon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.insight-tile {
+  background: #1a2230;
+  border-radius: 12px;
+  border-left: 3px solid #b8ff4a;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  transition: background 0.2s;
+}
+
+.insight-tile.danger {
+  border-left-color: #ff4a4a;
+}
+
+.insight-tile.warning {
+  border-left-color: #ffb84a;
+}
+
+.insight-tile.success {
+  border-left-color: #b8ff4a;
+}
+
+.insight-tile.info {
+  border-left-color: #4ab8ff;
+}
+
+.delete-btn:hover {
+  color: #ff4a4a !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f141b;
+}
+::-webkit-scrollbar-thumb {
+  background: #24303a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b8ff4a;
+}
