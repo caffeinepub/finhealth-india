@@ -5,7 +5,9 @@ import {
   Brain,
   CheckCircle2,
   ChevronRight,
+  FileSearch,
   FileText,
+  LayoutDashboard,
   LineChart,
   Lock,
   MessageSquare,
@@ -146,6 +148,82 @@ const proFeatures = [
   "Priority support",
 ];
 
+const aiFeatureCards = [
+  {
+    icon: FileSearch,
+    title: "Policy Analyzer",
+    subtitle: "Know the Truth",
+    accentColor: "#B8FF4A",
+    accentRgb: "184,255,74",
+    bullets: [
+      "Complete breakdown of your plan",
+      "Real return (IRR) — not promised returns",
+      "Hidden gaps, charges, and limitations",
+      "Clear verdict: Worth it or not",
+    ],
+    cta: "Upload Your Policy",
+    ocid: "landing.ai.policy.primary_button",
+  },
+  {
+    icon: LayoutDashboard,
+    title: "Wealth Dashboard",
+    subtitle: "See Everything Together",
+    accentColor: "#60A5FA",
+    accentRgb: "96,165,250",
+    bullets: [
+      "Track your total net worth",
+      "Mutual Funds, Stocks, FDs, Real Estate, Insurance",
+      "Visual growth tracking and future projections",
+    ],
+    cta: "Explore Dashboard",
+    ocid: "landing.ai.dashboard.primary_button",
+  },
+  {
+    icon: TrendingUp,
+    title: "Portfolio Intelligence",
+    subtitle: "Go Beyond Returns",
+    accentColor: "#A78BFA",
+    accentRgb: "167,139,250",
+    bullets: [
+      "Actual returns (XIRR)",
+      "Performance breakdown",
+      "Identify underperforming investments",
+      "Rebalancing signals",
+    ],
+    cta: "Analyze Portfolio",
+    ocid: "landing.ai.portfolio.primary_button",
+  },
+  {
+    icon: Brain,
+    title: "AI Financial Insights",
+    subtitle: "Your Smart Advisor",
+    accentColor: "#F97316",
+    accentRgb: "249,115,22",
+    bullets: [
+      "Detect low-return products",
+      "Highlight optimization opportunities",
+      "Suggest smarter allocation strategies",
+      "Like having a financial expert — 24/7",
+    ],
+    cta: "Get AI Insights",
+    ocid: "landing.ai.insights.primary_button",
+  },
+  {
+    icon: Target,
+    title: "Goal-Based Planning",
+    subtitle: "Build Your Future",
+    accentColor: "#2DD4BF",
+    accentRgb: "45,212,191",
+    bullets: [
+      "Plan for retirement, home, education",
+      "Track progress in real time",
+      "Get actionable monthly strategies",
+    ],
+    cta: "Start Planning",
+    ocid: "landing.ai.goals.primary_button",
+  },
+];
+
 export default function LandingPage({
   onEnterApp,
   onGoAdvisory: _onGoAdvisory,
@@ -265,6 +343,416 @@ export default function LandingPage({
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* FinancialAI Experience Showcase */}
+      <section className="py-24 sm:py-32 relative overflow-hidden">
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(184,255,74,0.05) 0%, transparent 60%)",
+          }}
+        />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative">
+          {/* Intro Banner */}
+          <motion.div
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <div className="flex items-center justify-center gap-3 mb-5">
+              <span
+                className="px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase"
+                style={{
+                  background: "#B8FF4A",
+                  color: "#060A10",
+                  letterSpacing: "0.12em",
+                }}
+              >
+                NEW
+              </span>
+              <span
+                className="text-xs font-semibold"
+                style={{ color: "rgba(184,255,74,0.7)" }}
+              >
+                Platform Update
+              </span>
+            </div>
+            <h2
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-5 leading-tight"
+              style={{ color: "#EAF0F6", letterSpacing: "-0.03em" }}
+            >
+              Introducing the{" "}
+              <span
+                style={{
+                  color: "#B8FF4A",
+                  textShadow: "0 0 40px rgba(184,255,74,0.4)",
+                }}
+              >
+                Complete FinancialAI
+              </span>
+              <br />
+              Experience
+            </h2>
+            <p
+              className="text-sm sm:text-base max-w-2xl mx-auto"
+              style={{ color: "#9AA6B2", lineHeight: 1.8 }}
+            >
+              A suite of intelligent tools designed to give you complete
+              control, full clarity, and smarter financial decisions — all in
+              one place.
+            </p>
+          </motion.div>
+
+          {/* Feature Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
+            {aiFeatureCards.map((card, i) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, y: 28 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="group relative p-6 rounded-2xl flex flex-col"
+                style={{
+                  background: "#0D1520",
+                  border: "1px solid #1C2A3A",
+                  borderTop: `3px solid ${card.accentColor}`,
+                }}
+                whileHover={{
+                  scale: 1.025,
+                  boxShadow: `0 0 40px rgba(${card.accentRgb},0.18), 0 0 0 1px rgba(${card.accentRgb},0.35)`,
+                }}
+              >
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
+                  style={{
+                    background: `rgba(${card.accentRgb},0.12)`,
+                    border: `1px solid rgba(${card.accentRgb},0.25)`,
+                  }}
+                >
+                  <card.icon size={20} style={{ color: card.accentColor }} />
+                </div>
+                <h3
+                  className="text-base font-bold mb-0.5"
+                  style={{ color: "#EAF0F6" }}
+                >
+                  {card.title}
+                </h3>
+                <p
+                  className="text-xs font-semibold mb-4"
+                  style={{ color: card.accentColor, opacity: 0.85 }}
+                >
+                  — {card.subtitle}
+                </p>
+                <ul className="space-y-2 mb-6 flex-1">
+                  {card.bullets.map((b) => (
+                    <li key={b} className="flex items-start gap-2">
+                      <span
+                        className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ background: card.accentColor, opacity: 0.7 }}
+                      />
+                      <span
+                        className="text-xs leading-relaxed"
+                        style={{ color: "#9AA6B2" }}
+                      >
+                        {b}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  data-ocid={card.ocid}
+                  onClick={onEnterApp}
+                  className="w-full py-2.5 rounded-xl text-xs font-bold transition-all"
+                  style={{
+                    background: `rgba(${card.accentRgb},0.12)`,
+                    color: card.accentColor,
+                    border: `1px solid rgba(${card.accentRgb},0.3)`,
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background =
+                      `rgba(${card.accentRgb},0.22)`;
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.background =
+                      `rgba(${card.accentRgb},0.12)`;
+                  }}
+                >
+                  {card.cta} →
+                </button>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Why This Changes Everything */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.55 }}
+            className="mb-10"
+          >
+            <h3
+              className="text-xl sm:text-2xl font-bold text-center mb-8"
+              style={{ color: "#EAF0F6", letterSpacing: "-0.02em" }}
+            >
+              ⚡ Why This Changes Everything
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div
+                className="p-7 rounded-2xl"
+                style={{
+                  background: "rgba(239,68,68,0.06)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                }}
+              >
+                <div
+                  className="text-xs font-bold mb-3 flex items-center gap-2"
+                  style={{ color: "#F87171" }}
+                >
+                  <span
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                    style={{
+                      background: "rgba(239,68,68,0.15)",
+                      border: "1px solid rgba(239,68,68,0.3)",
+                    }}
+                  >
+                    ✕
+                  </span>
+                  Most Platforms
+                </div>
+                <p
+                  className="text-sm font-semibold mb-3"
+                  style={{ color: "#EAF0F6" }}
+                >
+                  Track investments
+                </p>
+                <div
+                  className="text-xs font-bold text-center my-4"
+                  style={{ color: "rgba(248,113,113,0.6)" }}
+                >
+                  — OR —
+                </div>
+                <p
+                  className="text-sm font-semibold"
+                  style={{ color: "#EAF0F6" }}
+                >
+                  Sell products
+                </p>
+                <p className="text-xs mt-4" style={{ color: "#9AA6B2" }}>
+                  But never both. And never on your side.
+                </p>
+              </div>
+              <div
+                className="p-7 rounded-2xl"
+                style={{
+                  background: "rgba(184,255,74,0.05)",
+                  border: "1px solid rgba(184,255,74,0.22)",
+                  boxShadow: "0 0 40px rgba(184,255,74,0.05)",
+                }}
+              >
+                <div
+                  className="text-xs font-bold mb-3 flex items-center gap-2"
+                  style={{ color: "#B8FF4A" }}
+                >
+                  <span
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                    style={{
+                      background: "rgba(184,255,74,0.15)",
+                      border: "1px solid rgba(184,255,74,0.3)",
+                    }}
+                  >
+                    ✓
+                  </span>
+                  FinancialAI
+                </div>
+                <p
+                  className="text-sm font-semibold mb-2"
+                  style={{ color: "#EAF0F6" }}
+                >
+                  We do something different.
+                </p>
+                <p
+                  className="text-base font-bold"
+                  style={{
+                    color: "#B8FF4A",
+                    textShadow: "0 0 20px rgba(184,255,74,0.3)",
+                  }}
+                >
+                  Understand, evaluate, and improve —
+                </p>
+                <p
+                  className="text-sm font-semibold mt-1"
+                  style={{ color: "#EAF0F6" }}
+                >
+                  before you invest more.
+                </p>
+                <p className="text-xs mt-4" style={{ color: "#9AA6B2" }}>
+                  No bias. No products to sell. Just clarity.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* The Complete Package */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.55, delay: 0.1 }}
+            className="mb-12 p-8 sm:p-10 rounded-3xl"
+            style={{
+              background:
+                "linear-gradient(135deg, #0D1520 0%, #0F1C2A 50%, #0A1218 100%)",
+              border: "1px solid rgba(184,255,74,0.18)",
+              boxShadow:
+                "0 0 80px rgba(184,255,74,0.06), inset 0 1px 0 rgba(184,255,74,0.08)",
+            }}
+          >
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
+              <div className="flex-1 text-center sm:text-left">
+                <div
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-4"
+                  style={{
+                    background: "rgba(184,255,74,0.1)",
+                    color: "#B8FF4A",
+                    border: "1px solid rgba(184,255,74,0.25)",
+                  }}
+                >
+                  💎 The Complete Package
+                </div>
+                <h3
+                  className="text-2xl sm:text-3xl font-bold mb-6"
+                  style={{ color: "#EAF0F6", letterSpacing: "-0.02em" }}
+                >
+                  This isn't just an update.
+                  <br />
+                  <span style={{ color: "#B8FF4A" }}>
+                    This is your complete financial command center.
+                  </span>
+                </h3>
+                <ul className="space-y-4">
+                  {[
+                    { icon: "🔍", text: "Analyze before investing" },
+                    { icon: "📊", text: "Track everything in one place" },
+                    { icon: "🎯", text: "Make smarter, data-backed decisions" },
+                  ].map((item) => (
+                    <li key={item.text} className="flex items-center gap-3">
+                      <span
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+                        style={{
+                          background: "rgba(184,255,74,0.1)",
+                          border: "1px solid rgba(184,255,74,0.2)",
+                        }}
+                      >
+                        {item.icon}
+                      </span>
+                      <span
+                        className="text-sm font-semibold"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        {item.text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p
+                  className="mt-6 text-sm font-semibold"
+                  style={{ color: "#9AA6B2" }}
+                >
+                  No noise. No bias. Just clarity.
+                </p>
+              </div>
+              <div
+                className="hidden sm:flex flex-col items-center justify-center w-48 h-48 rounded-2xl flex-shrink-0"
+                style={{
+                  background: "rgba(184,255,74,0.06)",
+                  border: "1px solid rgba(184,255,74,0.15)",
+                }}
+              >
+                <Sparkles
+                  size={40}
+                  style={{
+                    color: "#B8FF4A",
+                    filter: "drop-shadow(0 0 16px rgba(184,255,74,0.6))",
+                  }}
+                />
+                <p
+                  className="text-xs font-bold mt-3 text-center px-4"
+                  style={{ color: "rgba(184,255,74,0.7)" }}
+                >
+                  Complete Financial Command Center
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10"
+          >
+            <button
+              type="button"
+              data-ocid="landing.ai.upload_policy.primary_button"
+              onClick={onEnterApp}
+              className="flex items-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-bold transition-all hover:scale-105"
+              style={{
+                background: "#B8FF4A",
+                color: "#060A10",
+                boxShadow: "0 0 24px rgba(184,255,74,0.35)",
+              }}
+            >
+              <FileSearch size={16} /> Upload Your Policy
+            </button>
+            <button
+              type="button"
+              data-ocid="landing.ai.explore_dashboard.secondary_button"
+              onClick={onEnterApp}
+              className="flex items-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-semibold transition-all hover:bg-white/5"
+              style={{ color: "#EAF0F6", border: "1px solid #24303A" }}
+            >
+              <LayoutDashboard size={16} /> Explore Dashboard
+            </button>
+            <button
+              type="button"
+              data-ocid="landing.ai.start_analysis.secondary_button"
+              onClick={onEnterApp}
+              className="flex items-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-semibold transition-all hover:bg-white/5"
+              style={{ color: "#EAF0F6", border: "1px solid #24303A" }}
+            >
+              <TrendingUp size={16} /> Start Your Analysis
+            </button>
+          </motion.div>
+
+          {/* Final Tagline */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="text-center"
+          >
+            <p
+              className="text-lg sm:text-xl font-bold"
+              style={{
+                color: "#B8FF4A",
+                textShadow: "0 0 30px rgba(184,255,74,0.4)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              FinancialAI — From Confusion to Complete Control.
+            </p>
+          </motion.div>
         </div>
       </section>
 
@@ -580,12 +1068,12 @@ export default function LandingPage({
               className="text-xl sm:text-2xl lg:text-3xl font-semibold mb-10 leading-relaxed"
               style={{ color: "#EAF0F6", letterSpacing: "-0.01em" }}
             >
-              “Millions of people make poor financial decisions due to lack of
+              "Millions of people make poor financial decisions due to lack of
               guidance.{" "}
               <span style={{ color: "#B8FF4A" }}>
                 FinHealth is built to provide clarity
               </span>{" "}
-              and smarter decisions.”
+              and smarter decisions."
             </blockquote>
             <div className="flex flex-wrap justify-center gap-4">
               {[
