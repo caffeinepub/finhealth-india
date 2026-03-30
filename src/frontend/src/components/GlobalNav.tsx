@@ -10,6 +10,7 @@ interface GlobalNavProps {
   shortPrincipal: string;
   photoURL?: string;
   onMyAccount: () => void;
+  onCloseMyAccount?: () => void;
   onLogout: () => void;
   isSaving?: boolean;
   onSave?: () => void;
@@ -79,6 +80,7 @@ export default function GlobalNav({
   onSave,
   setToolsSubTab,
   setAnalysisSubTab,
+  onCloseMyAccount,
 }: GlobalNavProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -116,6 +118,7 @@ export default function GlobalNav({
     {
       label: "Home",
       action: () => {
+        onCloseMyAccount?.();
         setCurrentPage("home");
         setShowMobileMenu(false);
       },
@@ -123,6 +126,7 @@ export default function GlobalNav({
     {
       label: "Dashboard",
       action: () => {
+        onCloseMyAccount?.();
         setCurrentPage("app");
         setActiveTab?.("dashboard");
         setShowMobileMenu(false);
@@ -131,6 +135,7 @@ export default function GlobalNav({
     {
       label: "Tools",
       action: () => {
+        onCloseMyAccount?.();
         setCurrentPage("app");
         setActiveTab?.("tools");
         setShowMobileMenu(false);
@@ -139,6 +144,7 @@ export default function GlobalNav({
     {
       label: "Analysis",
       action: () => {
+        onCloseMyAccount?.();
         setCurrentPage("app");
         setActiveTab?.("analysis");
         setShowMobileMenu(false);
@@ -147,6 +153,7 @@ export default function GlobalNav({
     {
       label: "Reports",
       action: () => {
+        onCloseMyAccount?.();
         setCurrentPage("app");
         setActiveTab?.("reports");
         setShowMobileMenu(false);
@@ -167,6 +174,7 @@ export default function GlobalNav({
   }
 
   function handleSearchNavigate(item: (typeof SEARCH_ITEMS)[0]) {
+    onCloseMyAccount?.();
     setCurrentPage("app");
     setActiveTab?.(item.tab);
     if (item.subTab) {

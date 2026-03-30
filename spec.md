@@ -1,34 +1,22 @@
-# FinHealth India — Financial Intelligence Dashboard
+# FinHealth India
 
 ## Current State
-- Dashboard tab exists with portfolio management, analysis actions, DashboardInsights panel, and alerts.
-- `userProfile` has: name, income, goals[], riskProfile
-- `userId` is the principal string
-- localStorage keys: `finhealth_user_{userId}`, `finhealth_events_{userId}`
-- `equityPct`, `totalAssets`, `cashPct` already computed in App.tsx
-- Navigation: `setActiveTab` for tabs (dashboard/analysis/tools/reports), `setToolsSubTab` for tools sub-tabs
-- DashboardInsights component already placed after Activity Insights
+App has a multi-page layout managed by `currentPage` state in App.tsx. `MyAccountPage` is a full-screen fixed overlay (`fixed inset-0 z-50`) when `showMyAccount === true`. GlobalNav links (Home, Dashboard, Tools, etc.) change `currentPage` but do NOT close the MyAccountPage overlay — users get stuck because the overlay stays open.
 
 ## Requested Changes (Diff)
 
 ### Add
-- New `FinancialIntelligencePanel` component inserted into Dashboard tab (before DashboardInsights)
-- FinHealth Score card (out of 100) with color coding (red/yellow/green)
-- Money Loss Tracker (locked behind free plan paywall)
-- Goal Tracking section with progress bars per goal
-- Smart Alerts section (equity >70%, savings <20%, no goals)
-- Action Buttons (Open Goal Planner, Open Policy Analyzer, Open SIP Calculator)
-- Paywall overlay for free plan users on Money Loss details
+- `onCloseMyAccount?: () => void` prop to GlobalNav; call it in every nav link action and search navigate so clicking any nav item dismisses the MyAccount overlay
 
 ### Modify
-- App.tsx: import and render `FinancialIntelligencePanel` in Dashboard tab, passing required props
+- App.tsx: pass `onCloseMyAccount={() => setShowMyAccount(false)}` to GlobalNav
+- MyAccountPage empty state: title "Profile not set up yet", button "Complete Profile"
+- Back button in MyAccountPage always visible and always calls onClose
 
 ### Remove
-- Nothing removed
+- No global profile-blocking logic exists to remove (app already renders normally)
 
 ## Implementation Plan
-1. Create `src/frontend/src/components/FinancialIntelligencePanel.tsx`
-2. Props: userId, userProfile (name/income/goals/riskProfile), equityPct, totalAssets, entries, setActiveTab, setToolsSubTab
-3. Calculate all 5 score dimensions from localStorage + props
-4. Render 6 sections: Score, Money Loss (paywalled), Goal Tracking, Smart Alerts, Action Buttons
-5. Import and add to App.tsx dashboard tab
+1. Add `onCloseMyAccount?` to GlobalNav interface and call it in all navLinks actions + handleSearchNavigate
+2. Pass the prop from App.tsx
+3. Update MyAccountPage empty state copy

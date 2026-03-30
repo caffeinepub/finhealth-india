@@ -1525,6 +1525,7 @@ export default function App() {
           })()
         }
         onMyAccount={() => setShowMyAccount(true)}
+        onCloseMyAccount={() => setShowMyAccount(false)}
         onLogout={() => {
           const gId = localStorage.getItem("finhealth_google_user_id");
           if (gId) {

@@ -229,7 +229,7 @@ export default function MyAccountPage({
               className="text-lg font-semibold mb-2"
               style={{ color: "#EAF0F6" }}
             >
-              No profile found
+              Profile not set up yet
             </p>
             <p className="mb-6">
               Complete onboarding to set up your financial profile.
@@ -251,7 +251,7 @@ export default function MyAccountPage({
                 cursor: "pointer",
               }}
             >
-              Complete Onboarding
+              Complete Profile
             </button>
           </div>
         ) : (
