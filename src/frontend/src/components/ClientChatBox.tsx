@@ -1,190 +1,229 @@
-import { Bot, ExternalLink, MessageCircle, Send, X } from "lucide-react";
+import { Bot, ExternalLink, Send, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { useActor } from "../hooks/useActor";
+
+const BOUNCE_STYLE = `
+@keyframes chatBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+`;
 
 interface ChatMessage {
   id: string;
   text: string;
   sender: "user" | "assistant";
   timestamp: number;
+  insight?: string;
   suggestedTool?: {
     label: string;
     navigationAction: string;
   };
 }
 
+// Firestore-like schema: users/{userId}/chats/
+interface ChatRecord {
+  message: string;
+  sender: "user" | "bot";
+  timestamp: number;
+}
+
+interface PortfolioItem {
+  type?: string;
+  category?: string;
+  amount?: number;
+}
+
 interface ClientChatBoxProps {
   userId: string;
   onNavigate?: (tab: string, subTab?: string) => void;
+  onChatQuery?: () => void;
 }
 
-const INTENT_RULES: Array<{
-  keywords: string[];
-  message: string;
-  suggestedTool: { label: string; navigationAction: string; subTab?: string };
-}> = [
-  {
-    keywords: ["policy", "insurance", "ulip"],
-    message:
-      "You can analyze your policy using our Policy Analyzer tool. It detects mis-selling, compares with SIP benchmarks, and shows your actual CAGR.",
-    suggestedTool: {
-      label: "Open Policy Analyzer",
-      navigationAction: "tools",
-      subTab: "policy",
-    },
-  },
-  {
-    keywords: ["sip", "investment", "mutual fund", "invest"],
-    message:
-      "Use our SIP Calculator to project your mutual fund growth, or the Goal Planner to calculate the required SIP for your financial targets.",
-    suggestedTool: {
-      label: "Open SIP Calculator",
-      navigationAction: "sip-calculator",
-    },
-  },
-  {
-    keywords: ["loan", "emi", "prepayment", "home loan", "personal loan"],
-    message:
-      "Our Loan Prepayment Analyzer can show you how much interest you save with extra payments and when you'll be debt-free.",
-    suggestedTool: {
-      label: "Open Loan Prepayment Tool",
-      navigationAction: "tools",
-      subTab: "loan",
-    },
-  },
-  {
-    keywords: [
-      "risk",
-      "risk profile",
-      "conservative",
-      "aggressive",
-      "risk appetite",
-    ],
-    message:
-      "Use the Risk Profile tool to assess your risk appetite and see if your current portfolio matches your risk tolerance.",
-    suggestedTool: {
-      label: "Open Risk Profile Tool",
-      navigationAction: "tools",
-      subTab: "risk",
-    },
-  },
-  {
-    keywords: ["goal", "target", "dream", "retirement", "house", "education"],
-    message:
-      "The Goal Planner helps you set financial goals and calculates the exact SIP needed to reach them on time, inflation-adjusted.",
-    suggestedTool: {
-      label: "Open Goal Planner",
-      navigationAction: "tools",
-      subTab: "goal",
-    },
-  },
-  {
-    keywords: ["tax", "ltcg", "stcg", "capital gain"],
-    message:
-      "Check out the Tax Optimizer to calculate your LTCG/STCG liability and find tax-saving opportunities on your portfolio.",
-    suggestedTool: {
-      label: "Open Tax Optimizer",
-      navigationAction: "tools",
-      subTab: "stress-test",
-    },
-  },
-  {
-    keywords: ["inflation", "erosion", "purchasing power"],
-    message:
-      "The Inflation Impact Tracker shows how inflation is silently eroding your wealth year by year, with 1, 3, and 5 year projections.",
-    suggestedTool: {
-      label: "Open Inflation Tracker",
-      navigationAction: "tools",
-      subTab: "inflation",
-    },
-  },
-  {
-    keywords: [
-      "portfolio",
-      "allocation",
-      "rebalance",
-      "equity",
-      "debt",
-      "gold",
-    ],
-    message:
-      "Use the Rebalancing Simulator to adjust your asset allocation and see the impact on your FinHealth score in real time.",
-    suggestedTool: {
-      label: "Open Rebalancing Simulator",
-      navigationAction: "tools",
-      subTab: "rebalance",
-    },
-  },
-  {
-    keywords: ["stress", "crash", "covid", "2008", "scenario"],
-    message:
-      "Run a Stress Test to simulate how your portfolio would perform in a market crash like COVID (-38%) or the 2008 crisis (-55%).",
-    suggestedTool: {
-      label: "Open Stress Test",
-      navigationAction: "tools",
-      subTab: "stress-test",
-    },
-  },
-  {
-    keywords: ["spend", "spending", "expense", "budget", "card"],
-    message:
-      "The Card & Spending Analysis tool categorizes your expenses, detects wasteful spend, and gives actionable savings suggestions.",
-    suggestedTool: {
-      label: "Open Spending Analysis",
-      navigationAction: "tools",
-      subTab: "card",
-    },
-  },
-  {
-    keywords: ["health score", "finhealth", "score", "dashboard"],
-    message:
-      "Your FinHealth Score on the Dashboard rates you across 5 dimensions: diversification, returns, insurance, goals, and expense control.",
-    suggestedTool: {
-      label: "Go to Dashboard",
-      navigationAction: "dashboard",
-    },
-  },
-  {
-    keywords: ["report", "dna", "analysis", "summary"],
-    message:
-      "Check the Reports tab for your Financial DNA Report — it shows your investor archetype, top risks, opportunities, and more.",
-    suggestedTool: {
-      label: "Open Reports",
-      navigationAction: "reports",
-    },
-  },
-];
+// Read portfolio from localStorage (same key used by Dashboard/Portfolio tab)
+function loadPortfolio(userId: string): PortfolioItem[] {
+  const keys = [
+    `finhealth_portfolio_${userId}`,
+    "finhealth_portfolio",
+    `portfolio_${userId}`,
+    "portfolio",
+  ];
+  for (const key of keys) {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return [];
+}
 
-function detectIntent(
-  text: string,
-): (ChatMessage["suggestedTool"] & { message: string }) | null {
-  const lower = text.toLowerCase();
-  for (const rule of INTENT_RULES) {
-    if (rule.keywords.some((kw) => lower.includes(kw))) {
-      return {
-        message: rule.message,
-        label: rule.suggestedTool.label,
-        navigationAction: rule.suggestedTool.navigationAction,
-      };
+function loadGoals(userId: string): unknown[] {
+  const keys = [
+    `finhealth_goals_${userId}`,
+    "finhealth_goals",
+    `goals_${userId}`,
+    "goals",
+  ];
+  for (const key of keys) {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return [];
+}
+
+function loadRiskProfile(userId: string): string | null {
+  const keys = [
+    `finhealth_riskProfile_${userId}`,
+    "finhealth_riskProfile",
+    `riskProfile_${userId}`,
+    "riskProfile",
+  ];
+  for (const key of keys) {
+    const val = localStorage.getItem(key);
+    if (val) return val;
+  }
+  // Also check nested profile
+  const profileRaw =
+    localStorage.getItem(`finhealth_profile_${userId}`) ||
+    localStorage.getItem("finhealth_profile");
+  if (profileRaw) {
+    try {
+      const profile = JSON.parse(profileRaw);
+      if (profile?.riskProfile) return profile.riskProfile;
+      if (profile?.riskAppetite) return profile.riskAppetite;
+    } catch {
+      // ignore
     }
   }
   return null;
 }
 
+// Returns context-aware reply if triggered, else null (fall through to backend)
+function getContextAwareReply(
+  portfolio: PortfolioItem[],
+  goals: unknown[],
+): { reply: string; action?: string } | null {
+  if (portfolio.length === 0) {
+    return {
+      reply:
+        "Start by adding your portfolio in Dashboard to get better insights.",
+      action: "dashboard",
+    };
+  }
+
+  // Calculate equity percentage
+  const equityCategories = ["equity", "stocks", "shares"];
+  const totalAmount = portfolio.reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0,
+  );
+  const equityAmount = portfolio
+    .filter(
+      (item) =>
+        equityCategories.includes((item.category || "").toLowerCase()) ||
+        equityCategories.includes((item.type || "").toLowerCase()),
+    )
+    .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+  if (totalAmount > 0) {
+    const equityPct = (equityAmount / totalAmount) * 100;
+    if (equityPct > 70) {
+      return {
+        reply: `Your portfolio has high equity exposure (${Math.round(equityPct)}% > 70%). Consider rebalancing to reduce risk.`,
+        action: "rebalancing",
+      };
+    }
+  }
+
+  if (goals.length === 0) {
+    return {
+      reply:
+        "You have not set any financial goals. Use Goal Planner to get started.",
+      action: "goal-planner",
+    };
+  }
+
+  return null;
+}
+
+// Persist a chat record in localStorage (mirroring Firestore users/{userId}/chats/)
+function persistChatRecord(userId: string, record: ChatRecord) {
+  const key = `finhealth_chats_${userId}`;
+  const existing: ChatRecord[] = [];
+  const raw = localStorage.getItem(key);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) existing.push(...parsed);
+    } catch {
+      // ignore
+    }
+  }
+  existing.push(record);
+  localStorage.setItem(key, JSON.stringify(existing));
+}
+
+// Load chat records from localStorage
+function loadChatRecords(userId: string): ChatRecord[] {
+  const key = `finhealth_chats_${userId}`;
+  const raw = localStorage.getItem(key);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
 export default function ClientChatBox({
   userId,
   onNavigate,
+  onChatQuery,
 }: ClientChatBoxProps) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [goals, setGoals] = useState<unknown[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const storageKey = `finhealth_chat_v2_${userId}`;
+  const { actor } = useActor();
 
+  // Load user context data on mount
   useEffect(() => {
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      setMessages(JSON.parse(stored));
+    setPortfolio(loadPortfolio(userId));
+    setGoals(loadGoals(userId));
+    loadRiskProfile(userId); // load but store if needed in future
+  }, [userId]);
+
+  // Load chat history from localStorage (Firestore mirror)
+  useEffect(() => {
+    const records = loadChatRecords(userId);
+    if (records.length > 0) {
+      // Convert stored records back to ChatMessage format, sorted by timestamp
+      const sorted = [...records].sort((a, b) => a.timestamp - b.timestamp);
+      const converted: ChatMessage[] = sorted.map((r, i) => ({
+        id: `hist-${i}-${r.timestamp}`,
+        text: r.message,
+        sender: r.sender === "bot" ? "assistant" : "user",
+        timestamp: r.timestamp,
+      }));
+      setMessages(converted);
     } else {
       const welcome: ChatMessage = {
         id: "welcome",
@@ -193,28 +232,43 @@ export default function ClientChatBox({
         timestamp: Date.now(),
       };
       setMessages([welcome]);
-      localStorage.setItem(storageKey, JSON.stringify([welcome]));
+      persistChatRecord(userId, {
+        message: welcome.text,
+        sender: "bot",
+        timestamp: welcome.timestamp,
+      });
     }
-  }, [storageKey]);
+  }, [userId]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on open
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [open]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on new messages
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on new messages or loading
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isLoading]);
 
-  const saveMessages = (msgs: ChatMessage[]) => {
-    setMessages(msgs);
-    localStorage.setItem(storageKey, JSON.stringify(msgs));
+  const addMessages = (newMsgs: ChatMessage[]) => {
+    setMessages((prev) => [...prev, ...newMsgs]);
   };
 
-  const sendMessage = () => {
+  const clearChat = () => {
+    localStorage.removeItem(`finhealth_chats_${userId}`);
+    const confirmMsg: ChatMessage = {
+      id: `${Date.now()}-clear`,
+      text: "Chat history cleared.",
+      sender: "assistant",
+      timestamp: Date.now(),
+    };
+    setMessages([confirmMsg]);
+  };
+
+  const sendMessage = async () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || isLoading) return;
+    onChatQuery?.();
 
     const userMsg: ChatMessage = {
       id: `${Date.now()}-u`,
@@ -223,27 +277,153 @@ export default function ClientChatBox({
       timestamp: Date.now(),
     };
 
-    const intent = detectIntent(text);
-    const botMsg: ChatMessage = intent
-      ? {
-          id: `${Date.now()}-b`,
-          text: intent.message,
-          sender: "assistant",
-          timestamp: Date.now() + 1,
-          suggestedTool: {
-            label: intent.label,
-            navigationAction: intent.navigationAction,
-          },
-        }
-      : {
-          id: `${Date.now()}-b`,
-          text: "I'm here to help! Please describe your financial issue in more detail — for example, mention if it's about investments, SIP, loans, policies, or portfolio analysis.",
-          sender: "assistant",
-          timestamp: Date.now() + 1,
-        };
-
-    saveMessages([...messages, userMsg, botMsg]);
+    addMessages([userMsg]);
+    persistChatRecord(userId, {
+      message: text,
+      sender: "user",
+      timestamp: userMsg.timestamp,
+    });
     setInput("");
+    setIsLoading(true);
+
+    try {
+      // Context-aware check first (no backend call needed)
+      const contextReply = getContextAwareReply(portfolio, goals);
+      if (contextReply) {
+        const botMsg: ChatMessage = {
+          id: `${Date.now()}-b`,
+          text: contextReply.reply,
+          sender: "assistant",
+          timestamp: Date.now(),
+          suggestedTool: contextReply.action
+            ? { label: "Open Tool", navigationAction: contextReply.action }
+            : undefined,
+        };
+        addMessages([botMsg]);
+        persistChatRecord(userId, {
+          message: botMsg.text,
+          sender: "bot",
+          timestamp: botMsg.timestamp,
+        });
+        return;
+      }
+
+      // Try AI chat via Motoko backend actor
+      let aiReply: { reply: string; insight?: string; action?: string } | null =
+        null;
+      try {
+        if (!actor) throw new Error("Actor not ready");
+        const portfolioJson = JSON.stringify(portfolio);
+        const goalsJson = JSON.stringify(goals);
+        const result = await actor.aiChat(text, portfolioJson, goalsJson);
+
+        // The backend returns either:
+        // - A raw OpenAI API response in result.reply (when API key is set)
+        // - A keyword-based reply in result.reply (when no API key / fallback)
+        // Try to parse as OpenAI response first, then extract FinHealth JSON
+        try {
+          // Try parsing as full OpenAI response: { choices: [{ message: { content: "..." } }] }
+          const openAiParsed = JSON.parse(result.reply);
+          if (openAiParsed?.choices?.[0]?.message?.content) {
+            const content = openAiParsed.choices[0].message.content;
+            try {
+              // Try parsing content as FinHealth JSON: { reply, insight, action }
+              const finHealthParsed = JSON.parse(content);
+              if (finHealthParsed?.reply) {
+                aiReply = {
+                  reply: finHealthParsed.reply,
+                  insight: finHealthParsed.insight || undefined,
+                  action: finHealthParsed.action || result.action || undefined,
+                };
+              } else {
+                aiReply = {
+                  reply: content,
+                  insight: undefined,
+                  action: result.action || undefined,
+                };
+              }
+            } catch {
+              // Content is plain text, not JSON
+              aiReply = {
+                reply: content,
+                insight: undefined,
+                action: result.action || undefined,
+              };
+            }
+          } else {
+            // Not an OpenAI response structure
+            aiReply = {
+              reply: result.reply,
+              insight: result.insight || undefined,
+              action: result.action || undefined,
+            };
+          }
+        } catch {
+          // result.reply is plain text (keyword fallback from Motoko)
+          aiReply = {
+            reply: result.reply,
+            insight: result.insight || undefined,
+            action: result.action || undefined,
+          };
+        }
+      } catch {
+        // actor.aiChat unavailable or failed, fall through to processChat
+      }
+
+      if (aiReply) {
+        const botMsg: ChatMessage = {
+          id: `${Date.now()}-b`,
+          text: aiReply.reply,
+          sender: "assistant",
+          timestamp: Date.now(),
+          insight: aiReply.insight,
+          suggestedTool: aiReply.action
+            ? { label: "Open Tool", navigationAction: aiReply.action }
+            : undefined,
+        };
+        addMessages([botMsg]);
+        persistChatRecord(userId, {
+          message: botMsg.text,
+          sender: "bot",
+          timestamp: botMsg.timestamp,
+        });
+        return;
+      }
+
+      // Fallback: backend keyword-based response
+      if (!actor) throw new Error("Actor not ready");
+      const response = await actor.processChat(text);
+      const botMsg: ChatMessage = {
+        id: `${Date.now()}-b`,
+        text: response.reply,
+        sender: "assistant",
+        timestamp: Date.now(),
+        suggestedTool: response.action
+          ? { label: "Open Tool", navigationAction: response.action }
+          : undefined,
+      };
+      addMessages([botMsg]);
+      persistChatRecord(userId, {
+        message: botMsg.text,
+        sender: "bot",
+        timestamp: botMsg.timestamp,
+      });
+    } catch {
+      const errMsg: ChatMessage = {
+        id: `${Date.now()}-err`,
+        text: "Sorry, I couldn't process your request. Please try again.",
+        sender: "assistant",
+        timestamp: Date.now(),
+      };
+      addMessages([errMsg]);
+      persistChatRecord(userId, {
+        message: errMsg.text,
+        sender: "bot",
+        timestamp: errMsg.timestamp,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -255,10 +435,23 @@ export default function ClientChatBox({
 
   const handleNavigate = (action: string) => {
     if (onNavigate) {
-      const rule = INTENT_RULES.find(
-        (r) => r.suggestedTool.navigationAction === action,
-      );
-      onNavigate(action, rule?.suggestedTool.subTab);
+      if (action === "policy-analyzer") {
+        onNavigate("tools", "policy");
+      } else if (action === "sip-calculator") {
+        onNavigate("sip-calculator");
+      } else if (action === "loan-prepayment") {
+        onNavigate("tools", "loan");
+      } else if (action === "risk-profile") {
+        onNavigate("tools", "risk");
+      } else if (action === "goal-planner") {
+        onNavigate("tools", "goals");
+      } else if (action === "rebalancing") {
+        onNavigate("tools", "rebalancing");
+      } else if (action === "dashboard") {
+        onNavigate("dashboard");
+      } else {
+        onNavigate(action);
+      }
     }
     setOpen(false);
   };
@@ -271,6 +464,8 @@ export default function ClientChatBox({
 
   return (
     <>
+      <style>{BOUNCE_STYLE}</style>
+
       {/* Floating button */}
       <motion.button
         type="button"
@@ -315,7 +510,7 @@ export default function ClientChatBox({
               right: "28px",
               zIndex: 9999,
               width: "390px",
-              height: "540px",
+              height: "560px",
               borderRadius: "16px",
               background: "#060A10",
               border: "1px solid #24303A",
@@ -370,21 +565,50 @@ export default function ClientChatBox({
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                data-ocid="chat.close_button"
-                onClick={() => setOpen(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "#9AA6B2",
-                  padding: "4px",
-                  borderRadius: "6px",
-                }}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                <X size={18} />
-              </button>
+                <button
+                  type="button"
+                  data-ocid="chat.secondary_button"
+                  onClick={clearChat}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#9AA6B2",
+                    fontSize: "11px",
+                    padding: "4px 6px",
+                    borderRadius: "6px",
+                    transition: "color 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color =
+                      "#B8FF4A";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color =
+                      "#9AA6B2";
+                  }}
+                >
+                  Clear Chat
+                </button>
+                <button
+                  type="button"
+                  data-ocid="chat.close_button"
+                  onClick={() => setOpen(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#9AA6B2",
+                    padding: "4px",
+                    borderRadius: "6px",
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
@@ -439,6 +663,43 @@ export default function ClientChatBox({
                     </p>
                   </div>
 
+                  {/* Smart Insight card */}
+                  {msg.insight && (
+                    <div
+                      style={{
+                        maxWidth: "82%",
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        background: "#0F141B",
+                        border: "1px solid #B8FF4A",
+                        marginTop: "2px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: "0 0 4px",
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          color: "#B8FF4A",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        💡 Smart Insight
+                      </p>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "12px",
+                          color: "#EAF0F6",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {msg.insight}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Tool navigation button */}
                   {msg.suggestedTool && (
                     <motion.button
@@ -470,6 +731,38 @@ export default function ClientChatBox({
                   )}
                 </div>
               ))}
+
+              {/* Typing indicator */}
+              {isLoading && (
+                <div
+                  data-ocid="chat.loading_state"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "10px 14px",
+                    background: "#0F141B",
+                    borderRadius: "14px 14px 14px 4px",
+                    border: "1px solid #24303A",
+                    width: "fit-content",
+                  }}
+                >
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#B8FF4A",
+                        animation: "chatBounce 1.2s infinite",
+                        animationDelay: `${i * 0.2}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
               <div ref={bottomRef} />
             </div>
 
@@ -489,14 +782,15 @@ export default function ClientChatBox({
                     key={prompt}
                     type="button"
                     onClick={() => setInput(prompt)}
+                    disabled={isLoading}
                     style={{
                       padding: "4px 10px",
                       borderRadius: "12px",
                       background: "#0F141B",
                       border: "1px solid #24303A",
-                      color: "#9AA6B2",
+                      color: isLoading ? "#4A5568" : "#9AA6B2",
                       fontSize: "11px",
-                      cursor: "pointer",
+                      cursor: isLoading ? "not-allowed" : "pointer",
                     }}
                   >
                     {prompt}
@@ -508,7 +802,7 @@ export default function ClientChatBox({
             {/* Input */}
             <div
               style={{
-                padding: "10px 14px 14px",
+                padding: "10px 14px 4px",
                 display: "flex",
                 gap: "8px",
                 alignItems: "flex-end",
@@ -521,6 +815,7 @@ export default function ClientChatBox({
                 onKeyDown={handleKeyDown}
                 rows={1}
                 placeholder="Ask about investments, loans, policies..."
+                disabled={isLoading}
                 style={{
                   flex: 1,
                   background: "#0F141B",
@@ -534,21 +829,24 @@ export default function ClientChatBox({
                   fontFamily: "inherit",
                   maxHeight: "80px",
                   overflowY: "auto",
+                  opacity: isLoading ? 0.6 : 1,
                 }}
               />
               <button
                 type="button"
                 data-ocid="chat.submit_button"
                 onClick={sendMessage}
-                disabled={!input.trim()}
+                disabled={!input.trim() || isLoading}
                 style={{
                   width: "38px",
                   height: "38px",
                   borderRadius: "10px",
-                  background: input.trim() ? "#B8FF4A" : "#1A2332",
+                  background:
+                    input.trim() && !isLoading ? "#B8FF4A" : "#1A2332",
                   border: "none",
-                  cursor: input.trim() ? "pointer" : "not-allowed",
-                  color: input.trim() ? "#060A10" : "#4A5568",
+                  cursor:
+                    input.trim() && !isLoading ? "pointer" : "not-allowed",
+                  color: input.trim() && !isLoading ? "#060A10" : "#4A5568",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -559,6 +857,20 @@ export default function ClientChatBox({
                 <Send size={16} />
               </button>
             </div>
+
+            {/* Disclaimer */}
+            <p
+              style={{
+                margin: 0,
+                padding: "6px 14px 10px",
+                fontSize: "10px",
+                color: "#9AA6B2",
+                textAlign: "center",
+                lineHeight: 1.4,
+              }}
+            >
+              For educational purposes only. Not investment advice.
+            </p>
           </motion.div>
         )}
       </AnimatePresence>

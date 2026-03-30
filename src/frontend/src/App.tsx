@@ -44,6 +44,7 @@ import CardAnalysisTab from "./components/CardAnalysisTab";
 import type { Transaction } from "./components/CardAnalysisTab";
 import ClientChatBox from "./components/ClientChatBox";
 import ContactModal from "./components/ContactModal";
+import DashboardInsights from "./components/DashboardInsights";
 import DnaReportTab from "./components/DnaReportTab";
 import GoalPlannerTab from "./components/GoalPlannerTab";
 import GoldSgbTab from "./components/GoldSgbTab";
@@ -65,6 +66,7 @@ import TaxOptimizerTab from "./components/TaxOptimizerTab";
 import UlipVsSipTab from "./components/UlipVsSipTab";
 import { useActor } from "./hooks/useActor";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
+import { useUserTracking } from "./hooks/useUserTracking";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type EntryType = "Asset" | "Liability";
@@ -1214,6 +1216,10 @@ export default function App() {
     };
     setUserProfile({ ...data, name: profile.name, onboardingComplete: true });
     setShowOnboarding(false);
+    localStorage.setItem(
+      `finhealth_goals_updated_${userId}`,
+      String(Date.now()),
+    );
     if (actor && identity) {
       try {
         await actor.saveCallerUserProfile(profile);
@@ -1443,10 +1449,14 @@ export default function App() {
     setTimeout(() => {
       setIsAnalyzing(false);
       setAnalyzed(true);
+      trackEvent("analysis_run", "financial-analysis");
       setActiveTab("analysis");
       setAnalysisSubTab("financial-analysis");
     }, 1200);
   };
+
+  const userId = identity ? identity.getPrincipal().toString() : "guest";
+  const { trackEvent } = useUserTracking(userId);
 
   if (isInitializing) {
     return (
@@ -2359,6 +2369,18 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Activity Insights Panel */}
+                  <DashboardInsights
+                    userId={userId}
+                    goalsCount={userProfile?.goals?.length ?? 0}
+                    lastGoalsUpdate={(() => {
+                      const v = localStorage.getItem(
+                        `finhealth_goals_updated_${userId}`,
+                      );
+                      return v ? Number(v) : undefined;
+                    })()}
+                  />
+
                   {/* Alerts Panel */}
                   <div
                     className="fintech-card p-5 mb-6"
@@ -2400,13 +2422,12 @@ export default function App() {
                         >
                           <span style={{ color: "#4AB8FF" }}>⚠️</span>
                           <span style={{ color: "#EAF0F6" }}>
-                            No financial goals set — complete your profile to
-                            track goal readiness and improve your FinHealth
-                            Score.
+                            You have no financial goals. Start with Goal
+                            Planner.
                           </span>
                         </div>
                       )}
-                      {equityPct > 80 && (
+                      {equityPct > 70 && (
                         <div
                           className="flex items-start gap-3 p-3 rounded-xl text-xs"
                           style={{
@@ -2416,16 +2437,15 @@ export default function App() {
                         >
                           <span style={{ color: "#FF4A4A" }}>⚠️</span>
                           <span style={{ color: "#EAF0F6" }}>
-                            High equity concentration ({equityPct.toFixed(0)}%)
-                            — consider rebalancing. Shift{" "}
-                            {formatINR(getCatAmt("Equity") - totalAssets * 0.7)}{" "}
-                            to debt/gold.
+                            Your equity allocation is too high (
+                            {equityPct.toFixed(0)}%). Consider rebalancing to
+                            reduce risk.
                           </span>
                         </div>
                       )}
                       {cashPct >= 10 &&
                         (userProfile?.goals?.length ?? 0) > 0 &&
-                        equityPct <= 80 && (
+                        equityPct <= 70 && (
                           <div
                             className="flex items-center gap-3 p-3 rounded-xl text-xs"
                             style={{
@@ -3222,7 +3242,10 @@ export default function App() {
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => setToolsSubTab(t.id)}
+                  onClick={() => {
+                    setToolsSubTab(t.id);
+                    trackEvent("tool_used", t.id);
+                  }}
                   data-ocid={`tools.${t.id}.tab`}
                   className="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
                   style={{
@@ -3499,6 +3522,7 @@ export default function App() {
           setActiveTab(tab);
           if (subTab) setToolsSubTab(subTab);
         }}
+        onChatQuery={() => trackEvent("chat_query")}
       />
       <ContactModal open={showContact} onClose={() => setShowContact(false)} />
       <SitemapModal open={showSitemap} onClose={() => setShowSitemap(false)} />

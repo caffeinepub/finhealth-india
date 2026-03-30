@@ -1,32 +1,13 @@
-import { ChevronRight, Shield, Target, TrendingUp, Zap } from "lucide-react";
+import { ChevronRight, Eye, EyeOff, Shield } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
 type RiskProfile = "Conservative" | "Balanced" | "Aggressive";
 
-const GOALS = [
-  "Retirement",
-  "Home Purchase",
-  "Child Education",
-  "Emergency Fund",
-  "Wealth Growth",
-  "Travel",
-];
-
-const ALLOCATIONS: Record<
-  RiskProfile,
-  { Equity: number; Debt: number; Cash: number; Gold: number }
-> = {
-  Conservative: { Equity: 20, Debt: 50, Cash: 20, Gold: 10 },
-  Balanced: { Equity: 50, Debt: 25, Cash: 15, Gold: 10 },
-  Aggressive: { Equity: 70, Debt: 15, Cash: 10, Gold: 5 },
-};
-
-const ALLOC_COLORS = {
-  Equity: "#B8FF4A",
-  Debt: "#4AB8FF",
-  Cash: "#FFD74A",
-  Gold: "#FF9A4A",
+const riskMap: Record<"Low" | "Medium" | "High", RiskProfile> = {
+  Low: "Conservative",
+  Medium: "Balanced",
+  High: "Aggressive",
 };
 
 interface OnboardingWizardProps {
@@ -37,32 +18,153 @@ interface OnboardingWizardProps {
   }) => void;
 }
 
+const inputStyle: React.CSSProperties = {
+  background: "#0F141B",
+  border: "1px solid #24303A",
+  borderRadius: 10,
+  padding: "10px 14px",
+  color: "#EAF0F6",
+  fontSize: 14,
+  outline: "none",
+  width: "100%",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  fontWeight: 600,
+  color: "#9AA6B2",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  marginBottom: 6,
+};
+
 export default function OnboardingWizard({
   onComplete,
 }: OnboardingWizardProps) {
   const [step, setStep] = useState(1);
+
+  // Step 1 — Signup
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [step1Errors, setStep1Errors] = useState<Record<string, string>>({});
+
+  // Step 2 — KYC
+  const [panNumber, setPanNumber] = useState("");
+  const [dob, setDob] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
+
+  // Step 3 — Profile
   const [income, setIncome] = useState("");
-  const [riskProfile, setRiskProfile] = useState<RiskProfile | null>(null);
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+  const [savings, setSavings] = useState("");
+  const [riskAppetite, setRiskAppetite] = useState<
+    "Low" | "Medium" | "High" | null
+  >(null);
+  const [goals, setGoals] = useState("");
+  const [step3Errors, setStep3Errors] = useState<Record<string, string>>({});
 
-  const toggleGoal = (g: string) =>
-    setSelectedGoals((prev) =>
-      prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g],
+  // ── Validation ──────────────────────────────────────────────────────────────
+
+  function validateStep1() {
+    const errs: Record<string, string> = {};
+    if (!name.trim()) errs.name = "Full name is required.";
+    if (!email.trim()) {
+      errs.email = "Email is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errs.email = "Enter a valid email address.";
+    }
+    if (!mobile.trim()) {
+      errs.mobile = "Mobile number is required.";
+    } else if (!/^\d{10}$/.test(mobile)) {
+      errs.mobile = "Enter a valid 10-digit mobile number.";
+    }
+    if (!password) {
+      errs.password = "Password is required.";
+    } else if (password.length < 6) {
+      errs.password = "Password must be at least 6 characters.";
+    }
+    setStep1Errors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  function validateStep2() {
+    const errs: Record<string, string> = {};
+    if (!panNumber.trim()) {
+      errs.pan = "PAN number is required.";
+    } else if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(panNumber)) {
+      errs.pan = "Invalid PAN format. Example: ABCDE1234F";
+    }
+    if (!dob) errs.dob = "Date of birth is required.";
+    setStep2Errors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  function validateStep3() {
+    const errs: Record<string, string> = {};
+    if (!income || Number(income) <= 0)
+      errs.income = "Enter a valid monthly income.";
+    if (!savings || Number(savings) < 0)
+      errs.savings = "Enter a valid monthly savings amount.";
+    if (!riskAppetite) errs.risk = "Please select your risk appetite.";
+    setStep3Errors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  function handleStep1Submit() {
+    if (validateStep1()) setStep(2);
+  }
+
+  function handleStep2Submit() {
+    if (validateStep2()) setStep(3);
+  }
+
+  function handleStep3Submit() {
+    if (!validateStep3()) return;
+    const userId = btoa(email)
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .substring(0, 12);
+    const parsedGoals = goals
+      ? goals
+          .split(",")
+          .map((g) => g.trim())
+          .filter(Boolean)
+      : [];
+    const profile = riskMap[riskAppetite!];
+    localStorage.setItem(
+      `finhealth_user_${userId}`,
+      JSON.stringify({
+        name: name.trim(),
+        email: email.trim(),
+        mobile: mobile.trim(),
+        panNumber: panNumber.trim(),
+        dob,
+        income: Number(income),
+        savings: Number(savings),
+        riskProfile: profile,
+        goals: parsedGoals,
+        kycStatus: "completed",
+        createdAt: new Date().toISOString(),
+      }),
     );
+    onComplete({
+      income: Number(income),
+      riskProfile: profile,
+      goals: parsedGoals,
+    });
+  }
 
-  const canProceedStep1 =
-    income !== "" &&
-    Number(income) > 0 &&
-    riskProfile !== null &&
-    selectedGoals.length > 0;
-
-  const allocation = riskProfile
-    ? ALLOCATIONS[riskProfile]
-    : ALLOCATIONS.Balanced;
+  // ── Shared step indicator ───────────────────────────────────────────────────
+  const stepLabels = ["Signup", "KYC", "Profile"];
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 flex items-center justify-center z-50 p-4 overflow-y-auto"
       style={{ background: "rgba(6,10,16,0.97)", backdropFilter: "blur(12px)" }}
       data-ocid="onboarding.modal"
     >
@@ -73,7 +175,7 @@ export default function OnboardingWizard({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -24 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="w-full max-w-lg"
+          className="w-full max-w-lg my-auto"
           style={{
             background: "linear-gradient(135deg, #0F141B 0%, #1A2332 100%)",
             border: "1px solid #24303A",
@@ -81,30 +183,50 @@ export default function OnboardingWizard({
             padding: 32,
           }}
         >
-          {/* Step indicators */}
-          <div className="flex items-center justify-center gap-2 mb-8">
+          {/* Step Indicator */}
+          <div className="flex items-center justify-center gap-0 mb-8">
             {[1, 2, 3].map((s) => (
-              <div key={s} className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-                  style={{
-                    background:
-                      s === step
-                        ? "#B8FF4A"
-                        : s < step
-                          ? "rgba(184,255,74,0.2)"
-                          : "rgba(255,255,255,0.05)",
-                    color:
-                      s === step ? "#060A10" : s < step ? "#B8FF4A" : "#9AA6B2",
-                    border: `1px solid ${s <= step ? "#B8FF4A" : "#24303A"}`,
-                  }}
-                  data-ocid={`onboarding.step_${s}.button`}
-                >
-                  {s}
+              <div key={s} className="flex items-center">
+                <div className="flex flex-col items-center gap-1">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                    style={{
+                      background:
+                        s === step
+                          ? "#B8FF4A"
+                          : s < step
+                            ? "rgba(184,255,74,0.15)"
+                            : "rgba(255,255,255,0.04)",
+                      color:
+                        s === step
+                          ? "#060A10"
+                          : s < step
+                            ? "#B8FF4A"
+                            : "#9AA6B2",
+                      border: `1.5px solid ${s <= step ? "#B8FF4A" : "#24303A"}`,
+                    }}
+                    data-ocid={`onboarding.step${s}.button`}
+                  >
+                    {s < step ? "✓" : s}
+                  </div>
+                  <span
+                    className="text-xs"
+                    style={{
+                      color:
+                        s === step
+                          ? "#B8FF4A"
+                          : s < step
+                            ? "#6ECC2A"
+                            : "#4A5568",
+                      fontWeight: s === step ? 700 : 400,
+                    }}
+                  >
+                    {stepLabels[s - 1]}
+                  </span>
                 </div>
                 {s < 3 && (
                   <div
-                    className="w-10 h-px"
+                    className="w-14 h-px mb-4 mx-1"
                     style={{ background: s < step ? "#B8FF4A" : "#24303A" }}
                   />
                 )}
@@ -112,342 +234,482 @@ export default function OnboardingWizard({
             ))}
           </div>
 
-          {/* Step 1 */}
+          {/* ── STEP 1: SIGNUP ── */}
           {step === 1 && (
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Zap size={20} style={{ color: "#B8FF4A" }} />
-                <h2 className="text-xl font-bold" style={{ color: "#EAF0F6" }}>
-                  Welcome to FinPulse
-                </h2>
-              </div>
+              <h2
+                className="text-xl font-bold mb-1"
+                style={{ color: "#EAF0F6" }}
+              >
+                Create Your Account
+              </h2>
               <p className="text-sm mb-6" style={{ color: "#9AA6B2" }}>
-                Tell us about yourself to personalise your experience
+                Start your FinHealth India journey
               </p>
 
-              <div className="mb-5">
-                <label
-                  htmlFor="onboarding-income"
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wide"
-                  style={{ color: "#9AA6B2" }}
-                >
-                  Monthly Income (₹)
+              {/* Full Name */}
+              <div className="mb-4">
+                <label htmlFor="s1-name" style={labelStyle}>
+                  Full Name
                 </label>
                 <input
-                  id="onboarding-income"
-                  type="number"
-                  value={income}
-                  onChange={(e) => setIncome(e.target.value)}
-                  placeholder="e.g. 75000"
-                  className="dark-input w-full"
-                  data-ocid="onboarding.income.input"
-                  style={{
-                    background: "#0F141B",
-                    border: "1px solid #24303A",
-                    borderRadius: 10,
-                    padding: "10px 14px",
-                    color: "#EAF0F6",
-                    fontSize: 14,
-                    outline: "none",
-                    width: "100%",
-                  }}
+                  id="s1-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Rahul Sharma"
+                  style={inputStyle}
+                  data-ocid="onboarding.step1.input"
                 />
+                {step1Errors.name && (
+                  <p
+                    className="text-red-400 text-xs mt-1"
+                    data-ocid="onboarding.name.error_state"
+                  >
+                    {step1Errors.name}
+                  </p>
+                )}
               </div>
 
-              <div className="mb-5">
-                <p
-                  className="text-xs font-semibold mb-3 uppercase tracking-wide"
-                  style={{ color: "#9AA6B2" }}
-                >
-                  Risk Appetite
-                </p>
-                <div className="flex gap-2 flex-wrap">
-                  {(
-                    ["Conservative", "Balanced", "Aggressive"] as RiskProfile[]
-                  ).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRiskProfile(r)}
-                      data-ocid={`onboarding.risk_${r.toLowerCase()}.button`}
-                      className="px-5 py-2 rounded-full text-sm font-semibold transition-all flex-1"
-                      style={{
-                        background:
-                          riskProfile === r
-                            ? "#B8FF4A"
-                            : "rgba(255,255,255,0.05)",
-                        color: riskProfile === r ? "#060A10" : "#9AA6B2",
-                        border: `1px solid ${riskProfile === r ? "#B8FF4A" : "#24303A"}`,
-                      }}
-                    >
-                      {r === "Conservative"
-                        ? "🛡️"
-                        : r === "Balanced"
-                          ? "⚖️"
-                          : "🚀"}{" "}
-                      {r}
-                    </button>
-                  ))}
-                </div>
+              {/* Email */}
+              <div className="mb-4">
+                <label htmlFor="s1-email" style={labelStyle}>
+                  Email Address
+                </label>
+                <input
+                  id="s1-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. rahul@example.com"
+                  style={inputStyle}
+                  data-ocid="onboarding.step1.input"
+                />
+                {step1Errors.email && (
+                  <p
+                    className="text-red-400 text-xs mt-1"
+                    data-ocid="onboarding.email.error_state"
+                  >
+                    {step1Errors.email}
+                  </p>
+                )}
               </div>
 
+              {/* Mobile */}
+              <div className="mb-4">
+                <label htmlFor="s1-mobile" style={labelStyle}>
+                  Mobile Number
+                </label>
+                <input
+                  id="s1-mobile"
+                  type="tel"
+                  value={mobile}
+                  onChange={(e) =>
+                    setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
+                  }
+                  placeholder="10-digit mobile number"
+                  style={inputStyle}
+                  data-ocid="onboarding.step1.input"
+                />
+                {step1Errors.mobile && (
+                  <p
+                    className="text-red-400 text-xs mt-1"
+                    data-ocid="onboarding.mobile.error_state"
+                  >
+                    {step1Errors.mobile}
+                  </p>
+                )}
+              </div>
+
+              {/* Password */}
               <div className="mb-6">
-                <p
-                  className="text-xs font-semibold mb-3 uppercase tracking-wide"
-                  style={{ color: "#9AA6B2" }}
-                >
-                  Financial Goals (select all that apply)
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {GOALS.map((g) => (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => toggleGoal(g)}
-                      data-ocid={`onboarding.goal_${g.toLowerCase().replace(/ /g, "_")}.button`}
-                      className="px-3 py-2 rounded-xl text-xs font-medium transition-all text-left"
-                      style={{
-                        background: selectedGoals.includes(g)
-                          ? "rgba(184,255,74,0.12)"
-                          : "rgba(255,255,255,0.03)",
-                        color: selectedGoals.includes(g)
-                          ? "#B8FF4A"
-                          : "#9AA6B2",
-                        border: `1px solid ${selectedGoals.includes(g) ? "rgba(184,255,74,0.4)" : "#24303A"}`,
-                      }}
-                    >
-                      {selectedGoals.includes(g) ? "✓ " : ""}
-                      {g}
-                    </button>
-                  ))}
+                <label htmlFor="s1-password" style={labelStyle}>
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="s1-password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Minimum 6 characters"
+                    style={{ ...inputStyle, paddingRight: 44 }}
+                    data-ocid="onboarding.step1.input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    style={{
+                      color: "#9AA6B2",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                    data-ocid="onboarding.password.toggle"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
+                {step1Errors.password && (
+                  <p
+                    className="text-red-400 text-xs mt-1"
+                    data-ocid="onboarding.password.error_state"
+                  >
+                    {step1Errors.password}
+                  </p>
+                )}
               </div>
 
               <button
                 type="button"
-                onClick={() => setStep(2)}
-                disabled={!canProceedStep1}
-                data-ocid="onboarding.next_step1.button"
+                onClick={handleStep1Submit}
+                data-ocid="onboarding.step1.primary_button"
                 className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
                 style={{
-                  background: canProceedStep1
-                    ? "#B8FF4A"
-                    : "rgba(184,255,74,0.2)",
-                  color: canProceedStep1 ? "#060A10" : "#4A5568",
-                  cursor: canProceedStep1 ? "pointer" : "not-allowed",
+                  background: "#B8FF4A",
+                  color: "#060A10",
+                  cursor: "pointer",
                 }}
               >
-                Next: See Your Allocation <ChevronRight size={16} />
+                Continue to KYC <ChevronRight size={16} />
               </button>
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* ── STEP 2: KYC ── */}
           {step === 2 && (
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp size={20} style={{ color: "#B8FF4A" }} />
-                <h2 className="text-xl font-bold" style={{ color: "#EAF0F6" }}>
-                  Suggested Allocation
-                </h2>
-              </div>
-              <p className="text-sm mb-1" style={{ color: "#9AA6B2" }}>
-                Based on your{" "}
-                <span style={{ color: "#B8FF4A" }}>{riskProfile}</span> profile
-              </p>
-              <p className="text-xs mb-6" style={{ color: "#4A5568" }}>
-                This is a suggested starting allocation. You can customize in
-                your portfolio.
-              </p>
-
-              <div className="space-y-3 mb-6">
-                {(
-                  Object.entries(allocation) as [
-                    keyof typeof allocation,
-                    number,
-                  ][]
-                ).map(([asset, pct]) => (
-                  <div key={asset}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span style={{ color: ALLOC_COLORS[asset] }}>
-                        {asset}
-                      </span>
-                      <span style={{ color: "#EAF0F6", fontWeight: 700 }}>
-                        {pct}%
-                      </span>
-                    </div>
-                    <div
-                      className="h-3 rounded-full overflow-hidden"
-                      style={{ background: "#0F141B" }}
-                    >
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{
-                          duration: 0.6,
-                          ease: "easeOut",
-                          delay: 0.1,
-                        }}
-                        className="h-full rounded-full"
-                        style={{ background: ALLOC_COLORS[asset] }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div
-                className="p-3 rounded-xl mb-6"
-                style={{
-                  background: "rgba(184,255,74,0.06)",
-                  border: "1px solid rgba(184,255,74,0.15)",
-                }}
-              >
-                <p className="text-xs" style={{ color: "#9AA6B2" }}>
-                  💡 <span style={{ color: "#B8FF4A" }}>Pro tip:</span> Review
-                  and rebalance your portfolio every 6 months to stay aligned
-                  with your goals.
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  data-ocid="onboarding.back_step2.button"
-                  className="px-6 py-3 rounded-xl text-sm font-semibold"
-                  style={{
-                    background: "rgba(255,255,255,0.05)",
-                    color: "#9AA6B2",
-                    border: "1px solid #24303A",
-                  }}
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  data-ocid="onboarding.next_step2.button"
-                  className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
-                  style={{ background: "#B8FF4A", color: "#060A10" }}
-                >
-                  Looks Good! <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3 */}
-          {step === 3 && (
-            <div className="text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                className="text-5xl mb-4"
-              >
-                🎯
-              </motion.div>
               <h2
-                className="text-2xl font-bold mb-2"
+                className="text-xl font-bold mb-1"
                 style={{ color: "#EAF0F6" }}
               >
-                You're all set!
+                KYC Verification
               </h2>
-              <p className="text-sm mb-2" style={{ color: "#9AA6B2" }}>
-                Your personalised FinPulse dashboard is ready.
+              <p className="text-sm mb-5" style={{ color: "#9AA6B2" }}>
+                Verify your identity to access all features
               </p>
-              <div className="flex flex-wrap justify-center gap-2 mb-6">
-                {selectedGoals.map((g) => (
-                  <span
-                    key={g}
-                    className="px-3 py-1 rounded-full text-xs font-semibold"
-                    style={{
-                      background: "rgba(184,255,74,0.12)",
-                      color: "#B8FF4A",
-                      border: "1px solid rgba(184,255,74,0.3)",
-                    }}
-                  >
-                    <Target size={10} className="inline mr-1" />
-                    {g}
-                  </span>
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <div
-                  className="p-3 rounded-xl"
-                  style={{ background: "#0F141B", border: "1px solid #24303A" }}
-                >
-                  <div className="text-xs mb-1" style={{ color: "#9AA6B2" }}>
-                    Monthly Income
-                  </div>
-                  <div
-                    className="text-sm font-bold"
-                    style={{ color: "#B8FF4A" }}
-                  >
-                    ₹{Number(income).toLocaleString("en-IN")}
-                  </div>
-                </div>
-                <div
-                  className="p-3 rounded-xl"
-                  style={{ background: "#0F141B", border: "1px solid #24303A" }}
-                >
-                  <div className="text-xs mb-1" style={{ color: "#9AA6B2" }}>
-                    Risk Profile
-                  </div>
-                  <div
-                    className="text-sm font-bold"
-                    style={{ color: "#B8FF4A" }}
-                  >
-                    {riskProfile}
-                  </div>
-                </div>
-                <div
-                  className="p-3 rounded-xl"
-                  style={{ background: "#0F141B", border: "1px solid #24303A" }}
-                >
-                  <div className="text-xs mb-1" style={{ color: "#9AA6B2" }}>
-                    Goals
-                  </div>
-                  <div
-                    className="text-sm font-bold"
-                    style={{ color: "#B8FF4A" }}
-                  >
-                    {selectedGoals.length} Set
-                  </div>
-                </div>
-              </div>
+
+              {/* Disclaimer banner */}
               <div
-                className="flex items-start gap-2 p-3 rounded-xl mb-6"
+                className="flex items-start gap-2 p-3 rounded-xl mb-5"
                 style={{
                   background: "rgba(255,190,10,0.07)",
-                  border: "1px solid rgba(255,190,10,0.2)",
+                  border: "1px solid rgba(255,190,10,0.25)",
                 }}
               >
                 <Shield
                   size={14}
                   style={{ color: "#FFBE0B", flexShrink: 0, marginTop: 2 }}
                 />
-                <p className="text-xs text-left" style={{ color: "#9AA6B2" }}>
-                  For educational purposes only. Not investment advice.
-                  Investments are subject to market risks.
+                <p className="text-xs" style={{ color: "#C8A84B" }}>
+                  We do not store or share your financial data without consent.
+                  For educational purposes only.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  onComplete({
-                    income: Number(income),
-                    riskProfile: riskProfile!,
-                    goals: selectedGoals,
-                  })
-                }
-                data-ocid="onboarding.dashboard.button"
-                className="w-full py-3 rounded-xl text-sm font-bold"
-                style={{ background: "#B8FF4A", color: "#060A10" }}
+
+              {/* PAN Number */}
+              <div className="mb-4">
+                <label htmlFor="s2-pan" style={labelStyle}>
+                  PAN Number
+                </label>
+                <input
+                  id="s2-pan"
+                  type="text"
+                  value={panNumber}
+                  onChange={(e) =>
+                    setPanNumber(e.target.value.toUpperCase().slice(0, 10))
+                  }
+                  placeholder="e.g. ABCDE1234F"
+                  style={{
+                    ...inputStyle,
+                    fontFamily: "monospace",
+                    letterSpacing: "0.1em",
+                  }}
+                  data-ocid="onboarding.step2.input"
+                />
+                {step2Errors.pan && (
+                  <p
+                    className="text-red-400 text-xs mt-1"
+                    data-ocid="onboarding.pan.error_state"
+                  >
+                    {step2Errors.pan}
+                  </p>
+                )}
+              </div>
+
+              {/* Date of Birth */}
+              <div className="mb-5">
+                <label htmlFor="s2-dob" style={labelStyle}>
+                  Date of Birth
+                </label>
+                <input
+                  id="s2-dob"
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  style={{
+                    ...inputStyle,
+                    colorScheme: "dark",
+                  }}
+                  data-ocid="onboarding.step2.input"
+                />
+                {step2Errors.dob && (
+                  <p
+                    className="text-red-400 text-xs mt-1"
+                    data-ocid="onboarding.dob.error_state"
+                  >
+                    {step2Errors.dob}
+                  </p>
+                )}
+              </div>
+
+              {/* Consent checkbox */}
+              <label
+                htmlFor="kyc-consent"
+                className="flex items-start gap-3 mb-6 cursor-pointer"
+                style={{
+                  background: consent
+                    ? "rgba(184,255,74,0.05)"
+                    : "rgba(255,255,255,0.02)",
+                  border: `1px solid ${consent ? "rgba(184,255,74,0.3)" : "#24303A"}`,
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                }}
               >
-                🚀 Go to Dashboard
-              </button>
+                <div className="relative mt-0.5 flex-shrink-0">
+                  <input
+                    id="kyc-consent"
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="sr-only"
+                    data-ocid="onboarding.step2.checkbox"
+                  />
+                  <div
+                    className="w-5 h-5 rounded flex items-center justify-center"
+                    style={{
+                      background: consent ? "#B8FF4A" : "transparent",
+                      border: `1.5px solid ${consent ? "#B8FF4A" : "#4A5568"}`,
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {consent && (
+                      <svg
+                        width="12"
+                        height="9"
+                        viewBox="0 0 12 9"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M1 4L4.5 7.5L11 1"
+                          stroke="#060A10"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span
+                  className="text-sm"
+                  style={{ color: consent ? "#EAF0F6" : "#9AA6B2" }}
+                >
+                  I consent to use my data for financial analysis
+                </span>
+              </label>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  data-ocid="onboarding.step2.cancel_button"
+                  className="px-6 py-3 rounded-xl text-sm font-semibold"
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    color: "#9AA6B2",
+                    border: "1px solid #24303A",
+                    cursor: "pointer",
+                  }}
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStep2Submit}
+                  disabled={!consent}
+                  data-ocid="onboarding.step2.primary_button"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                  style={{
+                    background: consent ? "#B8FF4A" : "rgba(184,255,74,0.2)",
+                    color: consent ? "#060A10" : "#4A5568",
+                    cursor: consent ? "pointer" : "not-allowed",
+                  }}
+                >
+                  Verify & Continue <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 3: PROFILE COMPLETION ── */}
+          {step === 3 && (
+            <div>
+              <h2
+                className="text-xl font-bold mb-1"
+                style={{ color: "#EAF0F6" }}
+              >
+                Complete Your Profile
+              </h2>
+              <p className="text-sm mb-6" style={{ color: "#9AA6B2" }}>
+                Help us personalize your financial dashboard
+              </p>
+
+              {/* Monthly Income */}
+              <div className="mb-4">
+                <label htmlFor="s3-income" style={labelStyle}>
+                  Monthly Income (₹)
+                </label>
+                <input
+                  id="s3-income"
+                  type="number"
+                  value={income}
+                  onChange={(e) => setIncome(e.target.value)}
+                  placeholder="e.g. 75000"
+                  min="0"
+                  style={inputStyle}
+                  data-ocid="onboarding.step3.input"
+                />
+                {step3Errors.income && (
+                  <p
+                    className="text-red-400 text-xs mt-1"
+                    data-ocid="onboarding.income.error_state"
+                  >
+                    {step3Errors.income}
+                  </p>
+                )}
+              </div>
+
+              {/* Monthly Savings */}
+              <div className="mb-4">
+                <label htmlFor="s3-savings" style={labelStyle}>
+                  Monthly Savings (₹)
+                </label>
+                <input
+                  id="s3-savings"
+                  type="number"
+                  value={savings}
+                  onChange={(e) => setSavings(e.target.value)}
+                  placeholder="e.g. 15000"
+                  min="0"
+                  style={inputStyle}
+                  data-ocid="onboarding.step3.input"
+                />
+                {step3Errors.savings && (
+                  <p
+                    className="text-red-400 text-xs mt-1"
+                    data-ocid="onboarding.savings.error_state"
+                  >
+                    {step3Errors.savings}
+                  </p>
+                )}
+              </div>
+
+              {/* Risk Appetite */}
+              <div className="mb-4">
+                <p style={{ ...labelStyle, marginBottom: 10 }}>Risk Appetite</p>
+                <div className="flex gap-2">
+                  {(["Low", "Medium", "High"] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRiskAppetite(r)}
+                      data-ocid="onboarding.step3.toggle"
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                      style={{
+                        background:
+                          riskAppetite === r
+                            ? "#B8FF4A"
+                            : "rgba(255,255,255,0.04)",
+                        color: riskAppetite === r ? "#060A10" : "#9AA6B2",
+                        border: `1px solid ${riskAppetite === r ? "#B8FF4A" : "#24303A"}`,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {r === "Low"
+                        ? "🛡️ Low"
+                        : r === "Medium"
+                          ? "⚖️ Medium"
+                          : "🚀 High"}
+                    </button>
+                  ))}
+                </div>
+                {step3Errors.risk && (
+                  <p
+                    className="text-red-400 text-xs mt-1"
+                    data-ocid="onboarding.risk.error_state"
+                  >
+                    {step3Errors.risk}
+                  </p>
+                )}
+              </div>
+
+              {/* Financial Goals */}
+              <div className="mb-6">
+                <label htmlFor="s3-goals" style={labelStyle}>
+                  Financial Goals{" "}
+                  <span
+                    style={{
+                      color: "#4A5568",
+                      fontWeight: 400,
+                      textTransform: "none",
+                    }}
+                  >
+                    (optional, comma-separated)
+                  </span>
+                </label>
+                <input
+                  id="s3-goals"
+                  type="text"
+                  value={goals}
+                  onChange={(e) => setGoals(e.target.value)}
+                  placeholder="e.g. Retirement, Home Purchase, Child Education"
+                  style={inputStyle}
+                  data-ocid="onboarding.step3.input"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  data-ocid="onboarding.step3.cancel_button"
+                  className="px-6 py-3 rounded-xl text-sm font-semibold"
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    color: "#9AA6B2",
+                    border: "1px solid #24303A",
+                    cursor: "pointer",
+                  }}
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStep3Submit}
+                  data-ocid="onboarding.step3.primary_button"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                  style={{
+                    background: "#B8FF4A",
+                    color: "#060A10",
+                    cursor: "pointer",
+                  }}
+                >
+                  🚀 Go to Dashboard
+                </button>
+              </div>
             </div>
           )}
         </motion.div>

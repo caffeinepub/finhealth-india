@@ -1,38 +1,38 @@
-# FinHealth India — Version 10: Client Communication & Website Enhancement
+# FinHealth India — User Onboarding Flow
 
 ## Current State
-- Full-stack fintech app with Motoko backend + React/Tailwind/TypeScript frontend
-- Dark theme (#060A10 bg, #B8FF4A accent)
-- Header: logo, user principal/name badge, Save button, Sign Out button
-- Footer: single-line disclaimer + caffeine.ai link
-- Tab navigation: Dashboard, Analysis, Tools, Reports
-- No floating chat, no sitemap, no contact page, no footer nav links
-- User profile stored in backend (name, email, photoURL, riskProfile, goals, income, onboardingComplete)
+
+App has an existing `OnboardingWizard` component (457 lines) that shows after Internet Identity login when `profile.onboardingComplete` is false. It collects: monthly income, risk profile (Conservative/Balanced/Aggressive), and financial goals. Has 3 steps: (1) income+risk+goals input, (2) allocation preview, (3) confirmation screen.
+
+App.tsx wires it via `showOnboarding` state, which triggers after actor loads user profile and finds `onboardingComplete: false`.
 
 ## Requested Changes (Diff)
 
 ### Add
-- **ClientChatBox component**: floating button (bottom-right, #B8FF4A), opens chat modal, user can type/send messages, messages stored in localStorage (keyed by userId/principal), admin-reply-ready data structure `{ id, text, sender: 'user'|'admin', timestamp }`, dark theme modal
-- **Footer navigation**: About Us, Contact Us, Privacy Policy, Terms of Use links (scroll to sections or open modals)
-- **Footer disclaimer**: "For educational purposes only. Not investment advice."
-- **Sitemap page/section**: accessible from footer, lists all pages: Dashboard, Analysis, Tools, Reports with descriptions
-- **Contact Section**: modal or page with name/email/message form, saves to localStorage under `contactMessages` array with `{ id, name, email, message, timestamp }`
-- **About Us section**: brief modal/page about FinHealth India
-- **Privacy Policy & Terms of Use**: modal content pages
-- **Header improvement**: show user avatar (initials-based if no photo) + display name from userProfile.name
+- New `UserOnboardingFlow` component with full 3-step signup/KYC/profile flow
+  - **Step 1 – Signup**: Full Name, Email, Mobile Number, Password; validation (required + email format)
+  - **Step 2 – KYC**: PAN Number (format ABCDE1234F), Date of Birth, consent checkbox ("I consent to use my data for financial analysis"), disclaimer note ("We do not store or share your financial data without consent. For educational purposes only.")
+  - **Step 3 – Profile Completion**: Monthly Income, Monthly Savings, Risk Appetite (Low/Medium/High), Financial Goals (optional text)
+- Step progress indicator (1 → 2 → 3) matching existing dark theme (#060A10, #B8FF4A)
+- On final submit: save to localStorage key `finhealth_user_{userId}` with fields: name, email, mobile, panNumber, dob, income, savings, riskProfile, goals, kycStatus: "completed", createdAt
+- After save: dismiss onboarding and show Dashboard (call existing `onComplete` callback)
 
 ### Modify
-- **Footer**: expand from single-line to multi-column footer with nav links, disclaimer, and copyright
-- **Header**: add user avatar circle showing initials or photo, show name next to/replacing the principal badge
+- `OnboardingWizard.tsx` → replace entirely with the new `UserOnboardingFlow` logic (rename file to `OnboardingWizard.tsx` to avoid App.tsx changes, keep same component export name and prop interface `onComplete`)
+- `onComplete` callback in App.tsx must still receive `{ income, riskProfile, goals }` so the new Step 3 must map: income → income (number), riskProfile → map Low/Medium/High to Conservative/Balanced/Aggressive, goals → array from text input (split by comma)
 
 ### Remove
-- Nothing removed
+- Old 2-step allocation preview and confirmation steps inside OnboardingWizard (replaced by new 3-step flow)
 
 ## Implementation Plan
-1. Create `ClientChatBox.tsx` — floating chat button + modal, localStorage-backed messages, future-ready admin structure
-2. Create `ContactModal.tsx` — name/email/message form, saves to localStorage contactMessages
-3. Create `SitemapModal.tsx` — lists all sections/pages
-4. Create `AboutModal.tsx`, `PrivacyModal.tsx`, `TermsModal.tsx` — static content modals
-5. Update `App.tsx` header to show user avatar (initials from name) + name display
-6. Update `App.tsx` footer to multi-column layout with nav links, disclaimer
-7. Integrate `ClientChatBox` at root level so it floats across all tabs
+
+1. Rewrite `src/frontend/src/components/OnboardingWizard.tsx` as a new 3-step flow:
+   - Step 1: Signup form with name/email/mobile/password fields, validation
+   - Step 2: KYC form with PAN (regex ABCDE1234F), DOB, consent checkbox, disclaimer
+   - Step 3: Profile form with income, savings, risk appetite (Low/Medium/High), goals (optional)
+2. On Step 3 submit:
+   - Generate userId from email (simple hash or use email as key)
+   - Save localStorage key `finhealth_user_{userId}` with all collected fields + kycStatus + createdAt
+   - Call `onComplete({ income: Number(income), riskProfile: mapRisk(riskAppetite), goals: parsedGoals })`
+3. Keep same component default export `OnboardingWizard` and same props interface to avoid App.tsx changes
+4. Dark theme: background #060A10/#0F141B, accent #B8FF4A, text #EAF0F6/#9AA6B2, borders #24303A

@@ -7,6 +7,29 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface http_request_result {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface AIChatResponse {
+    action?: string;
+    insight?: string;
+    reply: string;
+}
+export interface TransformationOutput {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface ChatResponse {
+    action?: string;
+    reply: string;
+}
+export interface TransformationInput {
+    context: Uint8Array;
+    response: http_request_result;
+}
 export type Portfolio = string;
 export type Transactions = string;
 export interface UserProfile {
@@ -16,12 +39,17 @@ export interface UserProfile {
     goals: Array<string>;
     riskProfile: string;
 }
+export interface http_header {
+    value: string;
+    name: string;
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
     guest = "guest"
 }
 export interface backendInterface {
+    aiChat(message: string, portfolio: string, goals: string): Promise<AIChatResponse>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -32,9 +60,12 @@ export interface backendInterface {
     getTransactions(): Promise<Transactions>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
+    processChat(message: string): Promise<ChatResponse>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveFinHealthScore(newScore: bigint): Promise<void>;
     savePortfolio(newPortfolio: Portfolio): Promise<void>;
     saveTransactions(newTransactions: Transactions): Promise<void>;
+    setAIApiKey(key: string): Promise<void>;
+    transform(input: TransformationInput): Promise<TransformationOutput>;
     useReferralCode(referredBy: Principal): Promise<void>;
 }

@@ -10,8 +10,23 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface AIChatResponse {
+  'action' : [] | [string],
+  'insight' : [] | [string],
+  'reply' : string,
+}
+export interface ChatResponse { 'action' : [] | [string], 'reply' : string }
 export type Portfolio = string;
 export type Transactions = string;
+export interface TransformationInput {
+  'context' : Uint8Array,
+  'response' : http_request_result,
+}
+export interface TransformationOutput {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<http_header>,
+}
 export interface UserProfile {
   'name' : string,
   'onboardingComplete' : boolean,
@@ -22,8 +37,15 @@ export interface UserProfile {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface http_header { 'value' : string, 'name' : string }
+export interface http_request_result {
+  'status' : bigint,
+  'body' : Uint8Array,
+  'headers' : Array<http_header>,
+}
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'aiChat' : ActorMethod<[string, string, string], AIChatResponse>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
@@ -34,10 +56,13 @@ export interface _SERVICE {
   'getTransactions' : ActorMethod<[], Transactions>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'processChat' : ActorMethod<[string], ChatResponse>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'saveFinHealthScore' : ActorMethod<[bigint], undefined>,
   'savePortfolio' : ActorMethod<[Portfolio], undefined>,
   'saveTransactions' : ActorMethod<[Transactions], undefined>,
+  'setAIApiKey' : ActorMethod<[string], undefined>,
+  'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
   'useReferralCode' : ActorMethod<[Principal], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
