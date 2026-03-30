@@ -240,7 +240,6 @@ export default function ClientChatBox({
     }
   }, [userId]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on open
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [open]);

@@ -51,6 +51,10 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
     background: linear-gradient(

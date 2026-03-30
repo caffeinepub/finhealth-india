@@ -1,38 +1,40 @@
-# FinHealth India — User Onboarding Flow
+# FinHealth India — Homepage Enhancement
 
 ## Current State
+LandingPage.tsx exists with: Nav, Hero (generic), Stats bar, Features grid (6 cards), How It Works (3 steps), Bottom CTA, Footer.
 
-App has an existing `OnboardingWizard` component (457 lines) that shows after Internet Identity login when `profile.onboardingComplete` is false. It collects: monthly income, risk profile (Conservative/Balanced/Aggressive), and financial goals. Has 3 steps: (1) income+risk+goals input, (2) allocation preview, (3) confirmation screen.
-
-App.tsx wires it via `showOnboarding` state, which triggers after actor loads user profile and finds `onboardingComplete: false`.
+Missing sections per user request:
+- Problem section (4 pain points)
+- Solution section (4 features)
+- Market Insights section
+- Why FinHealth section
+- Pricing section (Free + Pro)
+- Hero updated with exact copy and Login button
 
 ## Requested Changes (Diff)
 
 ### Add
-- New `UserOnboardingFlow` component with full 3-step signup/KYC/profile flow
-  - **Step 1 – Signup**: Full Name, Email, Mobile Number, Password; validation (required + email format)
-  - **Step 2 – KYC**: PAN Number (format ABCDE1234F), Date of Birth, consent checkbox ("I consent to use my data for financial analysis"), disclaimer note ("We do not store or share your financial data without consent. For educational purposes only.")
-  - **Step 3 – Profile Completion**: Monthly Income, Monthly Savings, Risk Appetite (Low/Medium/High), Financial Goals (optional text)
-- Step progress indicator (1 → 2 → 3) matching existing dark theme (#060A10, #B8FF4A)
-- On final submit: save to localStorage key `finhealth_user_{userId}` with fields: name, email, mobile, panNumber, dob, income, savings, riskProfile, goals, kycStatus: "completed", createdAt
-- After save: dismiss onboarding and show Dashboard (call existing `onComplete` callback)
+- **Problem section**: 4 pain point cards — "Wrong insurance policies", "Low investment returns", "No financial planning", "Lack of clarity" with warning/error visual treatment
+- **Solution section**: Headline "FinHealth helps you analyze financial decisions using AI" + 4 feature pills: Policy Analyzer, SIP Planner, Risk Profile, AI Assistant
+- **Market Insights section**: 3 insight cards — Inflation impact, SIP vs FD comparison, Wealth growth examples (with sample numbers)
+- **Why FinHealth section**: "Millions of people make poor financial decisions due to lack of guidance. FinHealth is built to provide clarity and smarter decisions."
+- **Pricing section**: Free Plan (Basic tools) and Pro Plan (AI insights, Advanced tracking, Weekly reports) cards with a highlighted Pro card
 
 ### Modify
-- `OnboardingWizard.tsx` → replace entirely with the new `UserOnboardingFlow` logic (rename file to `OnboardingWizard.tsx` to avoid App.tsx changes, keep same component export name and prop interface `onComplete`)
-- `onComplete` callback in App.tsx must still receive `{ income, riskProfile, goals }` so the new Step 3 must map: income → income (number), riskProfile → map Low/Medium/High to Conservative/Balanced/Aggressive, goals → array from text input (split by comma)
+- **Hero**: Change heading to "Make smarter financial decisions with AI", subtext to "Analyze investments, track your wealth, and avoid costly mistakes", replace Advisory button with a "Login" button (calls onEnterApp for now)
+- **Branding**: Keep "FinHealth India" / "FinPulse" as is
+- **Features grid section**: Keep existing 6-card features grid (rename heading slightly if needed) — already present, keep intact
+- **Final CTA**: Change button text to "Get Started", heading to "Start your financial journey today"
 
 ### Remove
-- Old 2-step allocation preview and confirmation steps inside OnboardingWizard (replaced by new 3-step flow)
+- Nothing removed
 
 ## Implementation Plan
-
-1. Rewrite `src/frontend/src/components/OnboardingWizard.tsx` as a new 3-step flow:
-   - Step 1: Signup form with name/email/mobile/password fields, validation
-   - Step 2: KYC form with PAN (regex ABCDE1234F), DOB, consent checkbox, disclaimer
-   - Step 3: Profile form with income, savings, risk appetite (Low/Medium/High), goals (optional)
-2. On Step 3 submit:
-   - Generate userId from email (simple hash or use email as key)
-   - Save localStorage key `finhealth_user_{userId}` with all collected fields + kycStatus + createdAt
-   - Call `onComplete({ income: Number(income), riskProfile: mapRisk(riskAppetite), goals: parsedGoals })`
-3. Keep same component default export `OnboardingWizard` and same props interface to avoid App.tsx changes
-4. Dark theme: background #060A10/#0F141B, accent #B8FF4A, text #EAF0F6/#9AA6B2, borders #24303A
+1. Add Problem section after Hero/Stats
+2. Add Solution section after Problem
+3. Keep existing Features grid in place
+4. Add Market Insights after Features
+5. Add Why FinHealth section
+6. Add Pricing section
+7. Update Hero copy and buttons
+8. Update Final CTA copy

@@ -147,7 +147,6 @@ export default function ContactModal({ open, onClose }: ContactModalProps) {
               }}
             >
               <div>
-                {/* biome-ignore lint/a11y/noLabelWithoutControl: input is sibling */}
                 <label htmlFor="contact-name" style={labelStyle}>
                   Your Name
                 </label>
@@ -163,7 +162,6 @@ export default function ContactModal({ open, onClose }: ContactModalProps) {
                 />
               </div>
               <div>
-                {/* biome-ignore lint/a11y/noLabelWithoutControl: input is sibling */}
                 <label htmlFor="contact-email" style={labelStyle}>
                   Email Address
                 </label>
@@ -179,7 +177,6 @@ export default function ContactModal({ open, onClose }: ContactModalProps) {
                 />
               </div>
               <div>
-                {/* biome-ignore lint/a11y/noLabelWithoutControl: textarea is sibling */}
                 <label htmlFor="contact-message" style={labelStyle}>
                   Message
                 </label>

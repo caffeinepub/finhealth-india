@@ -22,7 +22,8 @@ import {
   Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Papa from "papaparse";
+// papaparse loaded via CDN
+declare const Papa: typeof import("papaparse").default;
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   Area,
@@ -39,7 +40,9 @@ import {
   YAxis,
 } from "recharts";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+// xlsx loaded via CDN
+declare const XLSX: typeof import("xlsx");
+import AdvisoryPage from "./components/AdvisoryPage";
 import CardAnalysisTab from "./components/CardAnalysisTab";
 import type { Transaction } from "./components/CardAnalysisTab";
 import ClientChatBox from "./components/ClientChatBox";
@@ -52,8 +55,10 @@ import InflationTrackerTab from "./components/InflationTrackerTab";
 import InfoModal from "./components/InfoModal";
 import InvestmentCalculatorTab from "./components/InvestmentCalculatorTab";
 import KycChecklistTab from "./components/KycChecklistTab";
+import LandingPage from "./components/LandingPage";
 import LifeStageRoadmapTab from "./components/LifeStageRoadmapTab";
 import LoanPrepaymentTab from "./components/LoanPrepaymentTab";
+import MyAccountPage from "./components/MyAccountPage";
 import OnboardingWizard from "./components/OnboardingWizard";
 import PolicyAnalyzerTab from "./components/PolicyAnalyzerTab";
 import RebalancingSimulatorTab from "./components/RebalancingSimulatorTab";
@@ -1136,6 +1141,11 @@ export default function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMyAccount, setShowMyAccount] = useState(false);
+  const [currentPage, setCurrentPage] = useState<"home" | "app" | "advisory">(
+    "home",
+  );
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const dataLoadedRef = useRef(false);
 
@@ -1526,2063 +1536,2315 @@ export default function App() {
         <OnboardingWizard onComplete={handleOnboardingComplete} />
       )}
 
-      {/* Header */}
-      <header
-        className="sticky top-0 z-50 w-full"
-        style={{
-          background: "rgba(6,10,16,0.9)",
-          borderBottom: "1px solid #24303A",
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap
-              size={22}
-              style={{
-                color: "#B8FF4A",
-                filter: "drop-shadow(0 0 6px #B8FF4A80)",
-              }}
-            />
-            <span className="text-lg font-bold" style={{ color: "#EAF0F6" }}>
-              FinPulse
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            {userProfile?.name ? (
-              <div className="hidden sm:flex items-center gap-2">
-                <div
-                  style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "50%",
-                    background: "rgba(184,255,74,0.15)",
-                    color: "#B8FF4A",
-                    border: "1px solid #B8FF4A",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 700,
-                    fontSize: "14px",
-                    flexShrink: 0,
-                  }}
-                >
-                  {userProfile.name.charAt(0).toUpperCase()}
-                </div>
-                <span
-                  className="text-sm font-semibold"
-                  style={{ color: "#EAF0F6" }}
-                >
-                  {userProfile.name}
-                </span>
-              </div>
-            ) : (
-              <span
-                className="hidden sm:block text-xs px-2.5 py-1 rounded-full"
-                style={{
-                  background: "rgba(184,255,74,0.1)",
-                  color: "#B8FF4A",
-                  border: "1px solid rgba(184,255,74,0.2)",
-                }}
-              >
-                {shortPrincipal}
-              </span>
-            )}
-            <button
-              type="button"
-              data-ocid="portfolio.save_button"
-              onClick={savePortfolio}
-              disabled={isSaving}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-              style={{
-                background: "rgba(184,255,74,0.12)",
-                color: "#B8FF4A",
-                border: "1px solid rgba(184,255,74,0.25)",
-              }}
-            >
-              {isSaving ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <Save size={13} />
-              )}
-              {isSaving ? "Saving..." : "Save"}
-            </button>
-            <button
-              type="button"
-              data-ocid="auth.button"
-              onClick={clear}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-              style={{
-                background: "rgba(255,74,74,0.1)",
-                color: "#FF4A4A",
-                border: "1px solid rgba(255,74,74,0.2)",
-              }}
-            >
-              <LogOut size={13} />
-              <span className="hidden sm:block">Sign Out</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* My Account Page */}
+      <AnimatePresence>
+        {showMyAccount && (
+          <MyAccountPage
+            onClose={() => setShowMyAccount(false)}
+            onStartOnboarding={() => {
+              setShowMyAccount(false);
+              setShowOnboarding(true);
+            }}
+            userId={btoa(identity?.getPrincipal().toString() || "guest")
+              .replace(/[^a-zA-Z0-9]/g, "")
+              .substring(0, 12)}
+          />
+        )}
+      </AnimatePresence>
 
-      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        {/* Hero */}
-        <div className="text-center mb-8">
-          <p className="text-sm mb-2" style={{ color: "#9AA6B2" }}>
-            Today's{" "}
-            {new Date().toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
-          </p>
-          <h1
-            className="text-3xl sm:text-4xl font-bold mb-2"
-            style={{ color: "#EAF0F6", letterSpacing: "-0.02em" }}
-          >
-            Financial{" "}
-            <span
-              style={{
-                color: "#B8FF4A",
-                textShadow: "0 0 20px rgba(184,255,74,0.4)",
-              }}
-            >
-              Intelligence
-            </span>{" "}
-            Dashboard
-          </h1>
-          <p className="text-sm max-w-md mx-auto" style={{ color: "#9AA6B2" }}>
-            Upload your portfolio, add entries, then click Analyze for
-            AI-powered insights.
-          </p>
-        </div>
-
-        {/* ── 4 Top-Level Tabs ── */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList
-            className="w-full mb-6"
+      {currentPage === "home" && (
+        <LandingPage
+          onEnterApp={() => setCurrentPage("app")}
+          onGoAdvisory={() => setCurrentPage("advisory")}
+        />
+      )}
+      {currentPage === "advisory" && (
+        <AdvisoryPage
+          onBack={() => setCurrentPage("home")}
+          onOpenChat={() => setCurrentPage("app")}
+        />
+      )}
+      {currentPage === "app" && (
+        <>
+          {/* Header */}
+          <header
+            className="sticky top-0 z-50 w-full"
             style={{
-              background: "#0F141B",
-              border: "1px solid #24303A",
-              borderRadius: 14,
-              height: 48,
+              background: "rgba(6,10,16,0.9)",
+              borderBottom: "1px solid #24303A",
+              backdropFilter: "blur(12px)",
             }}
           >
-            <TabsTrigger
-              value="dashboard"
-              data-ocid="dashboard.tab"
-              className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
-              style={{ borderRadius: 10, fontSize: 14 }}
-            >
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger
-              value="analysis"
-              data-ocid="analysis.tab"
-              className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
-              style={{ borderRadius: 10, fontSize: 14 }}
-            >
-              Analysis
-            </TabsTrigger>
-            <TabsTrigger
-              value="tools"
-              data-ocid="tools.tab"
-              className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
-              style={{ borderRadius: 10, fontSize: 14 }}
-            >
-              Tools
-            </TabsTrigger>
-            <TabsTrigger
-              value="reports"
-              data-ocid="reports.tab"
-              className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
-              style={{ borderRadius: 10, fontSize: 14 }}
-            >
-              Reports
-            </TabsTrigger>
-          </TabsList>
-
-          {/* ── DASHBOARD TAB ── */}
-          <TabsContent value="dashboard">
-            <UploadSection onImport={handleImportRows} />
-
-            <section className="fintech-card p-6 mb-6">
-              <h2
-                className="text-base font-bold mb-5 flex items-center gap-2"
-                style={{ color: "#EAF0F6" }}
-              >
-                <Plus size={18} style={{ color: "#B8FF4A" }} />
-                Add Portfolio Entry
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-                <div>
-                  <label
-                    htmlFor="entry-type"
-                    className="block text-xs font-medium mb-1.5"
-                    style={{ color: "#9AA6B2" }}
-                  >
-                    Type
-                  </label>
-                  <select
-                    id="entry-type"
-                    data-ocid="entry.select"
-                    className="dark-input"
-                    value={form.type}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        type: e.target.value as EntryType,
-                      }))
-                    }
-                  >
-                    <option value="Asset">Asset</option>
-                    <option value="Liability">Liability</option>
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor="entry-category"
-                    className="block text-xs font-medium mb-1.5"
-                    style={{ color: "#9AA6B2" }}
-                  >
-                    Category
-                  </label>
-                  <select
-                    id="entry-category"
-                    data-ocid="entry.select"
-                    className="dark-input"
-                    value={form.category}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        category: e.target.value as Category,
-                      }))
-                    }
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor="entry-amount"
-                    className="block text-xs font-medium mb-1.5"
-                    style={{ color: "#9AA6B2" }}
-                  >
-                    Amount (₹)
-                  </label>
-                  <input
-                    id="entry-amount"
-                    data-ocid="entry.input"
-                    type="number"
-                    placeholder="Enter amount..."
-                    className="dark-input"
-                    value={form.amount}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, amount: e.target.value }))
-                    }
-                    onKeyDown={(e) => e.key === "Enter" && addEntry()}
-                    min={1}
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Zap
+                    size={22}
+                    style={{
+                      color: "#B8FF4A",
+                      filter: "drop-shadow(0 0 6px #B8FF4A80)",
+                    }}
                   />
+                  <span
+                    className="text-lg font-bold"
+                    style={{ color: "#EAF0F6" }}
+                  >
+                    FinPulse
+                  </span>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 mb-6">
                 <button
                   type="button"
-                  data-ocid="entry.primary_button"
-                  className="neon-btn flex items-center gap-2"
-                  onClick={addEntry}
+                  data-ocid="app.nav.home.link"
+                  onClick={() => setCurrentPage("home")}
+                  className="hidden sm:block text-sm font-medium px-3 py-1.5 rounded-xl transition-all hover:bg-white/5"
+                  style={{ color: "#9AA6B2" }}
                 >
-                  {editingId ? <Pencil size={16} /> : <Plus size={16} />}
-                  {editingId ? "Update Entry" : "Add Entry"}
+                  Home
                 </button>
-                {editingId && (
+                <button
+                  type="button"
+                  data-ocid="app.nav.advisory.link"
+                  onClick={() => setCurrentPage("advisory")}
+                  className="hidden sm:block text-sm font-medium px-3 py-1.5 rounded-xl transition-all hover:bg-white/5"
+                  style={{ color: "#9AA6B2" }}
+                >
+                  Advisory
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  data-ocid="portfolio.save_button"
+                  onClick={savePortfolio}
+                  disabled={isSaving}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                  style={{
+                    background: "rgba(184,255,74,0.12)",
+                    color: "#B8FF4A",
+                    border: "1px solid rgba(184,255,74,0.25)",
+                  }}
+                >
+                  {isSaving ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Save size={13} />
+                  )}
+                  {isSaving ? "Saving..." : "Save"}
+                </button>
+
+                {/* Profile dropdown */}
+                <div className="relative">
                   <button
                     type="button"
-                    data-ocid="entry.cancel_button"
-                    onClick={cancelEdit}
-                    className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                    data-ocid="profile.open_modal_button"
+                    onClick={() => setShowProfileMenu((v) => !v)}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all"
                     style={{
-                      background: "rgba(255,74,74,0.1)",
-                      color: "#FF4A4A",
-                      border: "1px solid rgba(255,74,74,0.2)",
+                      background: showProfileMenu
+                        ? "rgba(184,255,74,0.12)"
+                        : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${showProfileMenu ? "rgba(184,255,74,0.3)" : "#24303A"}`,
+                      cursor: "pointer",
                     }}
                   >
-                    Cancel
-                  </button>
-                )}
-              </div>
-              {entries.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3
-                      className="text-xs font-semibold uppercase tracking-wider"
-                      style={{ color: "#9AA6B2" }}
-                    >
-                      Portfolio Entries ({entries.length})
-                    </h3>
-                    <button
-                      type="button"
-                      data-ocid="entry.delete_button"
-                      onClick={() => {
-                        setEntries([]);
-                        setAnalyzed(false);
-                      }}
-                      className="text-xs px-3 py-1.5 rounded-lg transition-colors"
+                    <div
                       style={{
-                        color: "#FF4A4A",
-                        background: "rgba(255,74,74,0.1)",
-                        border: "1px solid rgba(255,74,74,0.2)",
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "50%",
+                        background: "rgba(184,255,74,0.15)",
+                        color: "#B8FF4A",
+                        border: "1px solid rgba(184,255,74,0.4)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 700,
+                        fontSize: "12px",
+                        flexShrink: 0,
+                        overflow: "hidden",
                       }}
                     >
-                      Clear All
-                    </button>
-                  </div>
-                  <div className="space-y-2 max-h-80 overflow-y-auto">
-                    <AnimatePresence initial={false}>
-                      {entries.map((entry, idx) => (
-                        <motion.div
-                          key={entry.id}
-                          data-ocid={`entry.item.${idx + 1}`}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 10, height: 0 }}
-                          className="flex items-center justify-between rounded-xl px-4 py-3"
-                          style={{
-                            background: "#0F141B",
-                            border: "1px solid #24303A",
-                          }}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span
-                              className="w-2 h-2 rounded-full"
+                      {(() => {
+                        const userId = btoa(
+                          identity?.getPrincipal().toString() || "guest",
+                        )
+                          .replace(/[^a-zA-Z0-9]/g, "")
+                          .substring(0, 12);
+                        const storedUser = localStorage.getItem(
+                          `finhealth_user_${userId}`,
+                        );
+                        const photo = storedUser
+                          ? (JSON.parse(storedUser) as { photoURL?: string })
+                              .photoURL
+                          : "";
+                        if (photo)
+                          return (
+                            <img
+                              src={photo}
+                              alt="avatar"
                               style={{
-                                background:
-                                  entry.type === "Asset"
-                                    ? "#B8FF4A"
-                                    : "#FF4A4A",
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
                               }}
                             />
-                            <div>
-                              <span
-                                className="text-sm font-medium"
-                                style={{ color: "#EAF0F6" }}
-                              >
-                                {entry.category}
-                              </span>
-                              <span
-                                className="ml-2 text-xs px-1.5 py-0.5 rounded"
-                                style={{
-                                  background:
-                                    entry.type === "Asset"
-                                      ? "rgba(184,255,74,0.1)"
-                                      : "rgba(255,74,74,0.1)",
-                                  color:
-                                    entry.type === "Asset"
-                                      ? "#B8FF4A"
-                                      : "#FF4A4A",
-                                }}
-                              >
-                                {entry.type}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span
-                              className="font-bold text-sm"
-                              style={{
-                                color:
-                                  entry.type === "Asset"
-                                    ? "#B8FF4A"
-                                    : "#FF4A4A",
-                              }}
-                            >
-                              {formatINR(entry.amount)}
-                            </span>
-                            <button
-                              type="button"
-                              data-ocid={`entry.edit_button.${idx + 1}`}
-                              onClick={() => startEdit(entry)}
-                              aria-label={`Edit ${entry.category} entry`}
-                              className="p-1.5 rounded-lg transition-colors"
-                              style={{ color: "#4AB8FF" }}
-                            >
-                              <Pencil size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              data-ocid={`entry.delete_button.${idx + 1}`}
-                              onClick={() => deleteEntry(entry.id)}
-                              aria-label={`Delete ${entry.category} entry`}
-                              className="p-1.5 rounded-lg transition-colors delete-btn"
-                              style={{ color: "#9AA6B2" }}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              )}
-              <div className="mt-6 flex justify-center">
-                <button
-                  type="button"
-                  data-ocid="portfolio.primary_button"
-                  className="neon-btn flex items-center gap-2 px-10 py-3 text-base"
-                  onClick={handleAnalyze}
-                  disabled={entries.length === 0 || isAnalyzing}
-                  style={
-                    entries.length === 0
-                      ? { opacity: 0.4, cursor: "not-allowed" }
-                      : {}
-                  }
-                >
-                  {isAnalyzing ? (
+                          );
+                        return (userProfile?.name ?? shortPrincipal)
+                          .charAt(0)
+                          .toUpperCase();
+                      })()}
+                    </div>
+                    <span
+                      className="hidden sm:block text-xs font-semibold"
+                      style={{ color: "#EAF0F6" }}
+                    >
+                      {userProfile?.name ?? shortPrincipal}
+                    </span>
+                  </button>
+
+                  {showProfileMenu && (
                     <>
-                      <Loader2 size={18} className="animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <TrendingUp size={18} />
-                      Analyze Portfolio
+                      <div
+                        className="fixed inset-0 z-40"
+                        role="button"
+                        tabIndex={-1}
+                        aria-label="Close menu"
+                        onClick={() => setShowProfileMenu(false)}
+                        onKeyDown={(e) =>
+                          e.key === "Escape" && setShowProfileMenu(false)
+                        }
+                      />
+                      <div
+                        className="absolute right-0 top-full mt-2 z-50 py-1 min-w-[160px]"
+                        style={{
+                          background: "#0F141B",
+                          border: "1px solid #24303A",
+                          borderRadius: 12,
+                          boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                        }}
+                        data-ocid="profile.dropdown_menu"
+                      >
+                        <button
+                          type="button"
+                          data-ocid="profile.my-account.link"
+                          onClick={() => {
+                            setShowMyAccount(true);
+                            setShowProfileMenu(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                          style={{
+                            color: "#EAF0F6",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            textAlign: "left",
+                          }}
+                        >
+                          👤 My Account
+                        </button>
+                        <button
+                          type="button"
+                          data-ocid="profile.activity-log.link"
+                          onClick={() => {
+                            setActiveTab("dashboard");
+                            setShowProfileMenu(false);
+                            toast.info("Activity Log coming soon!");
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                          style={{
+                            color: "#EAF0F6",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            textAlign: "left",
+                          }}
+                        >
+                          📊 Activity Log
+                        </button>
+                        <div
+                          style={{
+                            borderTop: "1px solid #24303A",
+                            margin: "4px 0",
+                          }}
+                        />
+                        <button
+                          type="button"
+                          data-ocid="profile.logout.button"
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            clear();
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
+                          style={{
+                            color: "#FF4A4A",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            textAlign: "left",
+                          }}
+                        >
+                          <LogOut size={13} /> Sign Out
+                        </button>
+                      </div>
                     </>
                   )}
-                </button>
+                </div>
               </div>
-            </section>
-          </TabsContent>
+            </div>
+          </header>
 
-          {/* ── ANALYSIS TAB ── */}
-          <TabsContent value="analysis">
-            {/* Analysis Sub-Navigation */}
-            <div
-              className="mb-5 flex flex-wrap gap-2"
-              data-ocid="analysis.panel"
-            >
-              {[
-                { id: "financial-analysis", label: "📊 Financial Analysis" },
-                { id: "trends", label: "📈 Trends" },
-                { id: "investor-protection", label: "🛡 Investor Protection" },
-                { id: "sip-calculator", label: "💰 SIP Calculator" },
-                { id: "kyc-checklist", label: "✅ KYC Checklist" },
-                { id: "risk-profile", label: "🧠 Risk Profile" },
-              ].map((t) => (
-                <SubNavBtn
-                  key={t.id}
-                  id={t.id}
-                  label={t.label}
-                  current={analysisSubTab}
-                  onClick={() => setAnalysisSubTab(t.id)}
-                />
-              ))}
+          <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8">
+            {/* Hero */}
+            <div className="text-center mb-8">
+              <p className="text-sm mb-2" style={{ color: "#9AA6B2" }}>
+                Today's{" "}
+                {new Date().toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </p>
+              <h1
+                className="text-3xl sm:text-4xl font-bold mb-2"
+                style={{ color: "#EAF0F6", letterSpacing: "-0.02em" }}
+              >
+                Financial{" "}
+                <span
+                  style={{
+                    color: "#B8FF4A",
+                    textShadow: "0 0 20px rgba(184,255,74,0.4)",
+                  }}
+                >
+                  Intelligence
+                </span>{" "}
+                Dashboard
+              </h1>
+              <p
+                className="text-sm max-w-md mx-auto"
+                style={{ color: "#9AA6B2" }}
+              >
+                Upload your portfolio, add entries, then click Analyze for
+                AI-powered insights.
+              </p>
             </div>
 
-            {/* Financial Analysis Sub-Tab */}
-            {analysisSubTab === "financial-analysis" &&
-              (!analyzed ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="fintech-card p-12 flex flex-col items-center justify-center gap-4 text-center"
-                  data-ocid="analysis.empty_state"
-                >
-                  <BarChart3 size={48} style={{ color: "#24303A" }} />
-                  <p className="text-sm" style={{ color: "#9AA6B2" }}>
-                    Go to Dashboard tab and click{" "}
-                    <span style={{ color: "#B8FF4A" }}>Analyze Portfolio</span>{" "}
-                    to see your results.
-                  </p>
-                </motion.div>
-              ) : !consentGiven ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="fintech-card p-10 flex flex-col items-center justify-center gap-6 text-center"
-                  data-ocid="consent.section"
-                >
-                  <Shield size={48} style={{ color: "#B8FF4A" }} />
-                  <div>
-                    <h3
-                      className="text-lg font-bold mb-2"
-                      style={{ color: "#EAF0F6" }}
-                    >
-                      Before viewing your analysis
-                    </h3>
-                    <p className="text-sm" style={{ color: "#9AA6B2" }}>
-                      Please acknowledge the disclaimer below to proceed.
-                    </p>
-                  </div>
-                  <label
-                    className="flex items-center gap-3 cursor-pointer group"
-                    data-ocid="consent.checkbox"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={consentGiven}
-                      onChange={(e) => setConsentGiven(e.target.checked)}
-                      className="w-5 h-5 accent-[#B8FF4A] cursor-pointer"
-                    />
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: "#EAF0F6" }}
-                    >
-                      I understand this is{" "}
-                      <span style={{ color: "#B8FF4A" }}>
-                        not investment advice
-                      </span>{" "}
-                      and investments are subject to market risks.
-                    </span>
-                  </label>
-                </motion.div>
-              ) : (
-                <AnimatePresence>
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    data-ocid="dashboard.section"
-                  >
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-                      <SummaryCard
-                        icon={<Wallet size={16} />}
-                        label="Total Assets"
-                        value={formatINR(totalAssets)}
-                        sub={`${entries.filter((e) => e.type === "Asset").length} entries`}
-                        highlight="neon"
-                      />
-                      <SummaryCard
-                        icon={<Scale size={16} />}
-                        label="Total Liabilities"
-                        value={formatINR(totalLiabilities)}
-                        sub={`${entries.filter((e) => e.type === "Liability").length} entries`}
-                        highlight="red"
-                      />
-                      <SummaryCard
-                        icon={<BarChart3 size={16} />}
-                        label="Net Worth"
-                        value={formatINR(netWorth)}
-                        sub={
-                          netWorth >= 0
-                            ? "Positive net worth"
-                            : "Negative — focus on debt"
-                        }
-                        highlight={netWorth >= 0 ? "neon" : "red"}
-                      />
-                    </div>
-                    {/* Metrics */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-                      <MetricCard
-                        label="Equity %"
-                        value={`${equityPct.toFixed(1)}%`}
-                        color="#B8FF4A"
-                      />
-                      <MetricCard
-                        label="Debt %"
-                        value={`${debtPct.toFixed(1)}%`}
-                        color="#4AB8FF"
-                      />
-                      <MetricCard
-                        label="Cash %"
-                        value={`${cashPct.toFixed(1)}%`}
-                        color="#FFD74A"
-                      />
-                      <MetricCard
-                        label="Gold %"
-                        value={`${goldPct.toFixed(1)}%`}
-                        color="#FF9A4A"
-                      />
-                      <MetricCard
-                        label="Liability/Asset"
-                        value={liabToAsset.toFixed(2)}
-                        color={
-                          liabToAsset > 0.6
-                            ? "#FF4A4A"
-                            : liabToAsset > 0.4
-                              ? "#FFB84A"
-                              : "#B8FF4A"
-                        }
-                      />
-                      <MetricCard
-                        label="Mutual Funds %"
-                        value={`${mfPct.toFixed(1)}%`}
-                        color="#C74AFF"
-                      />
-                    </div>
-                    {/* Financial Summary */}
-                    <div className="fintech-card p-6 mb-6">
-                      <h2
-                        className="text-sm font-bold mb-5 flex items-center gap-2"
-                        style={{ color: "#EAF0F6" }}
-                      >
-                        <Info size={16} style={{ color: "#B8FF4A" }} />
-                        Financial Summary
-                      </h2>
-                      <div className="grid grid-cols-3 gap-6">
-                        <StatusBadge
-                          label="Risk Level"
-                          status={riskLevel}
-                          positive={riskPositive}
-                        />
-                        <StatusBadge
-                          label="Liquidity Status"
-                          status={liquidityStatus}
-                          positive={liquidityPositive}
-                        />
-                        <StatusBadge
-                          label="Overall Health"
-                          status={healthLabel}
-                          positive={healthPositive}
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* Health Score + Pie */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div className="fintech-card p-6">
-                      <h2
-                        className="text-sm font-bold mb-4 flex items-center gap-2"
-                        style={{ color: "#EAF0F6" }}
-                      >
-                        <Activity size={16} style={{ color: "#B8FF4A" }} />
-                        Financial Health Score
-                      </h2>
-                      <HealthGauge score={score} />
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        {scoreItems.map((item) => {
-                          const pct = (item.score / item.maxScore) * 100;
-                          return (
-                            <div
-                              key={item.label}
-                              className="rounded-xl p-3"
-                              style={{
-                                background: "#0F141B",
-                                border: "1px solid #24303A",
-                              }}
-                            >
-                              <div
-                                className="text-xs mb-1.5"
-                                style={{ color: "#9AA6B2" }}
-                              >
-                                {item.label}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="flex-1 h-1.5 rounded-full"
-                                  style={{ background: "#1F2A38" }}
-                                >
-                                  <div
-                                    className="h-full rounded-full transition-all"
-                                    style={{
-                                      width: `${pct}%`,
-                                      background:
-                                        pct >= 70
-                                          ? "#B8FF4A"
-                                          : pct >= 40
-                                            ? "#FFB84A"
-                                            : "#FF4A4A",
-                                      transition: "width 1s ease",
-                                    }}
-                                  />
-                                </div>
-                                <span
-                                  className="text-xs font-bold"
-                                  style={{ color: "#EAF0F6" }}
-                                >
-                                  {item.score}/{item.maxScore}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div className="fintech-card p-6">
-                      <h2
-                        className="text-sm font-bold mb-4 flex items-center gap-2"
-                        style={{ color: "#EAF0F6" }}
-                      >
-                        <BarChart3 size={16} style={{ color: "#B8FF4A" }} />
-                        Asset Allocation
-                      </h2>
-                      {pieData.length > 0 ? (
-                        <>
-                          <ResponsiveContainer width="100%" height={200}>
-                            <PieChart>
-                              <Pie
-                                data={pieData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={55}
-                                outerRadius={85}
-                                paddingAngle={3}
-                                dataKey="value"
-                              >
-                                {pieData.map((entry) => (
-                                  <Cell
-                                    key={entry.name}
-                                    fill={
-                                      CATEGORY_COLORS[entry.name as Category] ||
-                                      "#B8FF4A"
-                                    }
-                                    stroke="#0F141B"
-                                    strokeWidth={2}
-                                  />
-                                ))}
-                              </Pie>
-                              <Tooltip content={<CustomTooltip />} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div className="grid grid-cols-2 gap-2 mt-2">
-                            {pieData.map((d) => (
-                              <div
-                                key={d.name}
-                                className="flex items-center gap-2 text-xs"
-                              >
-                                <span
-                                  className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                                  style={{
-                                    background:
-                                      CATEGORY_COLORS[d.name as Category],
-                                  }}
-                                />
-                                <span style={{ color: "#9AA6B2" }}>
-                                  {d.name}
-                                </span>
-                                <span
-                                  className="font-bold ml-auto"
-                                  style={{ color: "#EAF0F6" }}
-                                >
-                                  {((d.value / totalAssets) * 100).toFixed(1)}%
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <div
-                          className="flex items-center justify-center h-40"
-                          style={{ color: "#9AA6B2", fontSize: 13 }}
-                        >
-                          No asset data to display
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Insights + Actions */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div className="fintech-card p-6">
-                      <h2
-                        className="text-sm font-bold mb-4 flex items-center gap-2"
-                        style={{ color: "#EAF0F6" }}
-                      >
-                        <AlertTriangle size={16} style={{ color: "#B8FF4A" }} />
-                        Smart Insights
-                      </h2>
-                      <div className="space-y-2">
-                        {insights.map((ins, idx) => (
-                          <motion.div
-                            key={ins.message}
-                            data-ocid={`insight.item.${idx + 1}`}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            className={`insight-tile ${ins.severity}`}
-                          >
-                            <div className="flex items-start gap-2">
-                              <span className="flex-shrink-0 mt-0.5">
-                                {insightIcon(ins.severity)}
-                              </span>
-                              <span
-                                className="text-sm"
-                                style={{ color: "#EAF0F6", lineHeight: 1.5 }}
-                              >
-                                {ins.message}
-                              </span>
-                              <ChevronRight
-                                size={14}
-                                style={{
-                                  color: "#9AA6B2",
-                                  flexShrink: 0,
-                                  marginLeft: "auto",
-                                }}
-                              />
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="fintech-card p-6">
-                      <h2
-                        className="text-sm font-bold mb-4 flex items-center gap-2"
-                        style={{ color: "#EAF0F6" }}
-                      >
-                        <TrendingUp size={16} style={{ color: "#B8FF4A" }} />
-                        Action Recommendations
-                      </h2>
-                      <div className="space-y-3">
-                        {actions.map((action, idx) => (
-                          <motion.div
-                            key={action.message}
-                            data-ocid={`action.item.${idx + 1}`}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.12 + 0.1 }}
-                            className="rounded-xl p-4"
-                            style={{
-                              background: "#0F141B",
-                              border: "1px solid #24303A",
-                            }}
-                          >
-                            <div className="flex gap-3">
-                              <div
-                                className="w-1 rounded-full flex-shrink-0"
-                                style={{
-                                  background:
-                                    action.severity === "danger"
-                                      ? "#FF4A4A"
-                                      : action.severity === "warning"
-                                        ? "#FFB84A"
-                                        : action.severity === "info"
-                                          ? "#4AB8FF"
-                                          : "#B8FF4A",
-                                }}
-                              />
-                              <p
-                                className="text-sm"
-                                style={{ color: "#9AA6B2", lineHeight: 1.6 }}
-                              >
-                                {action.message}
-                              </p>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Activity Insights Panel */}
-                  <DashboardInsights
-                    userId={userId}
-                    goalsCount={userProfile?.goals?.length ?? 0}
-                    lastGoalsUpdate={(() => {
-                      const v = localStorage.getItem(
-                        `finhealth_goals_updated_${userId}`,
-                      );
-                      return v ? Number(v) : undefined;
-                    })()}
-                  />
-
-                  {/* Alerts Panel */}
-                  <div
-                    className="fintech-card p-5 mb-6"
-                    data-ocid="dashboard.alerts.panel"
-                  >
-                    <h2
-                      className="text-sm font-bold mb-4 flex items-center gap-2"
-                      style={{ color: "#EAF0F6" }}
-                    >
-                      <AlertTriangle size={16} style={{ color: "#FFBE0B" }} />
-                      Portfolio Alerts
-                    </h2>
-                    <div className="space-y-2">
-                      {cashPct < 10 && totalAssets > 0 && (
-                        <div
-                          className="flex items-start gap-3 p-3 rounded-xl text-xs"
-                          style={{
-                            background: "rgba(255,190,11,0.08)",
-                            border: "1px solid rgba(255,190,11,0.25)",
-                          }}
-                        >
-                          <span style={{ color: "#FFBE0B" }}>⚠️</span>
-                          <span style={{ color: "#EAF0F6" }}>
-                            Low emergency fund — less than 10% in cash. Add at
-                            least{" "}
-                            {formatINR(totalAssets * 0.1 - getCatAmt("Cash"))}{" "}
-                            to reach safety threshold.
-                          </span>
-                        </div>
-                      )}
-                      {(!userProfile?.goals ||
-                        userProfile.goals.length === 0) && (
-                        <div
-                          className="flex items-start gap-3 p-3 rounded-xl text-xs"
-                          style={{
-                            background: "rgba(74,184,255,0.08)",
-                            border: "1px solid rgba(74,184,255,0.25)",
-                          }}
-                        >
-                          <span style={{ color: "#4AB8FF" }}>⚠️</span>
-                          <span style={{ color: "#EAF0F6" }}>
-                            You have no financial goals. Start with Goal
-                            Planner.
-                          </span>
-                        </div>
-                      )}
-                      {equityPct > 70 && (
-                        <div
-                          className="flex items-start gap-3 p-3 rounded-xl text-xs"
-                          style={{
-                            background: "rgba(255,74,74,0.08)",
-                            border: "1px solid rgba(255,74,74,0.25)",
-                          }}
-                        >
-                          <span style={{ color: "#FF4A4A" }}>⚠️</span>
-                          <span style={{ color: "#EAF0F6" }}>
-                            Your equity allocation is too high (
-                            {equityPct.toFixed(0)}%). Consider rebalancing to
-                            reduce risk.
-                          </span>
-                        </div>
-                      )}
-                      {cashPct >= 10 &&
-                        (userProfile?.goals?.length ?? 0) > 0 &&
-                        equityPct <= 70 && (
-                          <div
-                            className="flex items-center gap-3 p-3 rounded-xl text-xs"
-                            style={{
-                              background: "rgba(184,255,74,0.06)",
-                              border: "1px solid rgba(184,255,74,0.2)",
-                            }}
-                          >
-                            <span>✅</span>
-                            <span style={{ color: "#B8FF4A" }}>
-                              No critical alerts — your portfolio looks
-                              well-structured.
-                            </span>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-
-                  {/* Referral Card */}
-                  <div className="mb-6">
-                    <ReferralCard />
-                  </div>
-
-                  {/* Portfolio Breakdown */}
-                  <div className="fintech-card p-6 mb-6">
-                    <h2
-                      className="text-sm font-bold mb-4 flex items-center gap-2"
-                      style={{ color: "#EAF0F6" }}
-                    >
-                      <BarChart3 size={16} style={{ color: "#B8FF4A" }} />
-                      Portfolio Breakdown
-                    </h2>
-                    <div className="space-y-3">
-                      {pieData.map((d) => {
-                        const pct =
-                          totalAssets > 0 ? (d.value / totalAssets) * 100 : 0;
-                        return (
-                          <div key={d.name}>
-                            <div className="flex justify-between text-xs mb-1.5">
-                              <span
-                                className="font-medium"
-                                style={{ color: "#EAF0F6" }}
-                              >
-                                {d.name}
-                              </span>
-                              <span
-                                style={{
-                                  color: CATEGORY_COLORS[d.name as Category],
-                                }}
-                              >
-                                {pct.toFixed(1)}% — {formatINR(d.value)}
-                              </span>
-                            </div>
-                            <div
-                              className="h-2 rounded-full"
-                              style={{ background: "#1F2A38" }}
-                            >
-                              <motion.div
-                                className="h-full rounded-full"
-                                style={{
-                                  background:
-                                    CATEGORY_COLORS[d.name as Category],
-                                }}
-                                initial={{ width: 0 }}
-                                animate={{ width: `${pct}%` }}
-                                transition={{
-                                  duration: 1,
-                                  ease: "easeOut",
-                                  delay: 0.2,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Peer Benchmarks */}
-                  <div
-                    className="fintech-card p-6 mt-6"
-                    data-ocid="peer_benchmarks.section"
-                  >
-                    <h3
-                      className="text-sm font-bold mb-4 flex items-center gap-2"
-                      style={{ color: "#EAF0F6" }}
-                    >
-                      <Activity size={16} style={{ color: "#B8FF4A" }} />
-                      Peer Benchmarks
-                      <span
-                        className="text-xs font-normal ml-1"
-                        style={{ color: "#9AA6B2" }}
-                      >
-                        vs FinHealth India users
-                      </span>
-                    </h3>
-                    {(() => {
-                      const assets2 = entries.filter((e) => e.type === "Asset");
-                      const total2 = assets2.reduce((s, e) => s + e.amount, 0);
-                      const liabilities2 = entries
-                        .filter((e) => e.type === "Liability")
-                        .reduce((s, e) => s + e.amount, 0);
-                      const cats2 = new Set(assets2.map((e) => e.category))
-                        .size;
-                      const nw2 = total2 - liabilities2;
-                      const divPct =
-                        cats2 >= 5
-                          ? 92
-                          : cats2 >= 4
-                            ? 78
-                            : cats2 >= 3
-                              ? 55
-                              : cats2 >= 2
-                                ? 35
-                                : 15;
-                      const scorePct =
-                        score >= 75
-                          ? 88
-                          : score >= 60
-                            ? 65
-                            : score >= 45
-                              ? 42
-                              : 22;
-                      const nwPct =
-                        nw2 >= 5000000
-                          ? 85
-                          : nw2 >= 2000000
-                            ? 68
-                            : nw2 >= 500000
-                              ? 45
-                              : nw2 >= 100000
-                                ? 28
-                                : 12;
-                      const bc = (p: number) =>
-                        p >= 75 ? "#B8FF4A" : p >= 50 ? "#FFD74A" : "#FF4A4A";
-                      const bl = (p: number) =>
-                        p >= 75
-                          ? `Top ${100 - p}%`
-                          : p >= 50
-                            ? "Above Average"
-                            : "Room to Grow";
-                      return (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {[
-                            {
-                              label: "Diversification",
-                              pct: divPct,
-                              detail: `${cats2} asset classes`,
-                            },
-                            {
-                              label: "Health Score",
-                              pct: scorePct,
-                              detail: `${score}/100`,
-                            },
-                            {
-                              label: "Net Worth",
-                              pct: nwPct,
-                              detail: formatINR(nw2),
-                            },
-                          ].map((b) => (
-                            <div
-                              key={b.label}
-                              className="p-4 rounded-xl flex items-center gap-3"
-                              style={{
-                                background: "#0F141B",
-                                border: "1px solid #24303A",
-                              }}
-                            >
-                              <div
-                                className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold"
-                                style={{
-                                  background: `${bc(b.pct)}22`,
-                                  color: bc(b.pct),
-                                  border: `1.5px solid ${bc(b.pct)}55`,
-                                }}
-                              >
-                                {b.pct}%
-                              </div>
-                              <div>
-                                <div
-                                  className="text-xs font-semibold"
-                                  style={{ color: "#EAF0F6" }}
-                                >
-                                  {b.label}
-                                </div>
-                                <div
-                                  className="text-xs"
-                                  style={{ color: bc(b.pct) }}
-                                >
-                                  {bl(b.pct)}
-                                </div>
-                                <div
-                                  className="text-xs mt-0.5"
-                                  style={{ color: "#9AA6B2" }}
-                                >
-                                  {b.detail}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                    <p className="text-xs mt-3" style={{ color: "#9AA6B2" }}>
-                      * Based on anonymized FinHealth India user data
-                      (percentile rankings)
-                    </p>
-                  </div>
-                </AnimatePresence>
-              ))}
-
-            {/* Trends Sub-Tab */}
-            {analysisSubTab === "trends" && (
-              <div className="fintech-card p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2
-                    className="text-base font-bold flex items-center gap-2"
-                    style={{ color: "#EAF0F6" }}
-                  >
-                    <TrendingUp size={18} style={{ color: "#B8FF4A" }} />
-                    Net Worth Trend
-                  </h2>
-                  {trendGrowth !== null && (
-                    <span
-                      className="text-sm font-bold px-3 py-1 rounded-full"
-                      style={{
-                        background:
-                          Number(trendGrowth) >= 0
-                            ? "rgba(184,255,74,0.1)"
-                            : "rgba(255,74,74,0.1)",
-                        color: Number(trendGrowth) >= 0 ? "#B8FF4A" : "#FF4A4A",
-                        border: `1px solid ${Number(trendGrowth) >= 0 ? "rgba(184,255,74,0.3)" : "rgba(255,74,74,0.3)"}`,
-                      }}
-                    >
-                      {Number(trendGrowth) >= 0 ? "+" : ""}
-                      {trendGrowth}% overall
-                    </span>
-                  )}
-                </div>
-                {trendData.length >= 2 ? (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <LineChart
-                      data={trendData}
-                      margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                    >
-                      <CartesianGrid stroke="#1A2230" strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fill: "#9AA6B2", fontSize: 11 }}
-                        axisLine={{ stroke: "#24303A" }}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        tickFormatter={(v: number) => formatINR(v)}
-                        tick={{ fill: "#9AA6B2", fontSize: 11 }}
-                        axisLine={{ stroke: "#24303A" }}
-                        tickLine={false}
-                        width={80}
-                      />
-                      <Tooltip content={<TrendTooltip />} />
-                      <Line
-                        type="monotone"
-                        dataKey="netWorth"
-                        stroke="#B8FF4A"
-                        strokeWidth={2.5}
-                        dot={{ fill: "#B8FF4A", r: 4, strokeWidth: 0 }}
-                        activeDot={{ fill: "#B8FF4A", r: 6, strokeWidth: 0 }}
-                        style={{
-                          filter: "drop-shadow(0 0 6px rgba(184,255,74,0.5))",
-                        }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div
-                    className="flex flex-col items-center justify-center gap-3 py-16"
-                    data-ocid="trends.empty_state"
-                  >
-                    <TrendingUp size={40} style={{ color: "#24303A" }} />
-                    <p
-                      className="text-sm text-center"
-                      style={{ color: "#9AA6B2" }}
-                    >
-                      No trend data yet.{" "}
-                      <span style={{ color: "#B8FF4A" }}>
-                        Analyze your portfolio
-                      </span>{" "}
-                      at least twice to see the net worth trend.
-                    </p>
-                    <p className="text-xs" style={{ color: "#9AA6B2" }}>
-                      Current net worth:{" "}
-                      <span
-                        style={{
-                          color: netWorth >= 0 ? "#B8FF4A" : "#FF4A4A",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {formatINR(netWorth)}
-                      </span>
-                    </p>
-                  </div>
-                )}
-                {history.length > 0 && (
-                  <div className="mt-6">
-                    <h3
-                      className="text-xs font-semibold uppercase tracking-wider mb-3"
-                      style={{ color: "#9AA6B2" }}
-                    >
-                      History
-                    </h3>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {[...history].reverse().map((h, i) => (
-                        <div
-                          key={h.timestamp}
-                          data-ocid={`trends.item.${i + 1}`}
-                          className="flex items-center justify-between px-4 py-2.5 rounded-xl"
-                          style={{
-                            background: "#0F141B",
-                            border: "1px solid #24303A",
-                          }}
-                        >
-                          <span
-                            className="text-xs"
-                            style={{ color: "#9AA6B2" }}
-                          >
-                            {new Date(h.timestamp).toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                          <span
-                            className="font-bold text-sm"
-                            style={{
-                              color: h.netWorth >= 0 ? "#B8FF4A" : "#FF4A4A",
-                            }}
-                          >
-                            {formatINR(h.netWorth)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Investor Protection Sub-Tab */}
-            {analysisSubTab === "investor-protection" && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="space-y-6"
-                data-ocid="investor_protection.section"
+            {/* ── 4 Top-Level Tabs ── */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList
+                className="w-full mb-6"
+                style={{
+                  background: "#0F141B",
+                  border: "1px solid #24303A",
+                  borderRadius: 14,
+                  height: 48,
+                }}
               >
-                {/* Disclaimer Banner */}
-                <div
-                  className="rounded-xl p-5 flex gap-4 items-start"
-                  style={{
-                    background: "rgba(255,190,11,0.1)",
-                    border: "1px solid rgba(255,190,11,0.35)",
-                  }}
-                  data-ocid="disclaimer.panel"
+                <TabsTrigger
+                  value="dashboard"
+                  data-ocid="dashboard.tab"
+                  className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
+                  style={{ borderRadius: 10, fontSize: 14 }}
                 >
-                  <AlertTriangle
-                    size={22}
-                    style={{ color: "#FFBE0B", flexShrink: 0, marginTop: 2 }}
-                  />
-                  <div>
-                    <p
-                      className="text-sm font-semibold mb-1"
-                      style={{ color: "#FFBE0B" }}
-                    >
-                      SEBI Disclaimer
-                    </p>
-                    <p className="text-sm mb-1" style={{ color: "#EAF0F6" }}>
-                      This app provides educational insights only and not
-                      investment advice.
-                    </p>
-                    <p className="text-sm" style={{ color: "#9AA6B2" }}>
-                      Investments are subject to market risks. Please read all
-                      scheme related documents carefully.
-                    </p>
-                  </div>
-                </div>
+                  Dashboard
+                </TabsTrigger>
+                <TabsTrigger
+                  value="analysis"
+                  data-ocid="analysis.tab"
+                  className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
+                  style={{ borderRadius: 10, fontSize: 14 }}
+                >
+                  Analysis
+                </TabsTrigger>
+                <TabsTrigger
+                  value="tools"
+                  data-ocid="tools.tab"
+                  className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
+                  style={{ borderRadius: 10, fontSize: 14 }}
+                >
+                  Tools
+                </TabsTrigger>
+                <TabsTrigger
+                  value="reports"
+                  data-ocid="reports.tab"
+                  className="flex-1 data-[state=active]:bg-[#B8FF4A] data-[state=active]:text-[#060A10] data-[state=active]:font-bold"
+                  style={{ borderRadius: 10, fontSize: 14 }}
+                >
+                  Reports
+                </TabsTrigger>
+              </TabsList>
 
-                {/* Risk Awareness */}
-                <div className="fintech-card p-6">
-                  <h3
-                    className="text-base font-bold mb-4 flex items-center gap-2"
-                    style={{ color: "#EAF0F6" }}
-                  >
-                    <AlertTriangle size={17} style={{ color: "#B8FF4A" }} />
-                    Risk Awareness Module
-                  </h3>
-                  {entries.length === 0 ? (
-                    <p className="text-sm" style={{ color: "#9AA6B2" }}>
-                      Add portfolio entries to see risk awareness signals.
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap gap-3">
-                      {equityPct > 60 && (
-                        <span
-                          className="px-3 py-2 rounded-lg text-sm font-semibold"
-                          style={{
-                            background: "rgba(255,120,0,0.15)",
-                            color: "#FF7800",
-                            border: "1px solid rgba(255,120,0,0.35)",
-                          }}
-                        >
-                          ⚠ High Volatility Risk — Equity {equityPct.toFixed(0)}
-                          %
-                        </span>
-                      )}
-                      {(totalAssets > 0
-                        ? (entries
-                            .filter(
-                              (e) =>
-                                e.type === "Asset" && e.category === "Debt",
-                            )
-                            .reduce((s, e) => s + e.amount, 0) /
-                            totalAssets) *
-                          100
-                        : 0) > 50 && (
-                        <span
-                          className="px-3 py-2 rounded-lg text-sm font-semibold"
-                          style={{
-                            background: "rgba(56,140,255,0.15)",
-                            color: "#388CFF",
-                            border: "1px solid rgba(56,140,255,0.35)",
-                          }}
-                        >
-                          ⚠ Interest Rate Risk — High Debt Allocation
-                        </span>
-                      )}
-                      {new Set(
-                        entries
-                          .filter((e) => e.type === "Asset")
-                          .map((e) => e.category),
-                      ).size < 3 && (
-                        <span
-                          className="px-3 py-2 rounded-lg text-sm font-semibold"
-                          style={{
-                            background: "rgba(255,60,60,0.15)",
-                            color: "#FF4B4B",
-                            border: "1px solid rgba(255,60,60,0.35)",
-                          }}
-                        >
-                          ⚠ Concentration Risk — Low Diversification
-                        </span>
-                      )}
-                      {equityPct <= 60 &&
-                        (totalAssets > 0
-                          ? (entries
-                              .filter(
-                                (e) =>
-                                  e.type === "Asset" && e.category === "Debt",
-                              )
-                              .reduce((s, e) => s + e.amount, 0) /
-                              totalAssets) *
-                            100
-                          : 0) <= 50 &&
-                        new Set(
-                          entries
-                            .filter((e) => e.type === "Asset")
-                            .map((e) => e.category),
-                        ).size >= 3 && (
-                          <span
-                            className="px-3 py-2 rounded-lg text-sm font-semibold"
-                            style={{
-                              background: "rgba(184,255,74,0.1)",
-                              color: "#B8FF4A",
-                              border: "1px solid rgba(184,255,74,0.3)",
-                            }}
-                          >
-                            ✓ Risk profile looks balanced
-                          </span>
-                        )}
-                    </div>
-                  )}
-                </div>
+              {/* ── DASHBOARD TAB ── */}
+              <TabsContent value="dashboard">
+                <UploadSection onImport={handleImportRows} />
 
-                {/* Suitability Check */}
-                <div className="fintech-card p-6">
-                  <h3
+                <section className="fintech-card p-6 mb-6">
+                  <h2
                     className="text-base font-bold mb-5 flex items-center gap-2"
                     style={{ color: "#EAF0F6" }}
                   >
-                    <CheckCircle size={17} style={{ color: "#B8FF4A" }} />
-                    Suitability Check
-                  </h3>
-                  <div className="space-y-5">
+                    <Plus size={18} style={{ color: "#B8FF4A" }} />
+                    Add Portfolio Entry
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
                     <div>
-                      <p
-                        className="text-xs font-semibold mb-3 uppercase tracking-wide"
+                      <label
+                        htmlFor="entry-type"
+                        className="block text-xs font-medium mb-1.5"
                         style={{ color: "#9AA6B2" }}
                       >
-                        Risk Appetite
-                      </p>
-                      <div className="flex gap-3 flex-wrap">
-                        {(["Low", "Medium", "High"] as const).map((v) => (
-                          <button
-                            type="button"
-                            key={v}
-                            onClick={() => setRiskAppetite(v)}
-                            data-ocid={`suitability.risk_${v.toLowerCase()}.button`}
-                            className="px-5 py-2 rounded-full text-sm font-semibold transition-all"
-                            style={{
-                              background:
-                                riskAppetite === v
-                                  ? "#B8FF4A"
-                                  : "rgba(255,255,255,0.05)",
-                              color: riskAppetite === v ? "#060A10" : "#9AA6B2",
-                              border: `1px solid ${riskAppetite === v ? "#B8FF4A" : "#24303A"}`,
-                            }}
-                          >
-                            {v}
-                          </button>
-                        ))}
-                      </div>
+                        Type
+                      </label>
+                      <select
+                        id="entry-type"
+                        data-ocid="entry.select"
+                        className="dark-input"
+                        value={form.type}
+                        onChange={(e) =>
+                          setForm((p) => ({
+                            ...p,
+                            type: e.target.value as EntryType,
+                          }))
+                        }
+                      >
+                        <option value="Asset">Asset</option>
+                        <option value="Liability">Liability</option>
+                      </select>
                     </div>
                     <div>
-                      <p
-                        className="text-xs font-semibold mb-3 uppercase tracking-wide"
+                      <label
+                        htmlFor="entry-category"
+                        className="block text-xs font-medium mb-1.5"
                         style={{ color: "#9AA6B2" }}
                       >
-                        Investment Horizon
-                      </p>
-                      <div className="flex gap-3 flex-wrap">
-                        {(["Short", "Medium", "Long"] as const).map((v) => (
-                          <button
-                            type="button"
-                            key={v}
-                            onClick={() => setInvestmentHorizon(v)}
-                            data-ocid={`suitability.horizon_${v.toLowerCase()}.button`}
-                            className="px-5 py-2 rounded-full text-sm font-semibold transition-all"
-                            style={{
-                              background:
-                                investmentHorizon === v
-                                  ? "#B8FF4A"
-                                  : "rgba(255,255,255,0.05)",
-                              color:
-                                investmentHorizon === v ? "#060A10" : "#9AA6B2",
-                              border: `1px solid ${investmentHorizon === v ? "#B8FF4A" : "#24303A"}`,
-                            }}
-                          >
-                            {v}
-                          </button>
+                        Category
+                      </label>
+                      <select
+                        id="entry-category"
+                        data-ocid="entry.select"
+                        className="dark-input"
+                        value={form.category}
+                        onChange={(e) =>
+                          setForm((p) => ({
+                            ...p,
+                            category: e.target.value as Category,
+                          }))
+                        }
+                      >
+                        {CATEGORIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
                         ))}
-                      </div>
+                      </select>
                     </div>
-                    {entries.length > 0 &&
-                      riskAppetite &&
-                      investmentHorizon &&
-                      (() => {
-                        const pRisk =
-                          equityPct > 60
-                            ? "High"
-                            : equityPct > 30
-                              ? "Medium"
-                              : "Low";
-                        const riskMismatch =
-                          (riskAppetite === "Low" &&
-                            (pRisk === "High" || pRisk === "Medium")) ||
-                          (riskAppetite === "Medium" && pRisk === "High");
-                        const horizonMismatch =
-                          equityPct > 60 && investmentHorizon === "Short";
-                        const hasMismatch = riskMismatch || horizonMismatch;
-                        return (
-                          <div
-                            className="mt-4 p-4 rounded-xl text-sm font-semibold flex gap-3 items-start"
-                            style={{
-                              background: hasMismatch
-                                ? "rgba(255,60,60,0.1)"
-                                : "rgba(184,255,74,0.08)",
-                              border: `1px solid ${hasMismatch ? "rgba(255,60,60,0.35)" : "rgba(184,255,74,0.3)"}`,
-                              color: hasMismatch ? "#FF4B4B" : "#B8FF4A",
-                            }}
-                            data-ocid="suitability.alert.panel"
-                          >
-                            {hasMismatch ? (
-                              <AlertTriangle
-                                size={16}
-                                style={{ flexShrink: 0, marginTop: 2 }}
-                              />
-                            ) : (
-                              <CheckCircle
-                                size={16}
-                                style={{ flexShrink: 0, marginTop: 2 }}
-                              />
-                            )}
-                            {hasMismatch
-                              ? "⚠ Your allocation may not match your risk profile. Consider rebalancing."
-                              : "✓ Your portfolio aligns with your risk profile."}
-                          </div>
-                        );
-                      })()}
-                  </div>
-                </div>
-
-                {/* Fraud Awareness */}
-                <div className="fintech-card p-6">
-                  <h3
-                    className="text-base font-bold mb-4 flex items-center gap-2"
-                    style={{ color: "#EAF0F6" }}
-                  >
-                    <Info size={17} style={{ color: "#B8FF4A" }} />
-                    Fraud Awareness Tips
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div
-                      className="rounded-xl p-4"
-                      style={{
-                        background: "rgba(255,60,60,0.07)",
-                        border: "1px solid rgba(255,60,60,0.2)",
-                      }}
-                      data-ocid="fraud.tip.1"
-                    >
-                      <p
-                        className="text-sm font-semibold mb-1"
-                        style={{ color: "#FF4B4B" }}
+                    <div>
+                      <label
+                        htmlFor="entry-amount"
+                        className="block text-xs font-medium mb-1.5"
+                        style={{ color: "#9AA6B2" }}
                       >
-                        🚫 Avoid Guaranteed Return Schemes
-                      </p>
-                      <p className="text-sm" style={{ color: "#9AA6B2" }}>
-                        No SEBI-registered product can guarantee fixed returns.
-                        Be wary of schemes promising assured profits.
-                      </p>
-                    </div>
-                    <div
-                      className="rounded-xl p-4"
-                      style={{
-                        background: "rgba(184,255,74,0.07)",
-                        border: "1px solid rgba(184,255,74,0.2)",
-                      }}
-                      data-ocid="fraud.tip.2"
-                    >
-                      <p
-                        className="text-sm font-semibold mb-1"
-                        style={{ color: "#B8FF4A" }}
-                      >
-                        ✅ Verify SEBI Registration
-                      </p>
-                      <p className="text-sm" style={{ color: "#9AA6B2" }}>
-                        Always check the SEBI registration of your advisor at{" "}
-                        <a
-                          href="https://sebi.gov.in"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            color: "#B8FF4A",
-                            textDecoration: "underline",
-                          }}
-                        >
-                          sebi.gov.in
-                        </a>{" "}
-                        before investing.
-                      </p>
+                        Amount (₹)
+                      </label>
+                      <input
+                        id="entry-amount"
+                        data-ocid="entry.input"
+                        type="number"
+                        placeholder="Enter amount..."
+                        className="dark-input"
+                        value={form.amount}
+                        onChange={(e) =>
+                          setForm((p) => ({ ...p, amount: e.target.value }))
+                        }
+                        onKeyDown={(e) => e.key === "Enter" && addEntry()}
+                        min={1}
+                      />
                     </div>
                   </div>
-                </div>
-
-                {/* Transparency */}
-                <div className="fintech-card p-6">
-                  <h3
-                    className="text-base font-bold mb-4 flex items-center gap-2"
-                    style={{ color: "#EAF0F6" }}
-                  >
-                    <BarChart3 size={17} style={{ color: "#B8FF4A" }} />
-                    Portfolio Transparency
-                  </h3>
-                  {entries.length === 0 ? (
-                    <p className="text-sm" style={{ color: "#9AA6B2" }}>
-                      Add portfolio entries to view your asset allocation and
-                      risk level.
-                    </p>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap gap-3 mb-4">
-                        <span
-                          className="px-3 py-1 rounded-full text-xs font-bold"
+                  <div className="flex items-center gap-3 mb-6">
+                    <button
+                      type="button"
+                      data-ocid="entry.primary_button"
+                      className="neon-btn flex items-center gap-2"
+                      onClick={addEntry}
+                    >
+                      {editingId ? <Pencil size={16} /> : <Plus size={16} />}
+                      {editingId ? "Update Entry" : "Add Entry"}
+                    </button>
+                    {editingId && (
+                      <button
+                        type="button"
+                        data-ocid="entry.cancel_button"
+                        onClick={cancelEdit}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                        style={{
+                          background: "rgba(255,74,74,0.1)",
+                          color: "#FF4A4A",
+                          border: "1px solid rgba(255,74,74,0.2)",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                  {entries.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3
+                          className="text-xs font-semibold uppercase tracking-wider"
+                          style={{ color: "#9AA6B2" }}
+                        >
+                          Portfolio Entries ({entries.length})
+                        </h3>
+                        <button
+                          type="button"
+                          data-ocid="entry.delete_button"
+                          onClick={() => {
+                            setEntries([]);
+                            setAnalyzed(false);
+                          }}
+                          className="text-xs px-3 py-1.5 rounded-lg transition-colors"
                           style={{
-                            background:
-                              equityPct > 60
-                                ? "rgba(255,60,60,0.15)"
-                                : equityPct > 30
-                                  ? "rgba(255,190,11,0.15)"
-                                  : "rgba(184,255,74,0.1)",
-                            color:
-                              equityPct > 60
-                                ? "#FF4B4B"
-                                : equityPct > 30
-                                  ? "#FFBE0B"
-                                  : "#B8FF4A",
-                            border: `1px solid ${equityPct > 60 ? "rgba(255,60,60,0.35)" : equityPct > 30 ? "rgba(255,190,11,0.35)" : "rgba(184,255,74,0.3)"}`,
+                            color: "#FF4A4A",
+                            background: "rgba(255,74,74,0.1)",
+                            border: "1px solid rgba(255,74,74,0.2)",
                           }}
                         >
-                          Risk Level:{" "}
-                          {equityPct > 60
-                            ? "High"
-                            : equityPct > 30
-                              ? "Medium"
-                              : "Low"}
-                        </span>
+                          Clear All
+                        </button>
                       </div>
-                      {(
-                        [
-                          "Equity",
-                          "Mutual Funds",
-                          "Debt",
-                          "Cash",
-                          "Gold",
-                        ] as const
-                      ).map((cat) => {
-                        const amt = entries
-                          .filter(
-                            (e) => e.type === "Asset" && e.category === cat,
-                          )
-                          .reduce((s, e) => s + e.amount, 0);
-                        const pct =
-                          totalAssets > 0 ? (amt / totalAssets) * 100 : 0;
-                        if (pct === 0) return null;
-                        return (
-                          <div key={cat}>
-                            <div
-                              className="flex justify-between text-xs mb-1"
-                              style={{ color: "#9AA6B2" }}
+                      <div className="space-y-2 max-h-80 overflow-y-auto">
+                        <AnimatePresence initial={false}>
+                          {entries.map((entry, idx) => (
+                            <motion.div
+                              key={entry.id}
+                              data-ocid={`entry.item.${idx + 1}`}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: 10, height: 0 }}
+                              className="flex items-center justify-between rounded-xl px-4 py-3"
+                              style={{
+                                background: "#0F141B",
+                                border: "1px solid #24303A",
+                              }}
                             >
-                              <span>{cat}</span>
-                              <span style={{ color: "#B8FF4A" }}>
-                                {pct.toFixed(1)}%
-                              </span>
-                            </div>
-                            <div
-                              className="w-full rounded-full h-2"
-                              style={{ background: "#1A2530" }}
-                            >
-                              <div
-                                className="h-2 rounded-full transition-all"
-                                style={{
-                                  width: `${pct}%`,
-                                  background: "#B8FF4A",
-                                }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className="w-2 h-2 rounded-full"
+                                  style={{
+                                    background:
+                                      entry.type === "Asset"
+                                        ? "#B8FF4A"
+                                        : "#FF4A4A",
+                                  }}
+                                />
+                                <div>
+                                  <span
+                                    className="text-sm font-medium"
+                                    style={{ color: "#EAF0F6" }}
+                                  >
+                                    {entry.category}
+                                  </span>
+                                  <span
+                                    className="ml-2 text-xs px-1.5 py-0.5 rounded"
+                                    style={{
+                                      background:
+                                        entry.type === "Asset"
+                                          ? "rgba(184,255,74,0.1)"
+                                          : "rgba(255,74,74,0.1)",
+                                      color:
+                                        entry.type === "Asset"
+                                          ? "#B8FF4A"
+                                          : "#FF4A4A",
+                                    }}
+                                  >
+                                    {entry.type}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className="font-bold text-sm"
+                                  style={{
+                                    color:
+                                      entry.type === "Asset"
+                                        ? "#B8FF4A"
+                                        : "#FF4A4A",
+                                  }}
+                                >
+                                  {formatINR(entry.amount)}
+                                </span>
+                                <button
+                                  type="button"
+                                  data-ocid={`entry.edit_button.${idx + 1}`}
+                                  onClick={() => startEdit(entry)}
+                                  aria-label={`Edit ${entry.category} entry`}
+                                  className="p-1.5 rounded-lg transition-colors"
+                                  style={{ color: "#4AB8FF" }}
+                                >
+                                  <Pencil size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  data-ocid={`entry.delete_button.${idx + 1}`}
+                                  onClick={() => deleteEntry(entry.id)}
+                                  aria-label={`Delete ${entry.category} entry`}
+                                  className="p-1.5 rounded-lg transition-colors delete-btn"
+                                  style={{ color: "#9AA6B2" }}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
                     </div>
                   )}
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      type="button"
+                      data-ocid="portfolio.primary_button"
+                      className="neon-btn flex items-center gap-2 px-10 py-3 text-base"
+                      onClick={handleAnalyze}
+                      disabled={entries.length === 0 || isAnalyzing}
+                      style={
+                        entries.length === 0
+                          ? { opacity: 0.4, cursor: "not-allowed" }
+                          : {}
+                      }
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <TrendingUp size={18} />
+                          Analyze Portfolio
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </section>
+              </TabsContent>
+
+              {/* ── ANALYSIS TAB ── */}
+              <TabsContent value="analysis">
+                {/* Analysis Sub-Navigation */}
+                <div
+                  className="mb-5 flex flex-wrap gap-2"
+                  data-ocid="analysis.panel"
+                >
+                  {[
+                    {
+                      id: "financial-analysis",
+                      label: "📊 Financial Analysis",
+                    },
+                    { id: "trends", label: "📈 Trends" },
+                    {
+                      id: "investor-protection",
+                      label: "🛡 Investor Protection",
+                    },
+                    { id: "sip-calculator", label: "💰 SIP Calculator" },
+                    { id: "kyc-checklist", label: "✅ KYC Checklist" },
+                    { id: "risk-profile", label: "🧠 Risk Profile" },
+                  ].map((t) => (
+                    <SubNavBtn
+                      key={t.id}
+                      id={t.id}
+                      label={t.label}
+                      current={analysisSubTab}
+                      onClick={() => setAnalysisSubTab(t.id)}
+                    />
+                  ))}
                 </div>
-              </motion.div>
-            )}
 
-            {/* SIP Calculator Sub-Tab */}
-            {analysisSubTab === "sip-calculator" && (
-              <Tabs defaultValue="sip-calculator">
-                <SipCalculatorTab />
-              </Tabs>
-            )}
+                {/* Financial Analysis Sub-Tab */}
+                {analysisSubTab === "financial-analysis" &&
+                  (!analyzed ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="fintech-card p-12 flex flex-col items-center justify-center gap-4 text-center"
+                      data-ocid="analysis.empty_state"
+                    >
+                      <BarChart3 size={48} style={{ color: "#24303A" }} />
+                      <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                        Go to Dashboard tab and click{" "}
+                        <span style={{ color: "#B8FF4A" }}>
+                          Analyze Portfolio
+                        </span>{" "}
+                        to see your results.
+                      </p>
+                    </motion.div>
+                  ) : !consentGiven ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="fintech-card p-10 flex flex-col items-center justify-center gap-6 text-center"
+                      data-ocid="consent.section"
+                    >
+                      <Shield size={48} style={{ color: "#B8FF4A" }} />
+                      <div>
+                        <h3
+                          className="text-lg font-bold mb-2"
+                          style={{ color: "#EAF0F6" }}
+                        >
+                          Before viewing your analysis
+                        </h3>
+                        <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                          Please acknowledge the disclaimer below to proceed.
+                        </p>
+                      </div>
+                      <label
+                        className="flex items-center gap-3 cursor-pointer group"
+                        data-ocid="consent.checkbox"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={consentGiven}
+                          onChange={(e) => setConsentGiven(e.target.checked)}
+                          className="w-5 h-5 accent-[#B8FF4A] cursor-pointer"
+                        />
+                        <span
+                          className="text-sm font-medium"
+                          style={{ color: "#EAF0F6" }}
+                        >
+                          I understand this is{" "}
+                          <span style={{ color: "#B8FF4A" }}>
+                            not investment advice
+                          </span>{" "}
+                          and investments are subject to market risks.
+                        </span>
+                      </label>
+                    </motion.div>
+                  ) : (
+                    <AnimatePresence>
+                      <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        data-ocid="dashboard.section"
+                      >
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+                          <SummaryCard
+                            icon={<Wallet size={16} />}
+                            label="Total Assets"
+                            value={formatINR(totalAssets)}
+                            sub={`${entries.filter((e) => e.type === "Asset").length} entries`}
+                            highlight="neon"
+                          />
+                          <SummaryCard
+                            icon={<Scale size={16} />}
+                            label="Total Liabilities"
+                            value={formatINR(totalLiabilities)}
+                            sub={`${entries.filter((e) => e.type === "Liability").length} entries`}
+                            highlight="red"
+                          />
+                          <SummaryCard
+                            icon={<BarChart3 size={16} />}
+                            label="Net Worth"
+                            value={formatINR(netWorth)}
+                            sub={
+                              netWorth >= 0
+                                ? "Positive net worth"
+                                : "Negative — focus on debt"
+                            }
+                            highlight={netWorth >= 0 ? "neon" : "red"}
+                          />
+                        </div>
+                        {/* Metrics */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                          <MetricCard
+                            label="Equity %"
+                            value={`${equityPct.toFixed(1)}%`}
+                            color="#B8FF4A"
+                          />
+                          <MetricCard
+                            label="Debt %"
+                            value={`${debtPct.toFixed(1)}%`}
+                            color="#4AB8FF"
+                          />
+                          <MetricCard
+                            label="Cash %"
+                            value={`${cashPct.toFixed(1)}%`}
+                            color="#FFD74A"
+                          />
+                          <MetricCard
+                            label="Gold %"
+                            value={`${goldPct.toFixed(1)}%`}
+                            color="#FF9A4A"
+                          />
+                          <MetricCard
+                            label="Liability/Asset"
+                            value={liabToAsset.toFixed(2)}
+                            color={
+                              liabToAsset > 0.6
+                                ? "#FF4A4A"
+                                : liabToAsset > 0.4
+                                  ? "#FFB84A"
+                                  : "#B8FF4A"
+                            }
+                          />
+                          <MetricCard
+                            label="Mutual Funds %"
+                            value={`${mfPct.toFixed(1)}%`}
+                            color="#C74AFF"
+                          />
+                        </div>
+                        {/* Financial Summary */}
+                        <div className="fintech-card p-6 mb-6">
+                          <h2
+                            className="text-sm font-bold mb-5 flex items-center gap-2"
+                            style={{ color: "#EAF0F6" }}
+                          >
+                            <Info size={16} style={{ color: "#B8FF4A" }} />
+                            Financial Summary
+                          </h2>
+                          <div className="grid grid-cols-3 gap-6">
+                            <StatusBadge
+                              label="Risk Level"
+                              status={riskLevel}
+                              positive={riskPositive}
+                            />
+                            <StatusBadge
+                              label="Liquidity Status"
+                              status={liquidityStatus}
+                              positive={liquidityPositive}
+                            />
+                            <StatusBadge
+                              label="Overall Health"
+                              status={healthLabel}
+                              positive={healthPositive}
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
 
-            {/* KYC Checklist Sub-Tab */}
-            {analysisSubTab === "kyc-checklist" && (
-              <Tabs defaultValue="kyc-checklist">
-                <KycChecklistTab />
-              </Tabs>
-            )}
+                      {/* Health Score + Pie */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div className="fintech-card p-6">
+                          <h2
+                            className="text-sm font-bold mb-4 flex items-center gap-2"
+                            style={{ color: "#EAF0F6" }}
+                          >
+                            <Activity size={16} style={{ color: "#B8FF4A" }} />
+                            Financial Health Score
+                          </h2>
+                          <HealthGauge score={score} />
+                          <div className="mt-4 grid grid-cols-2 gap-3">
+                            {scoreItems.map((item) => {
+                              const pct = (item.score / item.maxScore) * 100;
+                              return (
+                                <div
+                                  key={item.label}
+                                  className="rounded-xl p-3"
+                                  style={{
+                                    background: "#0F141B",
+                                    border: "1px solid #24303A",
+                                  }}
+                                >
+                                  <div
+                                    className="text-xs mb-1.5"
+                                    style={{ color: "#9AA6B2" }}
+                                  >
+                                    {item.label}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="flex-1 h-1.5 rounded-full"
+                                      style={{ background: "#1F2A38" }}
+                                    >
+                                      <div
+                                        className="h-full rounded-full transition-all"
+                                        style={{
+                                          width: `${pct}%`,
+                                          background:
+                                            pct >= 70
+                                              ? "#B8FF4A"
+                                              : pct >= 40
+                                                ? "#FFB84A"
+                                                : "#FF4A4A",
+                                          transition: "width 1s ease",
+                                        }}
+                                      />
+                                    </div>
+                                    <span
+                                      className="text-xs font-bold"
+                                      style={{ color: "#EAF0F6" }}
+                                    >
+                                      {item.score}/{item.maxScore}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="fintech-card p-6">
+                          <h2
+                            className="text-sm font-bold mb-4 flex items-center gap-2"
+                            style={{ color: "#EAF0F6" }}
+                          >
+                            <BarChart3 size={16} style={{ color: "#B8FF4A" }} />
+                            Asset Allocation
+                          </h2>
+                          {pieData.length > 0 ? (
+                            <>
+                              <ResponsiveContainer width="100%" height={200}>
+                                <PieChart>
+                                  <Pie
+                                    data={pieData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={55}
+                                    outerRadius={85}
+                                    paddingAngle={3}
+                                    dataKey="value"
+                                  >
+                                    {pieData.map((entry) => (
+                                      <Cell
+                                        key={entry.name}
+                                        fill={
+                                          CATEGORY_COLORS[
+                                            entry.name as Category
+                                          ] || "#B8FF4A"
+                                        }
+                                        stroke="#0F141B"
+                                        strokeWidth={2}
+                                      />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip content={<CustomTooltip />} />
+                                </PieChart>
+                              </ResponsiveContainer>
+                              <div className="grid grid-cols-2 gap-2 mt-2">
+                                {pieData.map((d) => (
+                                  <div
+                                    key={d.name}
+                                    className="flex items-center gap-2 text-xs"
+                                  >
+                                    <span
+                                      className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                                      style={{
+                                        background:
+                                          CATEGORY_COLORS[d.name as Category],
+                                      }}
+                                    />
+                                    <span style={{ color: "#9AA6B2" }}>
+                                      {d.name}
+                                    </span>
+                                    <span
+                                      className="font-bold ml-auto"
+                                      style={{ color: "#EAF0F6" }}
+                                    >
+                                      {((d.value / totalAssets) * 100).toFixed(
+                                        1,
+                                      )}
+                                      %
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <div
+                              className="flex items-center justify-center h-40"
+                              style={{ color: "#9AA6B2", fontSize: 13 }}
+                            >
+                              No asset data to display
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
-            {/* Risk Profile Sub-Tab */}
-            {analysisSubTab === "risk-profile" && (
-              <RiskProfileTab entries={entries} />
-            )}
-          </TabsContent>
+                      {/* Insights + Actions */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div className="fintech-card p-6">
+                          <h2
+                            className="text-sm font-bold mb-4 flex items-center gap-2"
+                            style={{ color: "#EAF0F6" }}
+                          >
+                            <AlertTriangle
+                              size={16}
+                              style={{ color: "#B8FF4A" }}
+                            />
+                            Smart Insights
+                          </h2>
+                          <div className="space-y-2">
+                            {insights.map((ins, idx) => (
+                              <motion.div
+                                key={ins.message}
+                                data-ocid={`insight.item.${idx + 1}`}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.1 }}
+                                className={`insight-tile ${ins.severity}`}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <span className="flex-shrink-0 mt-0.5">
+                                    {insightIcon(ins.severity)}
+                                  </span>
+                                  <span
+                                    className="text-sm"
+                                    style={{
+                                      color: "#EAF0F6",
+                                      lineHeight: 1.5,
+                                    }}
+                                  >
+                                    {ins.message}
+                                  </span>
+                                  <ChevronRight
+                                    size={14}
+                                    style={{
+                                      color: "#9AA6B2",
+                                      flexShrink: 0,
+                                      marginLeft: "auto",
+                                    }}
+                                  />
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="fintech-card p-6">
+                          <h2
+                            className="text-sm font-bold mb-4 flex items-center gap-2"
+                            style={{ color: "#EAF0F6" }}
+                          >
+                            <TrendingUp
+                              size={16}
+                              style={{ color: "#B8FF4A" }}
+                            />
+                            Action Recommendations
+                          </h2>
+                          <div className="space-y-3">
+                            {actions.map((action, idx) => (
+                              <motion.div
+                                key={action.message}
+                                data-ocid={`action.item.${idx + 1}`}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.12 + 0.1 }}
+                                className="rounded-xl p-4"
+                                style={{
+                                  background: "#0F141B",
+                                  border: "1px solid #24303A",
+                                }}
+                              >
+                                <div className="flex gap-3">
+                                  <div
+                                    className="w-1 rounded-full flex-shrink-0"
+                                    style={{
+                                      background:
+                                        action.severity === "danger"
+                                          ? "#FF4A4A"
+                                          : action.severity === "warning"
+                                            ? "#FFB84A"
+                                            : action.severity === "info"
+                                              ? "#4AB8FF"
+                                              : "#B8FF4A",
+                                    }}
+                                  />
+                                  <p
+                                    className="text-sm"
+                                    style={{
+                                      color: "#9AA6B2",
+                                      lineHeight: 1.6,
+                                    }}
+                                  >
+                                    {action.message}
+                                  </p>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
 
-          {/* ── TOOLS TAB ── */}
-          <TabsContent value="tools">
-            <div className="mb-4 flex flex-wrap gap-2" data-ocid="tools.panel">
-              {[
-                { id: "stress-test", label: "🔥 Stress Test" },
-                { id: "inflation", label: "📉 Inflation" },
-                { id: "rebalancing", label: "⚖️ Rebalance" },
-                { id: "tax", label: "🧾 Tax Optimizer" },
-                { id: "lifestage", label: "🗺 Life Stage" },
-                { id: "gold-sgb", label: "🥇 Gold vs SGB" },
-                { id: "investment", label: "📈 Investment Calc" },
-                { id: "loan", label: "🏠 Loan Prepayment" },
-                { id: "policy-analyzer", label: "📋 Policy Analyzer" },
-                { id: "ulip-sip", label: "⚖️ ULIP vs SIP" },
-                { id: "goal-planner", label: "🎯 Goal Planner" },
-                { id: "spending-analysis", label: "💳 Spending Analysis" },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => {
-                    setToolsSubTab(t.id);
-                    trackEvent("tool_used", t.id);
-                  }}
-                  data-ocid={`tools.${t.id}.tab`}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
-                  style={{
-                    background: toolsSubTab === t.id ? "#B8FF4A" : "#0F141B",
-                    color: toolsSubTab === t.id ? "#060A10" : "#9AA6B2",
-                    border: `1px solid ${toolsSubTab === t.id ? "#B8FF4A" : "#24303A"}`,
-                  }}
+                      {/* Activity Insights Panel */}
+                      <DashboardInsights
+                        userId={userId}
+                        goalsCount={userProfile?.goals?.length ?? 0}
+                        lastGoalsUpdate={(() => {
+                          const v = localStorage.getItem(
+                            `finhealth_goals_updated_${userId}`,
+                          );
+                          return v ? Number(v) : undefined;
+                        })()}
+                      />
+
+                      {/* Alerts Panel */}
+                      <div
+                        className="fintech-card p-5 mb-6"
+                        data-ocid="dashboard.alerts.panel"
+                      >
+                        <h2
+                          className="text-sm font-bold mb-4 flex items-center gap-2"
+                          style={{ color: "#EAF0F6" }}
+                        >
+                          <AlertTriangle
+                            size={16}
+                            style={{ color: "#FFBE0B" }}
+                          />
+                          Portfolio Alerts
+                        </h2>
+                        <div className="space-y-2">
+                          {cashPct < 10 && totalAssets > 0 && (
+                            <div
+                              className="flex items-start gap-3 p-3 rounded-xl text-xs"
+                              style={{
+                                background: "rgba(255,190,11,0.08)",
+                                border: "1px solid rgba(255,190,11,0.25)",
+                              }}
+                            >
+                              <span style={{ color: "#FFBE0B" }}>⚠️</span>
+                              <span style={{ color: "#EAF0F6" }}>
+                                Low emergency fund — less than 10% in cash. Add
+                                at least{" "}
+                                {formatINR(
+                                  totalAssets * 0.1 - getCatAmt("Cash"),
+                                )}{" "}
+                                to reach safety threshold.
+                              </span>
+                            </div>
+                          )}
+                          {(!userProfile?.goals ||
+                            userProfile.goals.length === 0) && (
+                            <div
+                              className="flex items-start gap-3 p-3 rounded-xl text-xs"
+                              style={{
+                                background: "rgba(74,184,255,0.08)",
+                                border: "1px solid rgba(74,184,255,0.25)",
+                              }}
+                            >
+                              <span style={{ color: "#4AB8FF" }}>⚠️</span>
+                              <span style={{ color: "#EAF0F6" }}>
+                                You have no financial goals. Start with Goal
+                                Planner.
+                              </span>
+                            </div>
+                          )}
+                          {equityPct > 70 && (
+                            <div
+                              className="flex items-start gap-3 p-3 rounded-xl text-xs"
+                              style={{
+                                background: "rgba(255,74,74,0.08)",
+                                border: "1px solid rgba(255,74,74,0.25)",
+                              }}
+                            >
+                              <span style={{ color: "#FF4A4A" }}>⚠️</span>
+                              <span style={{ color: "#EAF0F6" }}>
+                                Your equity allocation is too high (
+                                {equityPct.toFixed(0)}%). Consider rebalancing
+                                to reduce risk.
+                              </span>
+                            </div>
+                          )}
+                          {cashPct >= 10 &&
+                            (userProfile?.goals?.length ?? 0) > 0 &&
+                            equityPct <= 70 && (
+                              <div
+                                className="flex items-center gap-3 p-3 rounded-xl text-xs"
+                                style={{
+                                  background: "rgba(184,255,74,0.06)",
+                                  border: "1px solid rgba(184,255,74,0.2)",
+                                }}
+                              >
+                                <span>✅</span>
+                                <span style={{ color: "#B8FF4A" }}>
+                                  No critical alerts — your portfolio looks
+                                  well-structured.
+                                </span>
+                              </div>
+                            )}
+                        </div>
+                      </div>
+
+                      {/* Referral Card */}
+                      <div className="mb-6">
+                        <ReferralCard />
+                      </div>
+
+                      {/* Portfolio Breakdown */}
+                      <div className="fintech-card p-6 mb-6">
+                        <h2
+                          className="text-sm font-bold mb-4 flex items-center gap-2"
+                          style={{ color: "#EAF0F6" }}
+                        >
+                          <BarChart3 size={16} style={{ color: "#B8FF4A" }} />
+                          Portfolio Breakdown
+                        </h2>
+                        <div className="space-y-3">
+                          {pieData.map((d) => {
+                            const pct =
+                              totalAssets > 0
+                                ? (d.value / totalAssets) * 100
+                                : 0;
+                            return (
+                              <div key={d.name}>
+                                <div className="flex justify-between text-xs mb-1.5">
+                                  <span
+                                    className="font-medium"
+                                    style={{ color: "#EAF0F6" }}
+                                  >
+                                    {d.name}
+                                  </span>
+                                  <span
+                                    style={{
+                                      color:
+                                        CATEGORY_COLORS[d.name as Category],
+                                    }}
+                                  >
+                                    {pct.toFixed(1)}% — {formatINR(d.value)}
+                                  </span>
+                                </div>
+                                <div
+                                  className="h-2 rounded-full"
+                                  style={{ background: "#1F2A38" }}
+                                >
+                                  <motion.div
+                                    className="h-full rounded-full"
+                                    style={{
+                                      background:
+                                        CATEGORY_COLORS[d.name as Category],
+                                    }}
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${pct}%` }}
+                                    transition={{
+                                      duration: 1,
+                                      ease: "easeOut",
+                                      delay: 0.2,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Peer Benchmarks */}
+                      <div
+                        className="fintech-card p-6 mt-6"
+                        data-ocid="peer_benchmarks.section"
+                      >
+                        <h3
+                          className="text-sm font-bold mb-4 flex items-center gap-2"
+                          style={{ color: "#EAF0F6" }}
+                        >
+                          <Activity size={16} style={{ color: "#B8FF4A" }} />
+                          Peer Benchmarks
+                          <span
+                            className="text-xs font-normal ml-1"
+                            style={{ color: "#9AA6B2" }}
+                          >
+                            vs FinHealth India users
+                          </span>
+                        </h3>
+                        {(() => {
+                          const assets2 = entries.filter(
+                            (e) => e.type === "Asset",
+                          );
+                          const total2 = assets2.reduce(
+                            (s, e) => s + e.amount,
+                            0,
+                          );
+                          const liabilities2 = entries
+                            .filter((e) => e.type === "Liability")
+                            .reduce((s, e) => s + e.amount, 0);
+                          const cats2 = new Set(assets2.map((e) => e.category))
+                            .size;
+                          const nw2 = total2 - liabilities2;
+                          const divPct =
+                            cats2 >= 5
+                              ? 92
+                              : cats2 >= 4
+                                ? 78
+                                : cats2 >= 3
+                                  ? 55
+                                  : cats2 >= 2
+                                    ? 35
+                                    : 15;
+                          const scorePct =
+                            score >= 75
+                              ? 88
+                              : score >= 60
+                                ? 65
+                                : score >= 45
+                                  ? 42
+                                  : 22;
+                          const nwPct =
+                            nw2 >= 5000000
+                              ? 85
+                              : nw2 >= 2000000
+                                ? 68
+                                : nw2 >= 500000
+                                  ? 45
+                                  : nw2 >= 100000
+                                    ? 28
+                                    : 12;
+                          const bc = (p: number) =>
+                            p >= 75
+                              ? "#B8FF4A"
+                              : p >= 50
+                                ? "#FFD74A"
+                                : "#FF4A4A";
+                          const bl = (p: number) =>
+                            p >= 75
+                              ? `Top ${100 - p}%`
+                              : p >= 50
+                                ? "Above Average"
+                                : "Room to Grow";
+                          return (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              {[
+                                {
+                                  label: "Diversification",
+                                  pct: divPct,
+                                  detail: `${cats2} asset classes`,
+                                },
+                                {
+                                  label: "Health Score",
+                                  pct: scorePct,
+                                  detail: `${score}/100`,
+                                },
+                                {
+                                  label: "Net Worth",
+                                  pct: nwPct,
+                                  detail: formatINR(nw2),
+                                },
+                              ].map((b) => (
+                                <div
+                                  key={b.label}
+                                  className="p-4 rounded-xl flex items-center gap-3"
+                                  style={{
+                                    background: "#0F141B",
+                                    border: "1px solid #24303A",
+                                  }}
+                                >
+                                  <div
+                                    className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold"
+                                    style={{
+                                      background: `${bc(b.pct)}22`,
+                                      color: bc(b.pct),
+                                      border: `1.5px solid ${bc(b.pct)}55`,
+                                    }}
+                                  >
+                                    {b.pct}%
+                                  </div>
+                                  <div>
+                                    <div
+                                      className="text-xs font-semibold"
+                                      style={{ color: "#EAF0F6" }}
+                                    >
+                                      {b.label}
+                                    </div>
+                                    <div
+                                      className="text-xs"
+                                      style={{ color: bc(b.pct) }}
+                                    >
+                                      {bl(b.pct)}
+                                    </div>
+                                    <div
+                                      className="text-xs mt-0.5"
+                                      style={{ color: "#9AA6B2" }}
+                                    >
+                                      {b.detail}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                        <p
+                          className="text-xs mt-3"
+                          style={{ color: "#9AA6B2" }}
+                        >
+                          * Based on anonymized FinHealth India user data
+                          (percentile rankings)
+                        </p>
+                      </div>
+                    </AnimatePresence>
+                  ))}
+
+                {/* Trends Sub-Tab */}
+                {analysisSubTab === "trends" && (
+                  <div className="fintech-card p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2
+                        className="text-base font-bold flex items-center gap-2"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        <TrendingUp size={18} style={{ color: "#B8FF4A" }} />
+                        Net Worth Trend
+                      </h2>
+                      {trendGrowth !== null && (
+                        <span
+                          className="text-sm font-bold px-3 py-1 rounded-full"
+                          style={{
+                            background:
+                              Number(trendGrowth) >= 0
+                                ? "rgba(184,255,74,0.1)"
+                                : "rgba(255,74,74,0.1)",
+                            color:
+                              Number(trendGrowth) >= 0 ? "#B8FF4A" : "#FF4A4A",
+                            border: `1px solid ${Number(trendGrowth) >= 0 ? "rgba(184,255,74,0.3)" : "rgba(255,74,74,0.3)"}`,
+                          }}
+                        >
+                          {Number(trendGrowth) >= 0 ? "+" : ""}
+                          {trendGrowth}% overall
+                        </span>
+                      )}
+                    </div>
+                    {trendData.length >= 2 ? (
+                      <ResponsiveContainer width="100%" height={260}>
+                        <LineChart
+                          data={trendData}
+                          margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                        >
+                          <CartesianGrid
+                            stroke="#1A2230"
+                            strokeDasharray="3 3"
+                          />
+                          <XAxis
+                            dataKey="date"
+                            tick={{ fill: "#9AA6B2", fontSize: 11 }}
+                            axisLine={{ stroke: "#24303A" }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tickFormatter={(v: number) => formatINR(v)}
+                            tick={{ fill: "#9AA6B2", fontSize: 11 }}
+                            axisLine={{ stroke: "#24303A" }}
+                            tickLine={false}
+                            width={80}
+                          />
+                          <Tooltip content={<TrendTooltip />} />
+                          <Line
+                            type="monotone"
+                            dataKey="netWorth"
+                            stroke="#B8FF4A"
+                            strokeWidth={2.5}
+                            dot={{ fill: "#B8FF4A", r: 4, strokeWidth: 0 }}
+                            activeDot={{
+                              fill: "#B8FF4A",
+                              r: 6,
+                              strokeWidth: 0,
+                            }}
+                            style={{
+                              filter:
+                                "drop-shadow(0 0 6px rgba(184,255,74,0.5))",
+                            }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div
+                        className="flex flex-col items-center justify-center gap-3 py-16"
+                        data-ocid="trends.empty_state"
+                      >
+                        <TrendingUp size={40} style={{ color: "#24303A" }} />
+                        <p
+                          className="text-sm text-center"
+                          style={{ color: "#9AA6B2" }}
+                        >
+                          No trend data yet.{" "}
+                          <span style={{ color: "#B8FF4A" }}>
+                            Analyze your portfolio
+                          </span>{" "}
+                          at least twice to see the net worth trend.
+                        </p>
+                        <p className="text-xs" style={{ color: "#9AA6B2" }}>
+                          Current net worth:{" "}
+                          <span
+                            style={{
+                              color: netWorth >= 0 ? "#B8FF4A" : "#FF4A4A",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {formatINR(netWorth)}
+                          </span>
+                        </p>
+                      </div>
+                    )}
+                    {history.length > 0 && (
+                      <div className="mt-6">
+                        <h3
+                          className="text-xs font-semibold uppercase tracking-wider mb-3"
+                          style={{ color: "#9AA6B2" }}
+                        >
+                          History
+                        </h3>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {[...history].reverse().map((h, i) => (
+                            <div
+                              key={h.timestamp}
+                              data-ocid={`trends.item.${i + 1}`}
+                              className="flex items-center justify-between px-4 py-2.5 rounded-xl"
+                              style={{
+                                background: "#0F141B",
+                                border: "1px solid #24303A",
+                              }}
+                            >
+                              <span
+                                className="text-xs"
+                                style={{ color: "#9AA6B2" }}
+                              >
+                                {new Date(h.timestamp).toLocaleDateString(
+                                  "en-IN",
+                                  {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )}
+                              </span>
+                              <span
+                                className="font-bold text-sm"
+                                style={{
+                                  color:
+                                    h.netWorth >= 0 ? "#B8FF4A" : "#FF4A4A",
+                                }}
+                              >
+                                {formatINR(h.netWorth)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Investor Protection Sub-Tab */}
+                {analysisSubTab === "investor-protection" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="space-y-6"
+                    data-ocid="investor_protection.section"
+                  >
+                    {/* Disclaimer Banner */}
+                    <div
+                      className="rounded-xl p-5 flex gap-4 items-start"
+                      style={{
+                        background: "rgba(255,190,11,0.1)",
+                        border: "1px solid rgba(255,190,11,0.35)",
+                      }}
+                      data-ocid="disclaimer.panel"
+                    >
+                      <AlertTriangle
+                        size={22}
+                        style={{
+                          color: "#FFBE0B",
+                          flexShrink: 0,
+                          marginTop: 2,
+                        }}
+                      />
+                      <div>
+                        <p
+                          className="text-sm font-semibold mb-1"
+                          style={{ color: "#FFBE0B" }}
+                        >
+                          SEBI Disclaimer
+                        </p>
+                        <p
+                          className="text-sm mb-1"
+                          style={{ color: "#EAF0F6" }}
+                        >
+                          This app provides educational insights only and not
+                          investment advice.
+                        </p>
+                        <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                          Investments are subject to market risks. Please read
+                          all scheme related documents carefully.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Risk Awareness */}
+                    <div className="fintech-card p-6">
+                      <h3
+                        className="text-base font-bold mb-4 flex items-center gap-2"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        <AlertTriangle size={17} style={{ color: "#B8FF4A" }} />
+                        Risk Awareness Module
+                      </h3>
+                      {entries.length === 0 ? (
+                        <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                          Add portfolio entries to see risk awareness signals.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-3">
+                          {equityPct > 60 && (
+                            <span
+                              className="px-3 py-2 rounded-lg text-sm font-semibold"
+                              style={{
+                                background: "rgba(255,120,0,0.15)",
+                                color: "#FF7800",
+                                border: "1px solid rgba(255,120,0,0.35)",
+                              }}
+                            >
+                              ⚠ High Volatility Risk — Equity{" "}
+                              {equityPct.toFixed(0)}%
+                            </span>
+                          )}
+                          {(totalAssets > 0
+                            ? (entries
+                                .filter(
+                                  (e) =>
+                                    e.type === "Asset" && e.category === "Debt",
+                                )
+                                .reduce((s, e) => s + e.amount, 0) /
+                                totalAssets) *
+                              100
+                            : 0) > 50 && (
+                            <span
+                              className="px-3 py-2 rounded-lg text-sm font-semibold"
+                              style={{
+                                background: "rgba(56,140,255,0.15)",
+                                color: "#388CFF",
+                                border: "1px solid rgba(56,140,255,0.35)",
+                              }}
+                            >
+                              ⚠ Interest Rate Risk — High Debt Allocation
+                            </span>
+                          )}
+                          {new Set(
+                            entries
+                              .filter((e) => e.type === "Asset")
+                              .map((e) => e.category),
+                          ).size < 3 && (
+                            <span
+                              className="px-3 py-2 rounded-lg text-sm font-semibold"
+                              style={{
+                                background: "rgba(255,60,60,0.15)",
+                                color: "#FF4B4B",
+                                border: "1px solid rgba(255,60,60,0.35)",
+                              }}
+                            >
+                              ⚠ Concentration Risk — Low Diversification
+                            </span>
+                          )}
+                          {equityPct <= 60 &&
+                            (totalAssets > 0
+                              ? (entries
+                                  .filter(
+                                    (e) =>
+                                      e.type === "Asset" &&
+                                      e.category === "Debt",
+                                  )
+                                  .reduce((s, e) => s + e.amount, 0) /
+                                  totalAssets) *
+                                100
+                              : 0) <= 50 &&
+                            new Set(
+                              entries
+                                .filter((e) => e.type === "Asset")
+                                .map((e) => e.category),
+                            ).size >= 3 && (
+                              <span
+                                className="px-3 py-2 rounded-lg text-sm font-semibold"
+                                style={{
+                                  background: "rgba(184,255,74,0.1)",
+                                  color: "#B8FF4A",
+                                  border: "1px solid rgba(184,255,74,0.3)",
+                                }}
+                              >
+                                ✓ Risk profile looks balanced
+                              </span>
+                            )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Suitability Check */}
+                    <div className="fintech-card p-6">
+                      <h3
+                        className="text-base font-bold mb-5 flex items-center gap-2"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        <CheckCircle size={17} style={{ color: "#B8FF4A" }} />
+                        Suitability Check
+                      </h3>
+                      <div className="space-y-5">
+                        <div>
+                          <p
+                            className="text-xs font-semibold mb-3 uppercase tracking-wide"
+                            style={{ color: "#9AA6B2" }}
+                          >
+                            Risk Appetite
+                          </p>
+                          <div className="flex gap-3 flex-wrap">
+                            {(["Low", "Medium", "High"] as const).map((v) => (
+                              <button
+                                type="button"
+                                key={v}
+                                onClick={() => setRiskAppetite(v)}
+                                data-ocid={`suitability.risk_${v.toLowerCase()}.button`}
+                                className="px-5 py-2 rounded-full text-sm font-semibold transition-all"
+                                style={{
+                                  background:
+                                    riskAppetite === v
+                                      ? "#B8FF4A"
+                                      : "rgba(255,255,255,0.05)",
+                                  color:
+                                    riskAppetite === v ? "#060A10" : "#9AA6B2",
+                                  border: `1px solid ${riskAppetite === v ? "#B8FF4A" : "#24303A"}`,
+                                }}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p
+                            className="text-xs font-semibold mb-3 uppercase tracking-wide"
+                            style={{ color: "#9AA6B2" }}
+                          >
+                            Investment Horizon
+                          </p>
+                          <div className="flex gap-3 flex-wrap">
+                            {(["Short", "Medium", "Long"] as const).map((v) => (
+                              <button
+                                type="button"
+                                key={v}
+                                onClick={() => setInvestmentHorizon(v)}
+                                data-ocid={`suitability.horizon_${v.toLowerCase()}.button`}
+                                className="px-5 py-2 rounded-full text-sm font-semibold transition-all"
+                                style={{
+                                  background:
+                                    investmentHorizon === v
+                                      ? "#B8FF4A"
+                                      : "rgba(255,255,255,0.05)",
+                                  color:
+                                    investmentHorizon === v
+                                      ? "#060A10"
+                                      : "#9AA6B2",
+                                  border: `1px solid ${investmentHorizon === v ? "#B8FF4A" : "#24303A"}`,
+                                }}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {entries.length > 0 &&
+                          riskAppetite &&
+                          investmentHorizon &&
+                          (() => {
+                            const pRisk =
+                              equityPct > 60
+                                ? "High"
+                                : equityPct > 30
+                                  ? "Medium"
+                                  : "Low";
+                            const riskMismatch =
+                              (riskAppetite === "Low" &&
+                                (pRisk === "High" || pRisk === "Medium")) ||
+                              (riskAppetite === "Medium" && pRisk === "High");
+                            const horizonMismatch =
+                              equityPct > 60 && investmentHorizon === "Short";
+                            const hasMismatch = riskMismatch || horizonMismatch;
+                            return (
+                              <div
+                                className="mt-4 p-4 rounded-xl text-sm font-semibold flex gap-3 items-start"
+                                style={{
+                                  background: hasMismatch
+                                    ? "rgba(255,60,60,0.1)"
+                                    : "rgba(184,255,74,0.08)",
+                                  border: `1px solid ${hasMismatch ? "rgba(255,60,60,0.35)" : "rgba(184,255,74,0.3)"}`,
+                                  color: hasMismatch ? "#FF4B4B" : "#B8FF4A",
+                                }}
+                                data-ocid="suitability.alert.panel"
+                              >
+                                {hasMismatch ? (
+                                  <AlertTriangle
+                                    size={16}
+                                    style={{ flexShrink: 0, marginTop: 2 }}
+                                  />
+                                ) : (
+                                  <CheckCircle
+                                    size={16}
+                                    style={{ flexShrink: 0, marginTop: 2 }}
+                                  />
+                                )}
+                                {hasMismatch
+                                  ? "⚠ Your allocation may not match your risk profile. Consider rebalancing."
+                                  : "✓ Your portfolio aligns with your risk profile."}
+                              </div>
+                            );
+                          })()}
+                      </div>
+                    </div>
+
+                    {/* Fraud Awareness */}
+                    <div className="fintech-card p-6">
+                      <h3
+                        className="text-base font-bold mb-4 flex items-center gap-2"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        <Info size={17} style={{ color: "#B8FF4A" }} />
+                        Fraud Awareness Tips
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div
+                          className="rounded-xl p-4"
+                          style={{
+                            background: "rgba(255,60,60,0.07)",
+                            border: "1px solid rgba(255,60,60,0.2)",
+                          }}
+                          data-ocid="fraud.tip.1"
+                        >
+                          <p
+                            className="text-sm font-semibold mb-1"
+                            style={{ color: "#FF4B4B" }}
+                          >
+                            🚫 Avoid Guaranteed Return Schemes
+                          </p>
+                          <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                            No SEBI-registered product can guarantee fixed
+                            returns. Be wary of schemes promising assured
+                            profits.
+                          </p>
+                        </div>
+                        <div
+                          className="rounded-xl p-4"
+                          style={{
+                            background: "rgba(184,255,74,0.07)",
+                            border: "1px solid rgba(184,255,74,0.2)",
+                          }}
+                          data-ocid="fraud.tip.2"
+                        >
+                          <p
+                            className="text-sm font-semibold mb-1"
+                            style={{ color: "#B8FF4A" }}
+                          >
+                            ✅ Verify SEBI Registration
+                          </p>
+                          <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                            Always check the SEBI registration of your advisor
+                            at{" "}
+                            <a
+                              href="https://sebi.gov.in"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "#B8FF4A",
+                                textDecoration: "underline",
+                              }}
+                            >
+                              sebi.gov.in
+                            </a>{" "}
+                            before investing.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Transparency */}
+                    <div className="fintech-card p-6">
+                      <h3
+                        className="text-base font-bold mb-4 flex items-center gap-2"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        <BarChart3 size={17} style={{ color: "#B8FF4A" }} />
+                        Portfolio Transparency
+                      </h3>
+                      {entries.length === 0 ? (
+                        <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                          Add portfolio entries to view your asset allocation
+                          and risk level.
+                        </p>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap gap-3 mb-4">
+                            <span
+                              className="px-3 py-1 rounded-full text-xs font-bold"
+                              style={{
+                                background:
+                                  equityPct > 60
+                                    ? "rgba(255,60,60,0.15)"
+                                    : equityPct > 30
+                                      ? "rgba(255,190,11,0.15)"
+                                      : "rgba(184,255,74,0.1)",
+                                color:
+                                  equityPct > 60
+                                    ? "#FF4B4B"
+                                    : equityPct > 30
+                                      ? "#FFBE0B"
+                                      : "#B8FF4A",
+                                border: `1px solid ${equityPct > 60 ? "rgba(255,60,60,0.35)" : equityPct > 30 ? "rgba(255,190,11,0.35)" : "rgba(184,255,74,0.3)"}`,
+                              }}
+                            >
+                              Risk Level:{" "}
+                              {equityPct > 60
+                                ? "High"
+                                : equityPct > 30
+                                  ? "Medium"
+                                  : "Low"}
+                            </span>
+                          </div>
+                          {(
+                            [
+                              "Equity",
+                              "Mutual Funds",
+                              "Debt",
+                              "Cash",
+                              "Gold",
+                            ] as const
+                          ).map((cat) => {
+                            const amt = entries
+                              .filter(
+                                (e) => e.type === "Asset" && e.category === cat,
+                              )
+                              .reduce((s, e) => s + e.amount, 0);
+                            const pct =
+                              totalAssets > 0 ? (amt / totalAssets) * 100 : 0;
+                            if (pct === 0) return null;
+                            return (
+                              <div key={cat}>
+                                <div
+                                  className="flex justify-between text-xs mb-1"
+                                  style={{ color: "#9AA6B2" }}
+                                >
+                                  <span>{cat}</span>
+                                  <span style={{ color: "#B8FF4A" }}>
+                                    {pct.toFixed(1)}%
+                                  </span>
+                                </div>
+                                <div
+                                  className="w-full rounded-full h-2"
+                                  style={{ background: "#1A2530" }}
+                                >
+                                  <div
+                                    className="h-2 rounded-full transition-all"
+                                    style={{
+                                      width: `${pct}%`,
+                                      background: "#B8FF4A",
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* SIP Calculator Sub-Tab */}
+                {analysisSubTab === "sip-calculator" && (
+                  <Tabs defaultValue="sip-calculator">
+                    <SipCalculatorTab />
+                  </Tabs>
+                )}
+
+                {/* KYC Checklist Sub-Tab */}
+                {analysisSubTab === "kyc-checklist" && (
+                  <Tabs defaultValue="kyc-checklist">
+                    <KycChecklistTab />
+                  </Tabs>
+                )}
+
+                {/* Risk Profile Sub-Tab */}
+                {analysisSubTab === "risk-profile" && (
+                  <RiskProfileTab entries={entries} />
+                )}
+              </TabsContent>
+
+              {/* ── TOOLS TAB ── */}
+              <TabsContent value="tools">
+                <div
+                  className="mb-4 flex flex-wrap gap-2"
+                  data-ocid="tools.panel"
                 >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            {toolsSubTab === "stress-test" && (
-              <StressTestTab entries={entries} />
-            )}
-            {toolsSubTab === "inflation" && (
-              <InflationTrackerTab entries={entries} />
-            )}
-            {toolsSubTab === "rebalancing" && (
-              <RebalancingSimulatorTab entries={entries} />
-            )}
-            {toolsSubTab === "tax" && <TaxOptimizerTab entries={entries} />}
-            {toolsSubTab === "lifestage" && (
-              <LifeStageRoadmapTab entries={entries} />
-            )}
-            {toolsSubTab === "gold-sgb" && <GoldSgbTab entries={entries} />}
-            {toolsSubTab === "investment" && (
-              <InvestmentCalculatorTab entries={entries} />
-            )}
-            {toolsSubTab === "loan" && <LoanPrepaymentTab entries={entries} />}
-            {toolsSubTab === "policy-analyzer" && (
-              <PolicyAnalyzerTab entries={entries} />
-            )}
-            {toolsSubTab === "ulip-sip" && <UlipVsSipTab entries={entries} />}
-            {toolsSubTab === "goal-planner" && (
-              <GoalPlannerTab entries={entries} />
-            )}
-            {toolsSubTab === "spending-analysis" && (
-              <CardAnalysisTab
-                transactions={transactions}
-                onTransactionsChange={handleTransactionsChange}
-                monthlyIncome={userProfile?.income ?? 0}
-              />
-            )}
-          </TabsContent>
+                  {[
+                    { id: "stress-test", label: "🔥 Stress Test" },
+                    { id: "inflation", label: "📉 Inflation" },
+                    { id: "rebalancing", label: "⚖️ Rebalance" },
+                    { id: "tax", label: "🧾 Tax Optimizer" },
+                    { id: "lifestage", label: "🗺 Life Stage" },
+                    { id: "gold-sgb", label: "🥇 Gold vs SGB" },
+                    { id: "investment", label: "📈 Investment Calc" },
+                    { id: "loan", label: "🏠 Loan Prepayment" },
+                    { id: "policy-analyzer", label: "📋 Policy Analyzer" },
+                    { id: "ulip-sip", label: "⚖️ ULIP vs SIP" },
+                    { id: "goal-planner", label: "🎯 Goal Planner" },
+                    { id: "spending-analysis", label: "💳 Spending Analysis" },
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setToolsSubTab(t.id);
+                        trackEvent("tool_used", t.id);
+                      }}
+                      data-ocid={`tools.${t.id}.tab`}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+                      style={{
+                        background:
+                          toolsSubTab === t.id ? "#B8FF4A" : "#0F141B",
+                        color: toolsSubTab === t.id ? "#060A10" : "#9AA6B2",
+                        border: `1px solid ${toolsSubTab === t.id ? "#B8FF4A" : "#24303A"}`,
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                {toolsSubTab === "stress-test" && (
+                  <StressTestTab entries={entries} />
+                )}
+                {toolsSubTab === "inflation" && (
+                  <InflationTrackerTab entries={entries} />
+                )}
+                {toolsSubTab === "rebalancing" && (
+                  <RebalancingSimulatorTab entries={entries} />
+                )}
+                {toolsSubTab === "tax" && <TaxOptimizerTab entries={entries} />}
+                {toolsSubTab === "lifestage" && (
+                  <LifeStageRoadmapTab entries={entries} />
+                )}
+                {toolsSubTab === "gold-sgb" && <GoldSgbTab entries={entries} />}
+                {toolsSubTab === "investment" && (
+                  <InvestmentCalculatorTab entries={entries} />
+                )}
+                {toolsSubTab === "loan" && (
+                  <LoanPrepaymentTab entries={entries} />
+                )}
+                {toolsSubTab === "policy-analyzer" && (
+                  <PolicyAnalyzerTab entries={entries} />
+                )}
+                {toolsSubTab === "ulip-sip" && (
+                  <UlipVsSipTab entries={entries} />
+                )}
+                {toolsSubTab === "goal-planner" && (
+                  <GoalPlannerTab entries={entries} />
+                )}
+                {toolsSubTab === "spending-analysis" && (
+                  <CardAnalysisTab
+                    transactions={transactions}
+                    onTransactionsChange={handleTransactionsChange}
+                    monthlyIncome={userProfile?.income ?? 0}
+                  />
+                )}
+              </TabsContent>
 
-          {/* ── REPORTS TAB ── */}
-          <TabsContent value="reports">
-            <DnaReportTab entries={entries} healthScore={score} />
-          </TabsContent>
-        </Tabs>
-      </main>
+              {/* ── REPORTS TAB ── */}
+              <TabsContent value="reports">
+                <DnaReportTab entries={entries} healthScore={score} />
+              </TabsContent>
+            </Tabs>
+          </main>
 
-      {/* Footer */}
-      <footer
-        style={{
-          borderTop: "1px solid #24303A",
-          marginTop: "auto",
-          background: "#060A10",
-        }}
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
-            {/* Col 1 */}
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "10px",
-                }}
-              >
-                <Zap
-                  size={20}
-                  style={{
-                    color: "#B8FF4A",
-                    filter: "drop-shadow(0 0 5px #B8FF4A80)",
-                  }}
-                />
-                <span
-                  style={{
-                    color: "#EAF0F6",
-                    fontWeight: 700,
-                    fontSize: "16px",
-                  }}
-                >
-                  FinPulse
-                </span>
+          {/* Footer */}
+          <footer
+            style={{
+              borderTop: "1px solid #24303A",
+              marginTop: "auto",
+              background: "#060A10",
+            }}
+          >
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
+                {/* Col 1 */}
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <Zap
+                      size={20}
+                      style={{
+                        color: "#B8FF4A",
+                        filter: "drop-shadow(0 0 5px #B8FF4A80)",
+                      }}
+                    />
+                    <span
+                      style={{
+                        color: "#EAF0F6",
+                        fontWeight: 700,
+                        fontSize: "16px",
+                      }}
+                    >
+                      FinPulse
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      color: "#9AA6B2",
+                      fontSize: "13px",
+                      lineHeight: 1.6,
+                      margin: "0 0 12px",
+                    }}
+                  >
+                    India's Advanced Financial Intelligence Platform
+                  </p>
+                  <div
+                    style={{
+                      background: "rgba(255,180,0,0.08)",
+                      border: "1px solid rgba(255,180,0,0.2)",
+                      borderRadius: "8px",
+                      padding: "10px 12px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: "#FFA500",
+                        fontSize: "12px",
+                        margin: 0,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      ⚠️ For educational purposes only. Not investment advice.
+                      Investments are subject to market risks.
+                    </p>
+                  </div>
+                </div>
+                {/* Col 2 - Quick Links */}
+                <div>
+                  <h4
+                    style={{
+                      color: "#EAF0F6",
+                      fontWeight: 700,
+                      fontSize: "14px",
+                      marginBottom: "14px",
+                    }}
+                  >
+                    Quick Links
+                  </h4>
+                  <nav
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                    }}
+                  >
+                    {[
+                      {
+                        label: "About Us",
+                        action: () => setShowAbout(true),
+                        ocid: "footer.about.link",
+                      },
+                      {
+                        label: "Contact Us",
+                        action: () => setShowContact(true),
+                        ocid: "footer.contact.link",
+                      },
+                      {
+                        label: "Sitemap",
+                        action: () => setShowSitemap(true),
+                        ocid: "footer.sitemap.link",
+                      },
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        data-ocid={item.ocid}
+                        onClick={item.action}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#9AA6B2",
+                          fontSize: "13px",
+                          textAlign: "left",
+                          padding: 0,
+                          transition: "color 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.target as HTMLButtonElement).style.color =
+                            "#B8FF4A";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.target as HTMLButtonElement).style.color =
+                            "#9AA6B2";
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </nav>
+                </div>
+                {/* Col 3 - Legal */}
+                <div>
+                  <h4
+                    style={{
+                      color: "#EAF0F6",
+                      fontWeight: 700,
+                      fontSize: "14px",
+                      marginBottom: "14px",
+                    }}
+                  >
+                    Legal
+                  </h4>
+                  <nav
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                    }}
+                  >
+                    {[
+                      {
+                        label: "Privacy Policy",
+                        action: () => setShowPrivacy(true),
+                        ocid: "footer.privacy.link",
+                      },
+                      {
+                        label: "Terms of Use",
+                        action: () => setShowTerms(true),
+                        ocid: "footer.terms.link",
+                      },
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        data-ocid={item.ocid}
+                        onClick={item.action}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#9AA6B2",
+                          fontSize: "13px",
+                          textAlign: "left",
+                          padding: 0,
+                          transition: "color 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.target as HTMLButtonElement).style.color =
+                            "#B8FF4A";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.target as HTMLButtonElement).style.color =
+                            "#9AA6B2";
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </nav>
+                </div>
               </div>
-              <p
-                style={{
-                  color: "#9AA6B2",
-                  fontSize: "13px",
-                  lineHeight: 1.6,
-                  margin: "0 0 12px",
-                }}
-              >
-                India's Advanced Financial Intelligence Platform
-              </p>
               <div
                 style={{
-                  background: "rgba(255,180,0,0.08)",
-                  border: "1px solid rgba(255,180,0,0.2)",
-                  borderRadius: "8px",
-                  padding: "10px 12px",
+                  borderTop: "1px solid #24303A",
+                  paddingTop: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "4px",
+                  textAlign: "center",
                 }}
               >
-                <p
-                  style={{
-                    color: "#FFA500",
-                    fontSize: "12px",
-                    margin: 0,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  ⚠️ For educational purposes only. Not investment advice.
-                  Investments are subject to market risks.
+                <p style={{ color: "#4A5568", fontSize: "12px", margin: 0 }}>
+                  © {new Date().getFullYear()} FinHealth India. Built with ♥
+                  using{" "}
+                  <a
+                    href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#B8FF4A" }}
+                  >
+                    caffeine.ai
+                  </a>
                 </p>
               </div>
             </div>
-            {/* Col 2 - Quick Links */}
-            <div>
-              <h4
-                style={{
-                  color: "#EAF0F6",
-                  fontWeight: 700,
-                  fontSize: "14px",
-                  marginBottom: "14px",
-                }}
-              >
-                Quick Links
-              </h4>
-              <nav
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                }}
-              >
-                {[
-                  {
-                    label: "About Us",
-                    action: () => setShowAbout(true),
-                    ocid: "footer.about.link",
-                  },
-                  {
-                    label: "Contact Us",
-                    action: () => setShowContact(true),
-                    ocid: "footer.contact.link",
-                  },
-                  {
-                    label: "Sitemap",
-                    action: () => setShowSitemap(true),
-                    ocid: "footer.sitemap.link",
-                  },
-                ].map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    data-ocid={item.ocid}
-                    onClick={item.action}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "#9AA6B2",
-                      fontSize: "13px",
-                      textAlign: "left",
-                      padding: 0,
-                      transition: "color 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.target as HTMLButtonElement).style.color = "#B8FF4A";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.target as HTMLButtonElement).style.color = "#9AA6B2";
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-            {/* Col 3 - Legal */}
-            <div>
-              <h4
-                style={{
-                  color: "#EAF0F6",
-                  fontWeight: 700,
-                  fontSize: "14px",
-                  marginBottom: "14px",
-                }}
-              >
-                Legal
-              </h4>
-              <nav
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                }}
-              >
-                {[
-                  {
-                    label: "Privacy Policy",
-                    action: () => setShowPrivacy(true),
-                    ocid: "footer.privacy.link",
-                  },
-                  {
-                    label: "Terms of Use",
-                    action: () => setShowTerms(true),
-                    ocid: "footer.terms.link",
-                  },
-                ].map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    data-ocid={item.ocid}
-                    onClick={item.action}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "#9AA6B2",
-                      fontSize: "13px",
-                      textAlign: "left",
-                      padding: 0,
-                      transition: "color 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.target as HTMLButtonElement).style.color = "#B8FF4A";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.target as HTMLButtonElement).style.color = "#9AA6B2";
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </div>
-          <div
-            style={{
-              borderTop: "1px solid #24303A",
-              paddingTop: "20px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "4px",
-              textAlign: "center",
-            }}
-          >
-            <p style={{ color: "#4A5568", fontSize: "12px", margin: 0 }}>
-              © {new Date().getFullYear()} FinHealth India. Built with ♥ using{" "}
-              <a
-                href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: "#B8FF4A" }}
-              >
-                caffeine.ai
-              </a>
-            </p>
-          </div>
-        </div>
-      </footer>
+          </footer>
 
-      {/* Modals & Chat */}
-      <ClientChatBox
-        userId={shortPrincipal}
-        onNavigate={(tab, subTab) => {
-          setActiveTab(tab);
-          if (subTab) setToolsSubTab(subTab);
-        }}
-        onChatQuery={() => trackEvent("chat_query")}
-      />
-      <ContactModal open={showContact} onClose={() => setShowContact(false)} />
-      <SitemapModal open={showSitemap} onClose={() => setShowSitemap(false)} />
-      <InfoModal
-        open={showAbout}
-        onClose={() => setShowAbout(false)}
-        title="About FinHealth India"
-      >
-        <p>
-          FinHealth India is India's most advanced personal financial
-          intelligence platform. We help users analyze their investments, detect
-          mis-selling, plan goals, and make informed financial decisions — all
-          with zero data sharing with third parties.
-        </p>
-        <p style={{ marginTop: "12px" }}>
-          Built for the Indian investor, by people who understand Indian
-          financial markets, regulations, and challenges. Our platform covers
-          everything from portfolio stress testing to SEBI compliance, policy
-          mis-selling detection, and tax optimization.
-        </p>
-      </InfoModal>
-      <InfoModal
-        open={showPrivacy}
-        onClose={() => setShowPrivacy(false)}
-        title="Privacy Policy"
-      >
-        <p>
-          We take your privacy seriously. All financial data you enter is stored
-          securely and never shared with third parties.
-        </p>
-        <p style={{ marginTop: "12px" }}>
-          We use Internet Identity for decentralized authentication. Your data
-          is stored on the Internet Computer blockchain, ensuring transparency
-          and security.
-        </p>
-        <p style={{ marginTop: "12px" }}>
-          We do not sell, rent, or share your personal financial data with
-          advertisers or data brokers. Ever.
-        </p>
-      </InfoModal>
-      <InfoModal
-        open={showTerms}
-        onClose={() => setShowTerms(false)}
-        title="Terms of Use"
-      >
-        <p>
-          This platform is for educational and informational purposes only.
-          FinHealth India does not provide investment advice, and nothing on
-          this platform should be construed as such.
-        </p>
-        <p style={{ marginTop: "12px" }}>
-          Use of this platform is subject to Indian laws and regulations. By
-          using FinHealth India, you agree to use the platform responsibly and
-          acknowledge that all financial decisions are your own.
-        </p>
-        <p style={{ marginTop: "12px" }}>
-          Unauthorized reproduction, distribution, or modification of platform
-          content is strictly prohibited.
-        </p>
-      </InfoModal>
+          {/* Modals & Chat */}
+          <ClientChatBox
+            userId={shortPrincipal}
+            onNavigate={(tab, subTab) => {
+              setActiveTab(tab);
+              if (subTab) setToolsSubTab(subTab);
+            }}
+            onChatQuery={() => trackEvent("chat_query")}
+          />
+          <ContactModal
+            open={showContact}
+            onClose={() => setShowContact(false)}
+          />
+          <SitemapModal
+            open={showSitemap}
+            onClose={() => setShowSitemap(false)}
+          />
+          <InfoModal
+            open={showAbout}
+            onClose={() => setShowAbout(false)}
+            title="About FinHealth India"
+          >
+            <p>
+              FinHealth India is India's most advanced personal financial
+              intelligence platform. We help users analyze their investments,
+              detect mis-selling, plan goals, and make informed financial
+              decisions — all with zero data sharing with third parties.
+            </p>
+            <p style={{ marginTop: "12px" }}>
+              Built for the Indian investor, by people who understand Indian
+              financial markets, regulations, and challenges. Our platform
+              covers everything from portfolio stress testing to SEBI
+              compliance, policy mis-selling detection, and tax optimization.
+            </p>
+          </InfoModal>
+          <InfoModal
+            open={showPrivacy}
+            onClose={() => setShowPrivacy(false)}
+            title="Privacy Policy"
+          >
+            <p>
+              We take your privacy seriously. All financial data you enter is
+              stored securely and never shared with third parties.
+            </p>
+            <p style={{ marginTop: "12px" }}>
+              We use Internet Identity for decentralized authentication. Your
+              data is stored on the Internet Computer blockchain, ensuring
+              transparency and security.
+            </p>
+            <p style={{ marginTop: "12px" }}>
+              We do not sell, rent, or share your personal financial data with
+              advertisers or data brokers. Ever.
+            </p>
+          </InfoModal>
+          <InfoModal
+            open={showTerms}
+            onClose={() => setShowTerms(false)}
+            title="Terms of Use"
+          >
+            <p>
+              This platform is for educational and informational purposes only.
+              FinHealth India does not provide investment advice, and nothing on
+              this platform should be construed as such.
+            </p>
+            <p style={{ marginTop: "12px" }}>
+              Use of this platform is subject to Indian laws and regulations. By
+              using FinHealth India, you agree to use the platform responsibly
+              and acknowledge that all financial decisions are your own.
+            </p>
+            <p style={{ marginTop: "12px" }}>
+              Unauthorized reproduction, distribution, or modification of
+              platform content is strictly prohibited.
+            </p>
+          </InfoModal>
+        </>
+      )}
     </div>
   );
 }

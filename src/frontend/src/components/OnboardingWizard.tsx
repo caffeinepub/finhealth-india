@@ -1,6 +1,15 @@
-import { ChevronRight, Eye, EyeOff, Shield } from "lucide-react";
+import {
+  CheckCircle,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Mail,
+  Phone,
+  Shield,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 type RiskProfile = "Conservative" | "Balanced" | "Aggressive";
 
@@ -52,20 +61,45 @@ export default function OnboardingWizard({
   const [showPassword, setShowPassword] = useState(false);
   const [step1Errors, setStep1Errors] = useState<Record<string, string>>({});
 
-  // Step 2 — KYC
+  // Step 2 — OTP
+  const [otp, setOtp] = useState("");
+  const [otpInput, setOtpInput] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpResent, setOtpResent] = useState(false);
+
+  // Step 3 — Email Verification
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [emailVerifying, setEmailVerifying] = useState(false);
+
+  // Step 4 — KYC
   const [panNumber, setPanNumber] = useState("");
   const [dob, setDob] = useState("");
   const [consent, setConsent] = useState(false);
-  const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
+  const [step4Errors, setStep4Errors] = useState<Record<string, string>>({});
 
-  // Step 3 — Profile
+  // Step 5 — Profile
   const [income, setIncome] = useState("");
   const [savings, setSavings] = useState("");
   const [riskAppetite, setRiskAppetite] = useState<
     "Low" | "Medium" | "High" | null
   >(null);
   const [goals, setGoals] = useState("");
-  const [step3Errors, setStep3Errors] = useState<Record<string, string>>({});
+  const [step5Errors, setStep5Errors] = useState<Record<string, string>>({});
+
+  // Generate OTP when entering step 2
+  useEffect(() => {
+    if (step === 2 && !otp) {
+      setOtp(Math.floor(100000 + Math.random() * 900000).toString());
+    }
+  }, [step, otp]);
+
+  // Auto-proceed after email verified
+  useEffect(() => {
+    if (emailVerified) {
+      const t = setTimeout(() => setStep(4), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [emailVerified]);
 
   // ── Validation ──────────────────────────────────────────────────────────────
 
@@ -91,7 +125,7 @@ export default function OnboardingWizard({
     return Object.keys(errs).length === 0;
   }
 
-  function validateStep2() {
+  function validateStep4() {
     const errs: Record<string, string> = {};
     if (!panNumber.trim()) {
       errs.pan = "PAN number is required.";
@@ -99,18 +133,18 @@ export default function OnboardingWizard({
       errs.pan = "Invalid PAN format. Example: ABCDE1234F";
     }
     if (!dob) errs.dob = "Date of birth is required.";
-    setStep2Errors(errs);
+    setStep4Errors(errs);
     return Object.keys(errs).length === 0;
   }
 
-  function validateStep3() {
+  function validateStep5() {
     const errs: Record<string, string> = {};
     if (!income || Number(income) <= 0)
       errs.income = "Enter a valid monthly income.";
     if (!savings || Number(savings) < 0)
       errs.savings = "Enter a valid monthly savings amount.";
     if (!riskAppetite) errs.risk = "Please select your risk appetite.";
-    setStep3Errors(errs);
+    setStep5Errors(errs);
     return Object.keys(errs).length === 0;
   }
 
@@ -120,12 +154,39 @@ export default function OnboardingWizard({
     if (validateStep1()) setStep(2);
   }
 
-  function handleStep2Submit() {
-    if (validateStep2()) setStep(3);
+  function handleOtpSubmit() {
+    if (otpInput === otp) {
+      setOtpError("");
+      setStep(3);
+    } else {
+      setOtpError("Incorrect OTP. Please try again.");
+    }
   }
 
-  function handleStep3Submit() {
-    if (!validateStep3()) return;
+  function handleResendOtp() {
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setOtp(newOtp);
+    setOtpInput("");
+    setOtpError("");
+    setOtpResent(true);
+    toast.success("OTP resent!");
+    setTimeout(() => setOtpResent(false), 3000);
+  }
+
+  function handleEmailVerify() {
+    setEmailVerifying(true);
+    setTimeout(() => {
+      setEmailVerifying(false);
+      setEmailVerified(true);
+    }, 800);
+  }
+
+  function handleStep4Submit() {
+    if (validateStep4()) setStep(5);
+  }
+
+  function handleStep5Submit() {
+    if (!validateStep5()) return;
     const userId = btoa(email)
       .replace(/[^a-zA-Z0-9]/g, "")
       .substring(0, 12);
@@ -142,14 +203,18 @@ export default function OnboardingWizard({
         name: name.trim(),
         email: email.trim(),
         mobile: mobile.trim(),
+        emailVerified: true,
+        mobileVerified: true,
         panNumber: panNumber.trim(),
         dob,
         income: Number(income),
         savings: Number(savings),
         riskProfile: profile,
         goals: parsedGoals,
+        plan: "free",
         kycStatus: "completed",
         createdAt: new Date().toISOString(),
+        photoURL: "",
       }),
     );
     onComplete({
@@ -159,8 +224,9 @@ export default function OnboardingWizard({
     });
   }
 
-  // ── Shared step indicator ───────────────────────────────────────────────────
-  const stepLabels = ["Signup", "KYC", "Profile"];
+  // ── Step indicator ──────────────────────────────────────────────────────────
+  const stepLabels = ["Signup", "OTP", "Email", "KYC", "Profile"];
+  const totalSteps = 5;
 
   return (
     <div
@@ -184,12 +250,12 @@ export default function OnboardingWizard({
           }}
         >
           {/* Step Indicator */}
-          <div className="flex items-center justify-center gap-0 mb-8">
-            {[1, 2, 3].map((s) => (
+          <div className="flex items-center justify-center gap-0 mb-8 overflow-x-auto">
+            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
               <div key={s} className="flex items-center">
                 <div className="flex flex-col items-center gap-1">
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
                     style={{
                       background:
                         s === step
@@ -204,13 +270,14 @@ export default function OnboardingWizard({
                             ? "#B8FF4A"
                             : "#9AA6B2",
                       border: `1.5px solid ${s <= step ? "#B8FF4A" : "#24303A"}`,
+                      flexShrink: 0,
                     }}
                     data-ocid={`onboarding.step${s}.button`}
                   >
                     {s < step ? "✓" : s}
                   </div>
                   <span
-                    className="text-xs"
+                    className="text-xs whitespace-nowrap"
                     style={{
                       color:
                         s === step
@@ -219,15 +286,19 @@ export default function OnboardingWizard({
                             ? "#6ECC2A"
                             : "#4A5568",
                       fontWeight: s === step ? 700 : 400,
+                      fontSize: 10,
                     }}
                   >
                     {stepLabels[s - 1]}
                   </span>
                 </div>
-                {s < 3 && (
+                {s < totalSteps && (
                   <div
-                    className="w-14 h-px mb-4 mx-1"
-                    style={{ background: s < step ? "#B8FF4A" : "#24303A" }}
+                    className="w-8 h-px mb-4 mx-1"
+                    style={{
+                      background: s < step ? "#B8FF4A" : "#24303A",
+                      flexShrink: 0,
+                    }}
                   />
                 )}
               </div>
@@ -247,7 +318,6 @@ export default function OnboardingWizard({
                 Start your FinHealth India journey
               </p>
 
-              {/* Full Name */}
               <div className="mb-4">
                 <label htmlFor="s1-name" style={labelStyle}>
                   Full Name
@@ -271,7 +341,6 @@ export default function OnboardingWizard({
                 )}
               </div>
 
-              {/* Email */}
               <div className="mb-4">
                 <label htmlFor="s1-email" style={labelStyle}>
                   Email Address
@@ -295,7 +364,6 @@ export default function OnboardingWizard({
                 )}
               </div>
 
-              {/* Mobile */}
               <div className="mb-4">
                 <label htmlFor="s1-mobile" style={labelStyle}>
                   Mobile Number
@@ -321,7 +389,6 @@ export default function OnboardingWizard({
                 )}
               </div>
 
-              {/* Password */}
               <div className="mb-6">
                 <label htmlFor="s1-password" style={labelStyle}>
                   Password
@@ -372,13 +439,262 @@ export default function OnboardingWizard({
                   cursor: "pointer",
                 }}
               >
-                Continue to KYC <ChevronRight size={16} />
+                Continue <ChevronRight size={16} />
               </button>
             </div>
           )}
 
-          {/* ── STEP 2: KYC ── */}
+          {/* ── STEP 2: MOBILE OTP ── */}
           {step === 2 && (
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: "50%",
+                    background: "rgba(184,255,74,0.1)",
+                    border: "1px solid rgba(184,255,74,0.3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Phone size={18} style={{ color: "#B8FF4A" }} />
+                </div>
+                <div>
+                  <h2
+                    className="text-xl font-bold"
+                    style={{ color: "#EAF0F6" }}
+                  >
+                    Mobile OTP Verification
+                  </h2>
+                  <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                    Verify your number +91 {mobile}
+                  </p>
+                </div>
+              </div>
+
+              {/* Mock OTP display */}
+              <div
+                className="p-4 rounded-xl mb-5"
+                style={{
+                  background: "rgba(184,255,74,0.05)",
+                  border: "1px solid rgba(184,255,74,0.3)",
+                }}
+              >
+                <p className="text-xs mb-1" style={{ color: "#9AA6B2" }}>
+                  Your OTP (mock — sent to your mobile)
+                </p>
+                <p
+                  className="text-2xl font-mono font-bold tracking-[0.3em]"
+                  style={{ color: "#B8FF4A" }}
+                >
+                  {otp}
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="s2-otp" style={labelStyle}>
+                  Enter 6-digit OTP
+                </label>
+                <input
+                  id="s2-otp"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={otpInput}
+                  onChange={(e) => {
+                    setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 6));
+                    setOtpError("");
+                  }}
+                  placeholder="000000"
+                  style={{
+                    ...inputStyle,
+                    textAlign: "center",
+                    fontSize: 24,
+                    fontFamily: "monospace",
+                    letterSpacing: "0.3em",
+                  }}
+                  data-ocid="onboarding.otp.input"
+                />
+                {otpError && (
+                  <p
+                    className="text-red-400 text-xs mt-1"
+                    data-ocid="onboarding.otp.error_state"
+                  >
+                    {otpError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between mb-6">
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: otpResent ? "#B8FF4A" : "#9AA6B2",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    textDecoration: "underline",
+                  }}
+                  data-ocid="onboarding.otp.secondary_button"
+                >
+                  {otpResent ? "OTP Resent! ✓" : "Resend OTP"}
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  data-ocid="onboarding.step2.cancel_button"
+                  className="px-6 py-3 rounded-xl text-sm font-semibold"
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    color: "#9AA6B2",
+                    border: "1px solid #24303A",
+                    cursor: "pointer",
+                  }}
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOtpSubmit}
+                  disabled={otpInput.length !== 6}
+                  data-ocid="onboarding.step2.primary_button"
+                  className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                  style={{
+                    background:
+                      otpInput.length === 6
+                        ? "#B8FF4A"
+                        : "rgba(184,255,74,0.2)",
+                    color: otpInput.length === 6 ? "#060A10" : "#4A5568",
+                    cursor: otpInput.length === 6 ? "pointer" : "not-allowed",
+                  }}
+                >
+                  Verify OTP <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 3: EMAIL VERIFICATION ── */}
+          {step === 3 && (
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: "50%",
+                    background: "rgba(184,255,74,0.1)",
+                    border: "1px solid rgba(184,255,74,0.3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Mail size={18} style={{ color: "#B8FF4A" }} />
+                </div>
+                <div>
+                  <h2
+                    className="text-xl font-bold"
+                    style={{ color: "#EAF0F6" }}
+                  >
+                    Email Verification
+                  </h2>
+                  <p className="text-sm" style={{ color: "#9AA6B2" }}>
+                    Verify your email address
+                  </p>
+                </div>
+              </div>
+
+              {!emailVerified ? (
+                <>
+                  <div
+                    className="p-4 rounded-xl mb-5"
+                    style={{
+                      background: "rgba(74,184,255,0.05)",
+                      border: "1px solid rgba(74,184,255,0.25)",
+                    }}
+                  >
+                    <p className="text-sm mb-2" style={{ color: "#9AA6B2" }}>
+                      A verification link has been sent to:
+                    </p>
+                    <p
+                      className="text-base font-semibold"
+                      style={{ color: "#4AB8FF" }}
+                    >
+                      {email}
+                    </p>
+                    <p className="text-xs mt-2" style={{ color: "#4A5568" }}>
+                      (Mock verification — click below to verify)
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setStep(4)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#9AA6B2",
+                        cursor: "pointer",
+                        fontSize: 13,
+                        padding: "12px 16px",
+                        borderRadius: 12,
+                      }}
+                      data-ocid="onboarding.step3.cancel_button"
+                    >
+                      Skip for now
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleEmailVerify}
+                      disabled={emailVerifying}
+                      data-ocid="onboarding.step3.primary_button"
+                      className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                      style={{
+                        background: "#B8FF4A",
+                        color: "#060A10",
+                        cursor: emailVerifying ? "wait" : "pointer",
+                      }}
+                    >
+                      {emailVerifying
+                        ? "Verifying..."
+                        : "Mark as Verified (Mock)"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex flex-col items-center py-8"
+                >
+                  <CheckCircle
+                    size={56}
+                    style={{ color: "#B8FF4A" }}
+                    className="mb-3"
+                  />
+                  <p className="text-lg font-bold" style={{ color: "#B8FF4A" }}>
+                    Email Verified!
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: "#9AA6B2" }}>
+                    Proceeding to KYC...
+                  </p>
+                </motion.div>
+              )}
+            </div>
+          )}
+
+          {/* ── STEP 4: KYC ── */}
+          {step === 4 && (
             <div>
               <h2
                 className="text-xl font-bold mb-1"
@@ -390,7 +706,6 @@ export default function OnboardingWizard({
                 Verify your identity to access all features
               </p>
 
-              {/* Disclaimer banner */}
               <div
                 className="flex items-start gap-2 p-3 rounded-xl mb-5"
                 style={{
@@ -408,13 +723,12 @@ export default function OnboardingWizard({
                 </p>
               </div>
 
-              {/* PAN Number */}
               <div className="mb-4">
-                <label htmlFor="s2-pan" style={labelStyle}>
+                <label htmlFor="s4-pan" style={labelStyle}>
                   PAN Number
                 </label>
                 <input
-                  id="s2-pan"
+                  id="s4-pan"
                   type="text"
                   value={panNumber}
                   onChange={(e) =>
@@ -426,45 +740,40 @@ export default function OnboardingWizard({
                     fontFamily: "monospace",
                     letterSpacing: "0.1em",
                   }}
-                  data-ocid="onboarding.step2.input"
+                  data-ocid="onboarding.step4.input"
                 />
-                {step2Errors.pan && (
+                {step4Errors.pan && (
                   <p
                     className="text-red-400 text-xs mt-1"
                     data-ocid="onboarding.pan.error_state"
                   >
-                    {step2Errors.pan}
+                    {step4Errors.pan}
                   </p>
                 )}
               </div>
 
-              {/* Date of Birth */}
               <div className="mb-5">
-                <label htmlFor="s2-dob" style={labelStyle}>
+                <label htmlFor="s4-dob" style={labelStyle}>
                   Date of Birth
                 </label>
                 <input
-                  id="s2-dob"
+                  id="s4-dob"
                   type="date"
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
-                  style={{
-                    ...inputStyle,
-                    colorScheme: "dark",
-                  }}
-                  data-ocid="onboarding.step2.input"
+                  style={{ ...inputStyle, colorScheme: "dark" }}
+                  data-ocid="onboarding.step4.input"
                 />
-                {step2Errors.dob && (
+                {step4Errors.dob && (
                   <p
                     className="text-red-400 text-xs mt-1"
                     data-ocid="onboarding.dob.error_state"
                   >
-                    {step2Errors.dob}
+                    {step4Errors.dob}
                   </p>
                 )}
               </div>
 
-              {/* Consent checkbox */}
               <label
                 htmlFor="kyc-consent"
                 className="flex items-start gap-3 mb-6 cursor-pointer"
@@ -484,7 +793,7 @@ export default function OnboardingWizard({
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
                     className="sr-only"
-                    data-ocid="onboarding.step2.checkbox"
+                    data-ocid="onboarding.step4.checkbox"
                   />
                   <div
                     className="w-5 h-5 rounded flex items-center justify-center"
@@ -524,8 +833,8 @@ export default function OnboardingWizard({
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
-                  data-ocid="onboarding.step2.cancel_button"
+                  onClick={() => setStep(3)}
+                  data-ocid="onboarding.step4.cancel_button"
                   className="px-6 py-3 rounded-xl text-sm font-semibold"
                   style={{
                     background: "rgba(255,255,255,0.05)",
@@ -538,9 +847,9 @@ export default function OnboardingWizard({
                 </button>
                 <button
                   type="button"
-                  onClick={handleStep2Submit}
+                  onClick={handleStep4Submit}
                   disabled={!consent}
-                  data-ocid="onboarding.step2.primary_button"
+                  data-ocid="onboarding.step4.primary_button"
                   className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
                   style={{
                     background: consent ? "#B8FF4A" : "rgba(184,255,74,0.2)",
@@ -554,8 +863,8 @@ export default function OnboardingWizard({
             </div>
           )}
 
-          {/* ── STEP 3: PROFILE COMPLETION ── */}
-          {step === 3 && (
+          {/* ── STEP 5: PROFILE COMPLETION ── */}
+          {step === 5 && (
             <div>
               <h2
                 className="text-xl font-bold mb-1"
@@ -567,57 +876,54 @@ export default function OnboardingWizard({
                 Help us personalize your financial dashboard
               </p>
 
-              {/* Monthly Income */}
               <div className="mb-4">
-                <label htmlFor="s3-income" style={labelStyle}>
+                <label htmlFor="s5-income" style={labelStyle}>
                   Monthly Income (₹)
                 </label>
                 <input
-                  id="s3-income"
+                  id="s5-income"
                   type="number"
                   value={income}
                   onChange={(e) => setIncome(e.target.value)}
                   placeholder="e.g. 75000"
                   min="0"
                   style={inputStyle}
-                  data-ocid="onboarding.step3.input"
+                  data-ocid="onboarding.step5.input"
                 />
-                {step3Errors.income && (
+                {step5Errors.income && (
                   <p
                     className="text-red-400 text-xs mt-1"
                     data-ocid="onboarding.income.error_state"
                   >
-                    {step3Errors.income}
+                    {step5Errors.income}
                   </p>
                 )}
               </div>
 
-              {/* Monthly Savings */}
               <div className="mb-4">
-                <label htmlFor="s3-savings" style={labelStyle}>
+                <label htmlFor="s5-savings" style={labelStyle}>
                   Monthly Savings (₹)
                 </label>
                 <input
-                  id="s3-savings"
+                  id="s5-savings"
                   type="number"
                   value={savings}
                   onChange={(e) => setSavings(e.target.value)}
                   placeholder="e.g. 15000"
                   min="0"
                   style={inputStyle}
-                  data-ocid="onboarding.step3.input"
+                  data-ocid="onboarding.step5.input"
                 />
-                {step3Errors.savings && (
+                {step5Errors.savings && (
                   <p
                     className="text-red-400 text-xs mt-1"
                     data-ocid="onboarding.savings.error_state"
                   >
-                    {step3Errors.savings}
+                    {step5Errors.savings}
                   </p>
                 )}
               </div>
 
-              {/* Risk Appetite */}
               <div className="mb-4">
                 <p style={{ ...labelStyle, marginBottom: 10 }}>Risk Appetite</p>
                 <div className="flex gap-2">
@@ -626,7 +932,7 @@ export default function OnboardingWizard({
                       key={r}
                       type="button"
                       onClick={() => setRiskAppetite(r)}
-                      data-ocid="onboarding.step3.toggle"
+                      data-ocid="onboarding.step5.toggle"
                       className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
                       style={{
                         background:
@@ -646,19 +952,18 @@ export default function OnboardingWizard({
                     </button>
                   ))}
                 </div>
-                {step3Errors.risk && (
+                {step5Errors.risk && (
                   <p
                     className="text-red-400 text-xs mt-1"
                     data-ocid="onboarding.risk.error_state"
                   >
-                    {step3Errors.risk}
+                    {step5Errors.risk}
                   </p>
                 )}
               </div>
 
-              {/* Financial Goals */}
               <div className="mb-6">
-                <label htmlFor="s3-goals" style={labelStyle}>
+                <label htmlFor="s5-goals" style={labelStyle}>
                   Financial Goals{" "}
                   <span
                     style={{
@@ -671,21 +976,21 @@ export default function OnboardingWizard({
                   </span>
                 </label>
                 <input
-                  id="s3-goals"
+                  id="s5-goals"
                   type="text"
                   value={goals}
                   onChange={(e) => setGoals(e.target.value)}
                   placeholder="e.g. Retirement, Home Purchase, Child Education"
                   style={inputStyle}
-                  data-ocid="onboarding.step3.input"
+                  data-ocid="onboarding.step5.input"
                 />
               </div>
 
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
-                  data-ocid="onboarding.step3.cancel_button"
+                  onClick={() => setStep(4)}
+                  data-ocid="onboarding.step5.cancel_button"
                   className="px-6 py-3 rounded-xl text-sm font-semibold"
                   style={{
                     background: "rgba(255,255,255,0.05)",
@@ -698,8 +1003,8 @@ export default function OnboardingWizard({
                 </button>
                 <button
                   type="button"
-                  onClick={handleStep3Submit}
-                  data-ocid="onboarding.step3.primary_button"
+                  onClick={handleStep5Submit}
+                  data-ocid="onboarding.step5.primary_button"
                   className="flex-1 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
                   style={{
                     background: "#B8FF4A",
