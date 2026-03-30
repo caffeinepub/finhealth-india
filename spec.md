@@ -1,40 +1,34 @@
-# FinHealth India — Homepage Enhancement
+# FinHealth India — Financial Intelligence Dashboard
 
 ## Current State
-LandingPage.tsx exists with: Nav, Hero (generic), Stats bar, Features grid (6 cards), How It Works (3 steps), Bottom CTA, Footer.
-
-Missing sections per user request:
-- Problem section (4 pain points)
-- Solution section (4 features)
-- Market Insights section
-- Why FinHealth section
-- Pricing section (Free + Pro)
-- Hero updated with exact copy and Login button
+- Dashboard tab exists with portfolio management, analysis actions, DashboardInsights panel, and alerts.
+- `userProfile` has: name, income, goals[], riskProfile
+- `userId` is the principal string
+- localStorage keys: `finhealth_user_{userId}`, `finhealth_events_{userId}`
+- `equityPct`, `totalAssets`, `cashPct` already computed in App.tsx
+- Navigation: `setActiveTab` for tabs (dashboard/analysis/tools/reports), `setToolsSubTab` for tools sub-tabs
+- DashboardInsights component already placed after Activity Insights
 
 ## Requested Changes (Diff)
 
 ### Add
-- **Problem section**: 4 pain point cards — "Wrong insurance policies", "Low investment returns", "No financial planning", "Lack of clarity" with warning/error visual treatment
-- **Solution section**: Headline "FinHealth helps you analyze financial decisions using AI" + 4 feature pills: Policy Analyzer, SIP Planner, Risk Profile, AI Assistant
-- **Market Insights section**: 3 insight cards — Inflation impact, SIP vs FD comparison, Wealth growth examples (with sample numbers)
-- **Why FinHealth section**: "Millions of people make poor financial decisions due to lack of guidance. FinHealth is built to provide clarity and smarter decisions."
-- **Pricing section**: Free Plan (Basic tools) and Pro Plan (AI insights, Advanced tracking, Weekly reports) cards with a highlighted Pro card
+- New `FinancialIntelligencePanel` component inserted into Dashboard tab (before DashboardInsights)
+- FinHealth Score card (out of 100) with color coding (red/yellow/green)
+- Money Loss Tracker (locked behind free plan paywall)
+- Goal Tracking section with progress bars per goal
+- Smart Alerts section (equity >70%, savings <20%, no goals)
+- Action Buttons (Open Goal Planner, Open Policy Analyzer, Open SIP Calculator)
+- Paywall overlay for free plan users on Money Loss details
 
 ### Modify
-- **Hero**: Change heading to "Make smarter financial decisions with AI", subtext to "Analyze investments, track your wealth, and avoid costly mistakes", replace Advisory button with a "Login" button (calls onEnterApp for now)
-- **Branding**: Keep "FinHealth India" / "FinPulse" as is
-- **Features grid section**: Keep existing 6-card features grid (rename heading slightly if needed) — already present, keep intact
-- **Final CTA**: Change button text to "Get Started", heading to "Start your financial journey today"
+- App.tsx: import and render `FinancialIntelligencePanel` in Dashboard tab, passing required props
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. Add Problem section after Hero/Stats
-2. Add Solution section after Problem
-3. Keep existing Features grid in place
-4. Add Market Insights after Features
-5. Add Why FinHealth section
-6. Add Pricing section
-7. Update Hero copy and buttons
-8. Update Final CTA copy
+1. Create `src/frontend/src/components/FinancialIntelligencePanel.tsx`
+2. Props: userId, userProfile (name/income/goals/riskProfile), equityPct, totalAssets, entries, setActiveTab, setToolsSubTab
+3. Calculate all 5 score dimensions from localStorage + props
+4. Render 6 sections: Score, Money Loss (paywalled), Goal Tracking, Smart Alerts, Action Buttons
+5. Import and add to App.tsx dashboard tab

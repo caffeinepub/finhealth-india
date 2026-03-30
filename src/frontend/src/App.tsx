@@ -49,6 +49,7 @@ import ClientChatBox from "./components/ClientChatBox";
 import ContactModal from "./components/ContactModal";
 import DashboardInsights from "./components/DashboardInsights";
 import DnaReportTab from "./components/DnaReportTab";
+import FinancialIntelligencePanel from "./components/FinancialIntelligencePanel";
 import GoalPlannerTab from "./components/GoalPlannerTab";
 import GoldSgbTab from "./components/GoldSgbTab";
 import InflationTrackerTab from "./components/InflationTrackerTab";
@@ -2564,6 +2565,16 @@ export default function App() {
                         </div>
                       </div>
 
+                      {/* Financial Intelligence Panel */}
+                      <FinancialIntelligencePanel
+                        userId={userId}
+                        userProfile={userProfile}
+                        equityPct={equityPct}
+                        totalAssets={totalAssets}
+                        setActiveTab={setActiveTab}
+                        setToolsSubTab={setToolsSubTab}
+                        setAnalysisSubTab={setAnalysisSubTab}
+                      />
                       {/* Activity Insights Panel */}
                       <DashboardInsights
                         userId={userId}
