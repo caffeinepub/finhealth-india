@@ -2,13 +2,13 @@ import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 import Text "mo:core/Text";
 import Runtime "mo:core/Runtime";
-import Migration "migration";
+
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
 // Use migration module for data migration on upgrade
-(with migration = Migration.run)
+
 actor {
   // Initialize the user system state
   let accessControlState = AccessControl.initState();

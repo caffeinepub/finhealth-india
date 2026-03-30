@@ -42,10 +42,13 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import CardAnalysisTab from "./components/CardAnalysisTab";
 import type { Transaction } from "./components/CardAnalysisTab";
+import ClientChatBox from "./components/ClientChatBox";
+import ContactModal from "./components/ContactModal";
 import DnaReportTab from "./components/DnaReportTab";
 import GoalPlannerTab from "./components/GoalPlannerTab";
 import GoldSgbTab from "./components/GoldSgbTab";
 import InflationTrackerTab from "./components/InflationTrackerTab";
+import InfoModal from "./components/InfoModal";
 import InvestmentCalculatorTab from "./components/InvestmentCalculatorTab";
 import KycChecklistTab from "./components/KycChecklistTab";
 import LifeStageRoadmapTab from "./components/LifeStageRoadmapTab";
@@ -56,6 +59,7 @@ import RebalancingSimulatorTab from "./components/RebalancingSimulatorTab";
 import ReferralCard from "./components/ReferralCard";
 import RiskProfileTab from "./components/RiskProfileTab";
 import SipCalculatorTab from "./components/SipCalculatorTab";
+import SitemapModal from "./components/SitemapModal";
 import StressTestTab from "./components/StressTestTab";
 import TaxOptimizerTab from "./components/TaxOptimizerTab";
 import UlipVsSipTab from "./components/UlipVsSipTab";
@@ -1125,6 +1129,11 @@ export default function App() {
     riskProfile: string;
   } | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [showSitemap, setShowSitemap] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const dataLoadedRef = useRef(false);
 
@@ -1530,16 +1539,45 @@ export default function App() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span
-              className="hidden sm:block text-xs px-2.5 py-1 rounded-full"
-              style={{
-                background: "rgba(184,255,74,0.1)",
-                color: "#B8FF4A",
-                border: "1px solid rgba(184,255,74,0.2)",
-              }}
-            >
-              {shortPrincipal}
-            </span>
+            {userProfile?.name ? (
+              <div className="hidden sm:flex items-center gap-2">
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "50%",
+                    background: "rgba(184,255,74,0.15)",
+                    color: "#B8FF4A",
+                    border: "1px solid #B8FF4A",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: 700,
+                    fontSize: "14px",
+                    flexShrink: 0,
+                  }}
+                >
+                  {userProfile.name.charAt(0).toUpperCase()}
+                </div>
+                <span
+                  className="text-sm font-semibold"
+                  style={{ color: "#EAF0F6" }}
+                >
+                  {userProfile.name}
+                </span>
+              </div>
+            ) : (
+              <span
+                className="hidden sm:block text-xs px-2.5 py-1 rounded-full"
+                style={{
+                  background: "rgba(184,255,74,0.1)",
+                  color: "#B8FF4A",
+                  border: "1px solid rgba(184,255,74,0.2)",
+                }}
+              >
+                {shortPrincipal}
+              </span>
+            )}
             <button
               type="button"
               data-ocid="portfolio.save_button"
@@ -3242,23 +3280,205 @@ export default function App() {
       <footer
         style={{
           borderTop: "1px solid #24303A",
-          padding: "24px 0",
           marginTop: "auto",
+          background: "#060A10",
         }}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div
-            className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs"
-            style={{ color: "#9AA6B2" }}
-          >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
+            {/* Col 1 */}
             <div>
-              <p className="text-xs text-center" style={{ color: "#4A5568" }}>
-                ⚠️ This platform is for educational purposes only. Not investment
-                advice. Investments are subject to market risks.
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "10px",
+                }}
+              >
+                <Zap
+                  size={20}
+                  style={{
+                    color: "#B8FF4A",
+                    filter: "drop-shadow(0 0 5px #B8FF4A80)",
+                  }}
+                />
+                <span
+                  style={{
+                    color: "#EAF0F6",
+                    fontWeight: 700,
+                    fontSize: "16px",
+                  }}
+                >
+                  FinPulse
+                </span>
+              </div>
+              <p
+                style={{
+                  color: "#9AA6B2",
+                  fontSize: "13px",
+                  lineHeight: 1.6,
+                  margin: "0 0 12px",
+                }}
+              >
+                India's Advanced Financial Intelligence Platform
               </p>
+              <div
+                style={{
+                  background: "rgba(255,180,0,0.08)",
+                  border: "1px solid rgba(255,180,0,0.2)",
+                  borderRadius: "8px",
+                  padding: "10px 12px",
+                }}
+              >
+                <p
+                  style={{
+                    color: "#FFA500",
+                    fontSize: "12px",
+                    margin: 0,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  ⚠️ For educational purposes only. Not investment advice.
+                  Investments are subject to market risks.
+                </p>
+              </div>
             </div>
-            <p>
-              © {new Date().getFullYear()}. Built with ♥ using{" "}
+            {/* Col 2 - Quick Links */}
+            <div>
+              <h4
+                style={{
+                  color: "#EAF0F6",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  marginBottom: "14px",
+                }}
+              >
+                Quick Links
+              </h4>
+              <nav
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                }}
+              >
+                {[
+                  {
+                    label: "About Us",
+                    action: () => setShowAbout(true),
+                    ocid: "footer.about.link",
+                  },
+                  {
+                    label: "Contact Us",
+                    action: () => setShowContact(true),
+                    ocid: "footer.contact.link",
+                  },
+                  {
+                    label: "Sitemap",
+                    action: () => setShowSitemap(true),
+                    ocid: "footer.sitemap.link",
+                  },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    data-ocid={item.ocid}
+                    onClick={item.action}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#9AA6B2",
+                      fontSize: "13px",
+                      textAlign: "left",
+                      padding: 0,
+                      transition: "color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.target as HTMLButtonElement).style.color = "#B8FF4A";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.target as HTMLButtonElement).style.color = "#9AA6B2";
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+            {/* Col 3 - Legal */}
+            <div>
+              <h4
+                style={{
+                  color: "#EAF0F6",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  marginBottom: "14px",
+                }}
+              >
+                Legal
+              </h4>
+              <nav
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                }}
+              >
+                {[
+                  {
+                    label: "Privacy Policy",
+                    action: () => setShowPrivacy(true),
+                    ocid: "footer.privacy.link",
+                  },
+                  {
+                    label: "Terms of Use",
+                    action: () => setShowTerms(true),
+                    ocid: "footer.terms.link",
+                  },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    data-ocid={item.ocid}
+                    onClick={item.action}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#9AA6B2",
+                      fontSize: "13px",
+                      textAlign: "left",
+                      padding: 0,
+                      transition: "color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.target as HTMLButtonElement).style.color = "#B8FF4A";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.target as HTMLButtonElement).style.color = "#9AA6B2";
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
+          <div
+            style={{
+              borderTop: "1px solid #24303A",
+              paddingTop: "20px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "4px",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ color: "#4A5568", fontSize: "12px", margin: 0 }}>
+              © {new Date().getFullYear()} FinHealth India. Built with ♥ using{" "}
               <a
                 href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
                 target="_blank"
@@ -3271,6 +3491,68 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Modals & Chat */}
+      <ClientChatBox userId={shortPrincipal} />
+      <ContactModal open={showContact} onClose={() => setShowContact(false)} />
+      <SitemapModal open={showSitemap} onClose={() => setShowSitemap(false)} />
+      <InfoModal
+        open={showAbout}
+        onClose={() => setShowAbout(false)}
+        title="About FinHealth India"
+      >
+        <p>
+          FinHealth India is India's most advanced personal financial
+          intelligence platform. We help users analyze their investments, detect
+          mis-selling, plan goals, and make informed financial decisions — all
+          with zero data sharing with third parties.
+        </p>
+        <p style={{ marginTop: "12px" }}>
+          Built for the Indian investor, by people who understand Indian
+          financial markets, regulations, and challenges. Our platform covers
+          everything from portfolio stress testing to SEBI compliance, policy
+          mis-selling detection, and tax optimization.
+        </p>
+      </InfoModal>
+      <InfoModal
+        open={showPrivacy}
+        onClose={() => setShowPrivacy(false)}
+        title="Privacy Policy"
+      >
+        <p>
+          We take your privacy seriously. All financial data you enter is stored
+          securely and never shared with third parties.
+        </p>
+        <p style={{ marginTop: "12px" }}>
+          We use Internet Identity for decentralized authentication. Your data
+          is stored on the Internet Computer blockchain, ensuring transparency
+          and security.
+        </p>
+        <p style={{ marginTop: "12px" }}>
+          We do not sell, rent, or share your personal financial data with
+          advertisers or data brokers. Ever.
+        </p>
+      </InfoModal>
+      <InfoModal
+        open={showTerms}
+        onClose={() => setShowTerms(false)}
+        title="Terms of Use"
+      >
+        <p>
+          This platform is for educational and informational purposes only.
+          FinHealth India does not provide investment advice, and nothing on
+          this platform should be construed as such.
+        </p>
+        <p style={{ marginTop: "12px" }}>
+          Use of this platform is subject to Indian laws and regulations. By
+          using FinHealth India, you agree to use the platform responsibly and
+          acknowledge that all financial decisions are your own.
+        </p>
+        <p style={{ marginTop: "12px" }}>
+          Unauthorized reproduction, distribution, or modification of platform
+          content is strictly prohibited.
+        </p>
+      </InfoModal>
     </div>
   );
 }
