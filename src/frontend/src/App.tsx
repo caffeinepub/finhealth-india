@@ -3493,7 +3493,13 @@ export default function App() {
       </footer>
 
       {/* Modals & Chat */}
-      <ClientChatBox userId={shortPrincipal} />
+      <ClientChatBox
+        userId={shortPrincipal}
+        onNavigate={(tab, subTab) => {
+          setActiveTab(tab);
+          if (subTab) setToolsSubTab(subTab);
+        }}
+      />
       <ContactModal open={showContact} onClose={() => setShowContact(false)} />
       <SitemapModal open={showSitemap} onClose={() => setShowSitemap(false)} />
       <InfoModal
