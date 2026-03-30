@@ -1478,7 +1478,10 @@ export default function App() {
 
       {/* Onboarding Wizard */}
       {showOnboarding && (
-        <OnboardingWizard onComplete={handleOnboardingComplete} />
+        <OnboardingWizard
+          onComplete={handleOnboardingComplete}
+          onClose={() => setShowOnboarding(false)}
+        />
       )}
 
       {/* My Account Page */}

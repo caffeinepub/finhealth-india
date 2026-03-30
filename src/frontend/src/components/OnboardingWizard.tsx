@@ -25,6 +25,7 @@ interface OnboardingWizardProps {
     riskProfile: RiskProfile;
     goals: string[];
   }) => void;
+  onClose?: () => void;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -50,6 +51,7 @@ const labelStyle: React.CSSProperties = {
 
 export default function OnboardingWizard({
   onComplete,
+  onClose,
 }: OnboardingWizardProps) {
   const [step, setStep] = useState(1);
 
@@ -249,6 +251,50 @@ export default function OnboardingWizard({
             padding: 32,
           }}
         >
+          {/* Header with close + back buttons */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              type="button"
+              onClick={() => (step > 1 ? setStep(step - 1) : onClose?.())}
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid #24303A",
+                borderRadius: 8,
+                padding: "6px 14px",
+                color: "#9AA6B2",
+                fontSize: 13,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              ← {step > 1 ? "Back" : "Exit"}
+            </button>
+            <span style={{ color: "#9AA6B2", fontSize: 12 }}>
+              Step {step} of 5
+            </span>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid #24303A",
+                  borderRadius: 8,
+                  padding: "6px 12px",
+                  color: "#9AA6B2",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  lineHeight: 1,
+                }}
+                title="Close"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           {/* Step Indicator */}
           <div className="flex items-center justify-center gap-0 mb-8 overflow-x-auto">
             {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
