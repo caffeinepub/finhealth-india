@@ -30,6 +30,7 @@ interface UserData {
   plan?: string;
   createdAt?: string;
   photoURL?: string;
+  googleConnected?: boolean;
 }
 
 interface MyAccountPageProps {
@@ -536,65 +537,50 @@ export default function MyAccountPage({
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-base">G</span>
+                      <span className="text-base">🔵</span>
                       <div>
                         <p
                           className="text-sm font-medium"
                           style={{ color: "#EAF0F6" }}
                         >
-                          Google Account
+                          Google
                         </p>
-                        <p className="text-xs" style={{ color: "#9AA6B2" }}>
-                          Not Connected
+                        <p
+                          className="text-xs"
+                          style={{
+                            color: userData.googleConnected
+                              ? "#4ADE80"
+                              : "#9AA6B2",
+                          }}
+                        >
+                          {userData.googleConnected
+                            ? "Connected"
+                            : "Not Connected"}
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => toast.info("Coming soon!")}
-                      className="text-xs px-2.5 py-1 rounded-lg"
-                      style={{
-                        background: "rgba(74,184,255,0.1)",
-                        color: "#4AB8FF",
-                        border: "1px solid rgba(74,184,255,0.2)",
-                        cursor: "pointer",
-                      }}
-                      data-ocid="my-account.secondary_button"
-                    >
-                      Connect
-                    </button>
-                  </div>
-
-                  {/* Mobile */}
-                  <div
-                    className="flex items-center justify-between p-3 rounded-xl"
-                    style={{
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px solid #24303A",
-                    }}
-                  >
-                    <div>
-                      <p
-                        className="text-sm font-medium"
-                        style={{ color: "#EAF0F6" }}
-                      >
-                        Mobile
-                      </p>
-                      <p className="text-xs" style={{ color: "#9AA6B2" }}>
-                        {userData.mobile}
-                      </p>
-                    </div>
-                    {userData.mobileVerified ? (
+                    {userData.googleConnected ? (
                       <span
                         className="text-xs flex items-center gap-1"
                         style={{ color: "#4ADE80" }}
                       >
-                        <CheckCircle size={12} /> Verified
+                        <CheckCircle size={12} /> Connected
                       </span>
                     ) : (
-                      <span className="text-xs" style={{ color: "#FF4A4A" }}>
-                        Pending
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toast.info("Google login coming soon!")}
+                        className="text-xs px-2.5 py-1 rounded-lg"
+                        style={{
+                          background: "rgba(74,184,255,0.1)",
+                          color: "#4AB8FF",
+                          border: "1px solid rgba(74,184,255,0.2)",
+                          cursor: "pointer",
+                        }}
+                        data-ocid="my-account.secondary_button"
+                      >
+                        Connect
+                      </button>
                     )}
                   </div>
 
@@ -606,16 +592,19 @@ export default function MyAccountPage({
                       border: "1px solid #24303A",
                     }}
                   >
-                    <div>
-                      <p
-                        className="text-sm font-medium"
-                        style={{ color: "#EAF0F6" }}
-                      >
-                        Email
-                      </p>
-                      <p className="text-xs" style={{ color: "#9AA6B2" }}>
-                        {userData.email}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📧</span>
+                      <div>
+                        <p
+                          className="text-sm font-medium"
+                          style={{ color: "#EAF0F6" }}
+                        >
+                          Email
+                        </p>
+                        <p className="text-xs" style={{ color: "#9AA6B2" }}>
+                          {userData.email}
+                        </p>
+                      </div>
                     </div>
                     {userData.emailVerified ? (
                       <span
@@ -625,13 +614,13 @@ export default function MyAccountPage({
                         <CheckCircle size={12} /> Verified
                       </span>
                     ) : (
-                      <span className="text-xs" style={{ color: "#FF4A4A" }}>
-                        Pending
+                      <span className="text-xs" style={{ color: "#FF9A4A" }}>
+                        Not Verified
                       </span>
                     )}
                   </div>
 
-                  {/* Bank */}
+                  {/* Mobile */}
                   <div
                     className="flex items-center justify-between p-3 rounded-xl"
                     style={{
@@ -639,31 +628,67 @@ export default function MyAccountPage({
                       border: "1px solid #24303A",
                     }}
                   >
-                    <div>
-                      <p
-                        className="text-sm font-medium"
-                        style={{ color: "#EAF0F6" }}
-                      >
-                        Bank Account
-                      </p>
-                      <p className="text-xs" style={{ color: "#9AA6B2" }}>
-                        Not Linked
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📱</span>
+                      <div>
+                        <p
+                          className="text-sm font-medium"
+                          style={{ color: "#EAF0F6" }}
+                        >
+                          Mobile
+                        </p>
+                        <p className="text-xs" style={{ color: "#9AA6B2" }}>
+                          {userData.mobile}
+                        </p>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => toast.info("Bank linking coming soon!")}
-                      className="text-xs px-2.5 py-1 rounded-lg"
+                    {userData.mobileVerified ? (
+                      <span
+                        className="text-xs flex items-center gap-1"
+                        style={{ color: "#4ADE80" }}
+                      >
+                        <CheckCircle size={12} /> Verified
+                      </span>
+                    ) : (
+                      <span className="text-xs" style={{ color: "#FF9A4A" }}>
+                        Not Verified
+                      </span>
+                    )}
+                  </div>
+
+                  {/* LinkedIn */}
+                  <div
+                    className="flex items-center justify-between p-3 rounded-xl"
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid #24303A",
+                      opacity: 0.7,
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">💼</span>
+                      <div>
+                        <p
+                          className="text-sm font-medium"
+                          style={{ color: "#EAF0F6" }}
+                        >
+                          LinkedIn
+                        </p>
+                        <p className="text-xs" style={{ color: "#9AA6B2" }}>
+                          Coming Soon
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className="text-xs px-2 py-1 rounded-lg"
                       style={{
-                        background: "rgba(184,255,74,0.1)",
-                        color: "#B8FF4A",
-                        border: "1px solid rgba(184,255,74,0.2)",
-                        cursor: "pointer",
+                        background: "rgba(255,255,255,0.05)",
+                        color: "#9AA6B2",
+                        border: "1px solid #24303A",
                       }}
-                      data-ocid="my-account.secondary_button"
                     >
-                      Link
-                    </button>
+                      Soon
+                    </span>
                   </div>
                 </div>
               </motion.div>

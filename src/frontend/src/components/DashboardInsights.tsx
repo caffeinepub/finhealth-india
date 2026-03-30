@@ -1,3 +1,4 @@
+import { Activity } from "lucide-react";
 import { useMemo } from "react";
 import type { TrackingEvent } from "../hooks/useUserTracking";
 
@@ -119,6 +120,12 @@ export default function DashboardInsights({
     return result.slice(0, 3);
   }, [userId, goalsCount, lastGoalsUpdate]);
 
+  // Check if there are any real events at all
+  const hasActivity = useMemo(() => {
+    const events = loadEvents(userId);
+    return events.length > 0;
+  }, [userId]);
+
   return (
     <div
       className="fintech-card p-5 mb-6"
@@ -132,22 +139,41 @@ export default function DashboardInsights({
         <span>📊</span>
         Activity Insights
       </h2>
-      <div className="space-y-2">
-        {insights.map((ins) => (
-          <div
-            key={ins.key}
-            className="flex items-start gap-3 p-3 rounded-xl text-xs"
-            data-ocid="dashboard.insights.item"
-            style={{
-              background: ins.bg,
-              border: `1px solid ${ins.border}`,
-            }}
+
+      {!hasActivity ? (
+        <div
+          className="flex flex-col items-center justify-center py-6 text-center"
+          data-ocid="dashboard.insights.empty_state"
+        >
+          <Activity size={32} style={{ color: "#24303A", marginBottom: 12 }} />
+          <p
+            className="text-sm font-semibold"
+            style={{ color: "#EAF0F6", marginBottom: 4 }}
           >
-            <span>{ins.icon}</span>
-            <span style={{ color: ins.color }}>{ins.text}</span>
-          </div>
-        ))}
-      </div>
+            No activity yet
+          </p>
+          <p className="text-xs" style={{ color: "#7A8A9A" }}>
+            Start using tools to see your activity insights here.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {insights.map((ins) => (
+            <div
+              key={ins.key}
+              className="flex items-start gap-3 p-3 rounded-xl text-xs"
+              data-ocid="dashboard.insights.item"
+              style={{
+                background: ins.bg,
+                border: `1px solid ${ins.border}`,
+              }}
+            >
+              <span>{ins.icon}</span>
+              <span style={{ color: ins.color }}>{ins.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

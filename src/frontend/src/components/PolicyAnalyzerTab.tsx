@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import SmartTooltip, { FINANCE_TERMS } from "./SmartTooltip";
 
 type EntryType = "Asset" | "Liability";
 type Category = "Equity" | "Debt" | "Cash" | "Gold" | "Mutual Funds";
@@ -255,8 +256,17 @@ export default function PolicyAnalyzerTab({
             style={{ ...CARD, border: `1px solid ${m.color}33` }}
             data-ocid="policy_analyzer.card"
           >
-            <div className="text-xs mb-1" style={{ color: "#9AA6B2" }}>
+            <div
+              className="text-xs mb-1 flex items-center gap-1"
+              style={{ color: "#9AA6B2" }}
+            >
               {m.label}
+              {m.label === "CAGR" && (
+                <SmartTooltip term="CAGR" explanation={FINANCE_TERMS.CAGR} />
+              )}
+              {m.label === "SIP @ 12% Alternative" && (
+                <SmartTooltip term="SIP" explanation={FINANCE_TERMS.SIP} />
+              )}
             </div>
             <div className="text-lg font-bold" style={{ color: m.color }}>
               {m.value}

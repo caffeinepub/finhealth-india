@@ -94,69 +94,17 @@ const highlights = [
 ];
 
 export default function AdvisoryPage({
-  onBack,
+  onBack: _onBack,
   onOpenChat,
 }: AdvisoryPageProps) {
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen pt-16"
       style={{
         background: "#060A10",
         fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
       }}
     >
-      {/* Nav */}
-      <nav
-        className="sticky top-0 z-50 w-full"
-        style={{
-          background: "rgba(6,10,16,0.9)",
-          borderBottom: "1px solid #24303A",
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              data-ocid="advisory.back.button"
-              onClick={onBack}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all hover:bg-white/5"
-              style={{ color: "#9AA6B2", border: "1px solid #24303A" }}
-            >
-              <ArrowLeft size={14} /> Back
-            </button>
-            <div className="flex items-center gap-2">
-              <Zap
-                size={20}
-                style={{
-                  color: "#B8FF4A",
-                  filter: "drop-shadow(0 0 6px #B8FF4A80)",
-                }}
-              />
-              <span
-                className="text-base font-bold"
-                style={{ color: "#EAF0F6" }}
-              >
-                FinPulse
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            data-ocid="advisory.chat.button"
-            onClick={onOpenChat}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all"
-            style={{
-              background: "#B8FF4A",
-              color: "#060A10",
-              boxShadow: "0 0 16px rgba(184,255,74,0.3)",
-            }}
-          >
-            <MessageSquare size={14} /> Talk to Assistant
-          </button>
-        </div>
-      </nav>
-
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div

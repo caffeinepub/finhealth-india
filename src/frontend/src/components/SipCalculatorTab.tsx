@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TabsContent } from "@/components/ui/tabs";
-import { DollarSign, PiggyBank, TrendingUp } from "lucide-react";
+import { DollarSign, Loader2, PiggyBank, TrendingUp } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import {
@@ -15,6 +15,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import SmartTooltip, { FINANCE_TERMS } from "./SmartTooltip";
 
 function formatINR(val: number) {
   if (val >= 1_00_00_000) return `₹${(val / 1_00_00_000).toFixed(2)} Cr`;
@@ -41,6 +42,7 @@ export default function SipCalculatorTab() {
   const [annualReturn, setAnnualReturn] = useState("12");
   const [years, setYears] = useState("10");
   const [calculated, setCalculated] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   const P = Number.parseFloat(monthly) || 0;
   const annualRate = Number.parseFloat(annualReturn) || 0;
@@ -66,7 +68,14 @@ export default function SipCalculatorTab() {
     return points;
   }, [P, annualRate, Y]);
 
-  const handleCalculate = () => setCalculated(true);
+  const handleCalculate = () => {
+    setIsCalculating(true);
+    setCalculated(false);
+    setTimeout(() => {
+      setIsCalculating(false);
+      setCalculated(true);
+    }, 350);
+  };
 
   return (
     <TabsContent value="sip-calculator">
@@ -113,8 +122,12 @@ export default function SipCalculatorTab() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <div className="space-y-2">
-                <Label style={{ color: "#9AA6B2", fontSize: 12 }}>
+                <Label
+                  style={{ color: "#9AA6B2", fontSize: 12 }}
+                  className="flex items-center gap-1"
+                >
                   Monthly SIP Amount (₹)
+                  <SmartTooltip term="SIP" explanation={FINANCE_TERMS.SIP} />
                 </Label>
                 <Input
                   type="number"
@@ -130,8 +143,15 @@ export default function SipCalculatorTab() {
                 />
               </div>
               <div className="space-y-2">
-                <Label style={{ color: "#9AA6B2", fontSize: 12 }}>
+                <Label
+                  style={{ color: "#9AA6B2", fontSize: 12 }}
+                  className="flex items-center gap-1"
+                >
                   Expected Annual Return (%)
+                  <SmartTooltip
+                    term="Expected Returns"
+                    explanation={FINANCE_TERMS["Expected Returns"]}
+                  />
                 </Label>
                 <Input
                   type="number"
@@ -169,6 +189,7 @@ export default function SipCalculatorTab() {
             <div className="mt-5">
               <Button
                 onClick={handleCalculate}
+                disabled={isCalculating}
                 data-ocid="sip_calculator.primary_button"
                 style={{
                   background: "#B8FF4A",
@@ -177,16 +198,41 @@ export default function SipCalculatorTab() {
                   borderRadius: 8,
                   padding: "8px 24px",
                   border: "none",
+                  transition: "all 0.2s ease",
                 }}
               >
-                Calculate Returns
+                {isCalculating ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin mr-2" />
+                    Calculating...
+                  </>
+                ) : (
+                  "Calculate Returns"
+                )}
               </Button>
             </div>
           </CardContent>
         </Card>
 
+        {/* Loading state */}
+        {isCalculating && (
+          <div
+            className="flex items-center justify-center gap-3 py-8"
+            data-ocid="sip_calculator.loading_state"
+          >
+            <Loader2
+              size={22}
+              className="animate-spin"
+              style={{ color: "#B8FF4A" }}
+            />
+            <span style={{ color: "#9AA6B2", fontSize: 13 }}>
+              Calculating your SIP returns...
+            </span>
+          </div>
+        )}
+
         {/* Results */}
-        {calculated && (
+        {calculated && !isCalculating && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -223,11 +269,13 @@ export default function SipCalculatorTab() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
                   data-ocid="sip_calculator.card"
                   style={{
                     ...CARD_STYLE,
                     padding: "20px 18px",
                     boxShadow: `0 0 18px ${item.accent}18`,
+                    cursor: "default",
                   }}
                 >
                   <div className="flex items-center gap-2 mb-3">

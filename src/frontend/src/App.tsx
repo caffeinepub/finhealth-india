@@ -14,6 +14,7 @@ import {
   Plus,
   Save,
   Scale,
+  Share2,
   Shield,
   Trash2,
   TrendingUp,
@@ -43,6 +44,7 @@ import { toast } from "sonner";
 // xlsx loaded via CDN
 declare const XLSX: typeof import("xlsx");
 import AdvisoryPage from "./components/AdvisoryPage";
+import BackButton from "./components/BackButton";
 import CardAnalysisTab from "./components/CardAnalysisTab";
 import type { Transaction } from "./components/CardAnalysisTab";
 import ClientChatBox from "./components/ClientChatBox";
@@ -50,6 +52,7 @@ import ContactModal from "./components/ContactModal";
 import DashboardInsights from "./components/DashboardInsights";
 import DnaReportTab from "./components/DnaReportTab";
 import FinancialIntelligencePanel from "./components/FinancialIntelligencePanel";
+import GlobalNav from "./components/GlobalNav";
 import GoalPlannerTab from "./components/GoalPlannerTab";
 import GoldSgbTab from "./components/GoldSgbTab";
 import InflationTrackerTab from "./components/InflationTrackerTab";
@@ -732,86 +735,6 @@ function StatusBadge({
   );
 }
 
-// ─── Login Screen ─────────────────────────────────────────────────────────────
-function LoginScreen({
-  login,
-  isLoggingIn,
-}: { login: () => void; isLoggingIn: boolean }) {
-  return (
-    <div
-      className="neon-bg min-h-screen flex items-center justify-center"
-      style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="fintech-card p-10 flex flex-col items-center gap-6 text-center"
-        style={{ maxWidth: 420, width: "100%", margin: "0 1rem" }}
-      >
-        <div className="flex items-center gap-3">
-          <Zap
-            size={32}
-            style={{
-              color: "#B8FF4A",
-              filter: "drop-shadow(0 0 10px #B8FF4A80)",
-            }}
-          />
-          <span className="text-3xl font-bold" style={{ color: "#EAF0F6" }}>
-            FinPulse
-          </span>
-        </div>
-        <div>
-          <h1 className="text-xl font-bold mb-2" style={{ color: "#EAF0F6" }}>
-            Your AI-Powered Financial Advisor
-          </h1>
-          <p className="text-sm" style={{ color: "#9AA6B2", lineHeight: 1.6 }}>
-            Get deep insights, health scores, and personalized recommendations
-            for your portfolio.
-          </p>
-        </div>
-        <div className="w-full grid grid-cols-3 gap-3">
-          {["Secure", "Private", "Decentralized"].map((f) => (
-            <div
-              key={f}
-              className="py-2 rounded-xl text-center text-xs font-semibold"
-              style={{
-                background: "rgba(184,255,74,0.08)",
-                color: "#B8FF4A",
-                border: "1px solid rgba(184,255,74,0.2)",
-              }}
-            >
-              {f}
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          data-ocid="auth.primary_button"
-          className="neon-btn w-full flex items-center justify-center gap-2 py-3.5 text-base"
-          onClick={login}
-          disabled={isLoggingIn}
-        >
-          {isLoggingIn ? (
-            <>
-              <Loader2 size={18} className="animate-spin" />
-              Connecting...
-            </>
-          ) : (
-            <>
-              <Zap size={18} />
-              Sign in with Internet Identity
-            </>
-          )}
-        </button>
-        <p className="text-xs" style={{ color: "#9AA6B2" }}>
-          Your data is stored on-chain — only you control it.
-        </p>
-      </motion.div>
-    </div>
-  );
-}
-
 // ─── Upload Section ───────────────────────────────────────────────────────────
 function UploadSection({
   onImport,
@@ -1090,8 +1013,7 @@ function UploadSection({
 // ─── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const uid = useId();
-  const { identity, login, clear, isInitializing, isLoggingIn } =
-    useInternetIdentity();
+  const { identity, clear, isInitializing } = useInternetIdentity();
   const { actor, isFetching: actorFetching } = useActor();
 
   const [entries, setEntries] = useState<Entry[]>([
@@ -1142,13 +1064,39 @@ export default function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [_showProfileMenu, _setShowProfileMenu] = useState(false);
   const [showMyAccount, setShowMyAccount] = useState(false);
   const [currentPage, setCurrentPage] = useState<"home" | "app" | "advisory">(
     "home",
   );
+  const [_googleLoggedIn, setGoogleLoggedIn] = useState(false);
+  const [googlePhotoURL, setGooglePhotoURL] = useState<string>("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const dataLoadedRef = useRef(false);
+
+  // Auto-login with Google if stored
+  useEffect(() => {
+    const gId = localStorage.getItem("finhealth_google_user_id");
+    if (gId) {
+      const raw = localStorage.getItem(`finhealth_user_${gId}`);
+      if (raw) {
+        try {
+          const gUser = JSON.parse(raw) as { name?: string; photoURL?: string };
+          setGoogleLoggedIn(true);
+          if (gUser.photoURL) setGooglePhotoURL(gUser.photoURL);
+          if (gUser.name) {
+            setUserProfile({
+              name: gUser.name,
+              onboardingComplete: true,
+              income: 0,
+              goals: [],
+              riskProfile: "Medium",
+            });
+          }
+        } catch {}
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (identity && actor && !actorFetching && !portfolioLoadedRef.current) {
@@ -1466,7 +1414,10 @@ export default function App() {
     }, 1200);
   };
 
-  const userId = identity ? identity.getPrincipal().toString() : "guest";
+  const googleUserId = localStorage.getItem("finhealth_google_user_id") ?? "";
+  const userId = identity
+    ? identity.getPrincipal().toString()
+    : googleUserId || "guest";
   const { trackEvent } = useUserTracking(userId);
 
   if (isInitializing) {
@@ -1489,19 +1440,12 @@ export default function App() {
     );
   }
 
-  if (!identity) {
-    return (
-      <>
-        <LoginScreen login={login} isLoggingIn={isLoggingIn} />
-        <Toaster />
-      </>
-    );
-  }
-
-  const principal = identity.getPrincipal().toString();
+  const principal = identity ? identity.getPrincipal().toString() : "guest";
   const shortPrincipal = userProfile?.name
     ? userProfile.name
-    : `${principal.slice(0, 5)}...${principal.slice(-4)}`;
+    : identity
+      ? `${principal.slice(0, 5)}...${principal.slice(-4)}`
+      : "Guest";
 
   // Sub-nav button helper
   const SubNavBtn = ({
@@ -1546,12 +1490,57 @@ export default function App() {
               setShowMyAccount(false);
               setShowOnboarding(true);
             }}
-            userId={btoa(identity?.getPrincipal().toString() || "guest")
-              .replace(/[^a-zA-Z0-9]/g, "")
-              .substring(0, 12)}
+            userId={
+              googleUserId ||
+              btoa(identity?.getPrincipal().toString() || "guest")
+                .replace(/[^a-zA-Z0-9]/g, "")
+                .substring(0, 12)
+            }
           />
         )}
       </AnimatePresence>
+
+      {/* Global Navigation */}
+      <GlobalNav
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        userProfile={userProfile}
+        shortPrincipal={shortPrincipal}
+        photoURL={
+          googlePhotoURL ||
+          (() => {
+            const uid = identity
+              ? btoa(identity.getPrincipal().toString())
+                  .replace(/[^a-zA-Z0-9]/g, "")
+                  .substring(0, 12)
+              : "";
+            const raw = uid
+              ? localStorage.getItem(`finhealth_user_${uid}`)
+              : null;
+            return raw
+              ? ((JSON.parse(raw) as { photoURL?: string }).photoURL ?? "")
+              : "";
+          })()
+        }
+        onMyAccount={() => setShowMyAccount(true)}
+        onLogout={() => {
+          const gId = localStorage.getItem("finhealth_google_user_id");
+          if (gId) {
+            localStorage.removeItem("finhealth_google_user_id");
+            setGoogleLoggedIn(false);
+            setGooglePhotoURL("");
+            setUserProfile(null);
+          } else {
+            clear();
+          }
+        }}
+        isSaving={isSaving}
+        onSave={savePortfolio}
+        setToolsSubTab={setToolsSubTab}
+        setAnalysisSubTab={setAnalysisSubTab}
+      />
 
       {currentPage === "home" && (
         <LandingPage
@@ -1560,241 +1549,22 @@ export default function App() {
         />
       )}
       {currentPage === "advisory" && (
-        <AdvisoryPage
-          onBack={() => setCurrentPage("home")}
-          onOpenChat={() => setCurrentPage("app")}
-        />
+        <>
+          <div className="pt-4 pl-4">
+            <BackButton defaultFallback={() => setCurrentPage("home")} />
+          </div>
+          <AdvisoryPage
+            onBack={() => setCurrentPage("home")}
+            onOpenChat={() => setCurrentPage("app")}
+          />
+        </>
       )}
       {currentPage === "app" && (
         <>
-          {/* Header */}
-          <header
-            className="sticky top-0 z-50 w-full"
-            style={{
-              background: "rgba(6,10,16,0.9)",
-              borderBottom: "1px solid #24303A",
-              backdropFilter: "blur(12px)",
-            }}
-          >
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Zap
-                    size={22}
-                    style={{
-                      color: "#B8FF4A",
-                      filter: "drop-shadow(0 0 6px #B8FF4A80)",
-                    }}
-                  />
-                  <span
-                    className="text-lg font-bold"
-                    style={{ color: "#EAF0F6" }}
-                  >
-                    FinPulse
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  data-ocid="app.nav.home.link"
-                  onClick={() => setCurrentPage("home")}
-                  className="hidden sm:block text-sm font-medium px-3 py-1.5 rounded-xl transition-all hover:bg-white/5"
-                  style={{ color: "#9AA6B2" }}
-                >
-                  Home
-                </button>
-                <button
-                  type="button"
-                  data-ocid="app.nav.advisory.link"
-                  onClick={() => setCurrentPage("advisory")}
-                  className="hidden sm:block text-sm font-medium px-3 py-1.5 rounded-xl transition-all hover:bg-white/5"
-                  style={{ color: "#9AA6B2" }}
-                >
-                  Advisory
-                </button>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  data-ocid="portfolio.save_button"
-                  onClick={savePortfolio}
-                  disabled={isSaving}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                  style={{
-                    background: "rgba(184,255,74,0.12)",
-                    color: "#B8FF4A",
-                    border: "1px solid rgba(184,255,74,0.25)",
-                  }}
-                >
-                  {isSaving ? (
-                    <Loader2 size={13} className="animate-spin" />
-                  ) : (
-                    <Save size={13} />
-                  )}
-                  {isSaving ? "Saving..." : "Save"}
-                </button>
-
-                {/* Profile dropdown */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    data-ocid="profile.open_modal_button"
-                    onClick={() => setShowProfileMenu((v) => !v)}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all"
-                    style={{
-                      background: showProfileMenu
-                        ? "rgba(184,255,74,0.12)"
-                        : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${showProfileMenu ? "rgba(184,255,74,0.3)" : "#24303A"}`,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "28px",
-                        height: "28px",
-                        borderRadius: "50%",
-                        background: "rgba(184,255,74,0.15)",
-                        color: "#B8FF4A",
-                        border: "1px solid rgba(184,255,74,0.4)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: 700,
-                        fontSize: "12px",
-                        flexShrink: 0,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {(() => {
-                        const userId = btoa(
-                          identity?.getPrincipal().toString() || "guest",
-                        )
-                          .replace(/[^a-zA-Z0-9]/g, "")
-                          .substring(0, 12);
-                        const storedUser = localStorage.getItem(
-                          `finhealth_user_${userId}`,
-                        );
-                        const photo = storedUser
-                          ? (JSON.parse(storedUser) as { photoURL?: string })
-                              .photoURL
-                          : "";
-                        if (photo)
-                          return (
-                            <img
-                              src={photo}
-                              alt="avatar"
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                              }}
-                            />
-                          );
-                        return (userProfile?.name ?? shortPrincipal)
-                          .charAt(0)
-                          .toUpperCase();
-                      })()}
-                    </div>
-                    <span
-                      className="hidden sm:block text-xs font-semibold"
-                      style={{ color: "#EAF0F6" }}
-                    >
-                      {userProfile?.name ?? shortPrincipal}
-                    </span>
-                  </button>
-
-                  {showProfileMenu && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        role="button"
-                        tabIndex={-1}
-                        aria-label="Close menu"
-                        onClick={() => setShowProfileMenu(false)}
-                        onKeyDown={(e) =>
-                          e.key === "Escape" && setShowProfileMenu(false)
-                        }
-                      />
-                      <div
-                        className="absolute right-0 top-full mt-2 z-50 py-1 min-w-[160px]"
-                        style={{
-                          background: "#0F141B",
-                          border: "1px solid #24303A",
-                          borderRadius: 12,
-                          boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-                        }}
-                        data-ocid="profile.dropdown_menu"
-                      >
-                        <button
-                          type="button"
-                          data-ocid="profile.my-account.link"
-                          onClick={() => {
-                            setShowMyAccount(true);
-                            setShowProfileMenu(false);
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
-                          style={{
-                            color: "#EAF0F6",
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          👤 My Account
-                        </button>
-                        <button
-                          type="button"
-                          data-ocid="profile.activity-log.link"
-                          onClick={() => {
-                            setActiveTab("dashboard");
-                            setShowProfileMenu(false);
-                            toast.info("Activity Log coming soon!");
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
-                          style={{
-                            color: "#EAF0F6",
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          📊 Activity Log
-                        </button>
-                        <div
-                          style={{
-                            borderTop: "1px solid #24303A",
-                            margin: "4px 0",
-                          }}
-                        />
-                        <button
-                          type="button"
-                          data-ocid="profile.logout.button"
-                          onClick={() => {
-                            setShowProfileMenu(false);
-                            clear();
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors hover:bg-white/5"
-                          style={{
-                            color: "#FF4A4A",
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          <LogOut size={13} /> Sign Out
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+          <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 pt-24">
+            <div style={{ marginBottom: 8 }}>
+              <BackButton defaultFallback={() => setCurrentPage("home")} />
             </div>
-          </header>
-
-          <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8">
             {/* Hero */}
             <div className="text-center mb-8">
               <p className="text-sm mb-2" style={{ color: "#9AA6B2" }}>
@@ -1827,6 +1597,23 @@ export default function App() {
                 Upload your portfolio, add entries, then click Analyze for
                 AI-powered insights.
               </p>
+              {!userProfile && (
+                <div
+                  style={{
+                    display: "inline-block",
+                    background: "rgba(255,184,74,0.1)",
+                    border: "1px solid rgba(255,184,74,0.3)",
+                    color: "#FFB84A",
+                    borderRadius: 20,
+                    padding: "4px 12px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    marginTop: 8,
+                  }}
+                >
+                  Complete profile for full access
+                </div>
+              )}
             </div>
 
             {/* ── 4 Top-Level Tabs ── */}
@@ -1876,6 +1663,57 @@ export default function App() {
 
               {/* ── DASHBOARD TAB ── */}
               <TabsContent value="dashboard">
+                {!userProfile && (
+                  <div
+                    style={{
+                      background: "rgba(255,184,74,0.08)",
+                      border: "1px solid rgba(255,184,74,0.3)",
+                      borderRadius: 14,
+                      padding: "16px 20px",
+                      marginBottom: 20,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                    data-ocid="dashboard.onboarding_warning.panel"
+                  >
+                    <div>
+                      <div
+                        style={{
+                          color: "#FFB84A",
+                          fontWeight: 700,
+                          fontSize: 15,
+                          marginBottom: 4,
+                        }}
+                      >
+                        No profile found
+                      </div>
+                      <div style={{ color: "#9AA6B2", fontSize: 13 }}>
+                        Complete onboarding to unlock full features
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowOnboarding(true)}
+                      data-ocid="dashboard.complete_onboarding.button"
+                      style={{
+                        background: "#FFB84A",
+                        color: "#060A10",
+                        border: "none",
+                        borderRadius: 10,
+                        padding: "8px 18px",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Complete Onboarding
+                    </button>
+                  </div>
+                )}
                 <UploadSection onImport={handleImportRows} />
 
                 <section className="fintech-card p-6 mb-6">
@@ -2586,6 +2424,60 @@ export default function App() {
                           return v ? Number(v) : undefined;
                         })()}
                       />
+
+                      {/* Share FinHealth Score */}
+                      <div
+                        className="fintech-card p-5 mb-6"
+                        data-ocid="dashboard.share.panel"
+                      >
+                        <h3
+                          className="text-base font-bold mb-3 flex items-center gap-2"
+                          style={{ color: "#EAF0F6" }}
+                        >
+                          <Share2 size={18} style={{ color: "#B8FF4A" }} />{" "}
+                          Share My FinHealth Score
+                        </h3>
+                        <div className="flex gap-3 flex-wrap">
+                          <button
+                            type="button"
+                            data-ocid="dashboard.share.whatsapp.button"
+                            onClick={() => {
+                              window.open(
+                                `https://wa.me/?text=${encodeURIComponent(`My FinHealth Score is ${score}/100. Check yours on FinHealth India 🚀`)}`,
+                                "_blank",
+                              );
+                            }}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                            style={{
+                              background: "rgba(37,211,102,0.12)",
+                              color: "#25D366",
+                              border: "1px solid rgba(37,211,102,0.3)",
+                              cursor: "pointer",
+                            }}
+                          >
+                            📱 Share on WhatsApp
+                          </button>
+                          <button
+                            type="button"
+                            data-ocid="dashboard.share.copy.button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(
+                                `My FinHealth Score is ${score}/100. Check yours at FinHealth India!`,
+                              );
+                              toast.success("Copied to clipboard!");
+                            }}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                            style={{
+                              background: "rgba(184,255,74,0.12)",
+                              color: "#B8FF4A",
+                              border: "1px solid rgba(184,255,74,0.3)",
+                              cursor: "pointer",
+                            }}
+                          >
+                            🔗 Copy Link
+                          </button>
+                        </div>
+                      </div>
 
                       {/* Alerts Panel */}
                       <div

@@ -16,6 +16,7 @@ interface ChatMessage {
   sender: "user" | "assistant";
   timestamp: number;
   insight?: string;
+  isError?: boolean;
   suggestedTool?: {
     label: string;
     navigationAction: string;
@@ -199,6 +200,7 @@ export default function ClientChatBox({
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastUserText, setLastUserText] = useState("");
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [goals, setGoals] = useState<unknown[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -283,6 +285,7 @@ export default function ClientChatBox({
       timestamp: userMsg.timestamp,
     });
     setInput("");
+    setLastUserText(text);
     setIsLoading(true);
 
     try {
@@ -410,9 +413,10 @@ export default function ClientChatBox({
     } catch {
       const errMsg: ChatMessage = {
         id: `${Date.now()}-err`,
-        text: "Sorry, I couldn't process your request. Please try again.",
+        text: "Sorry, I couldn't process your request.",
         sender: "assistant",
         timestamp: Date.now(),
+        isError: true,
       };
       addMessages([errMsg]);
       persistChatRecord(userId, {
@@ -632,35 +636,89 @@ export default function ClientChatBox({
                     gap: "6px",
                   }}
                 >
-                  <div
-                    style={{
-                      maxWidth: "82%",
-                      padding: "10px 14px",
-                      borderRadius:
-                        msg.sender === "user"
-                          ? "14px 14px 4px 14px"
-                          : "14px 14px 14px 4px",
-                      background: msg.sender === "user" ? "#B8FF4A" : "#0F141B",
-                      color: msg.sender === "user" ? "#060A10" : "#EAF0F6",
-                      fontSize: "13px",
-                      border:
-                        msg.sender === "assistant"
-                          ? "1px solid #24303A"
-                          : "none",
-                    }}
-                  >
-                    <p style={{ margin: 0, lineHeight: 1.55 }}>{msg.text}</p>
-                    <p
+                  {msg.isError ? (
+                    <div
+                      data-ocid="chat.error_state"
                       style={{
-                        margin: "4px 0 0",
-                        fontSize: "10px",
-                        opacity: 0.55,
-                        textAlign: "right",
+                        maxWidth: "82%",
+                        padding: "10px 14px",
+                        borderRadius: "14px 14px 14px 4px",
+                        background: "rgba(255,74,74,0.08)",
+                        border: "1px solid rgba(255,74,74,0.3)",
+                        fontSize: "13px",
                       }}
                     >
-                      {formatTime(msg.timestamp)}
-                    </p>
-                  </div>
+                      <p
+                        style={{
+                          margin: "0 0 2px",
+                          fontWeight: 700,
+                          color: "#FF4A4A",
+                          fontSize: 12,
+                        }}
+                      >
+                        Something went wrong
+                      </p>
+                      <p
+                        style={{
+                          margin: "0 0 8px",
+                          lineHeight: 1.5,
+                          color: "#EAF0F6",
+                        }}
+                      >
+                        {msg.text} Please try again.
+                      </p>
+                      <button
+                        type="button"
+                        data-ocid="chat.secondary_button"
+                        onClick={() => {
+                          if (lastUserText) setInput(lastUserText);
+                        }}
+                        style={{
+                          background: "rgba(255,74,74,0.15)",
+                          border: "1px solid rgba(255,74,74,0.4)",
+                          borderRadius: 6,
+                          color: "#FF4A4A",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: "4px 10px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        ↩ Retry
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        maxWidth: "82%",
+                        padding: "10px 14px",
+                        borderRadius:
+                          msg.sender === "user"
+                            ? "14px 14px 4px 14px"
+                            : "14px 14px 14px 4px",
+                        background:
+                          msg.sender === "user" ? "#B8FF4A" : "#0F141B",
+                        color: msg.sender === "user" ? "#060A10" : "#EAF0F6",
+                        fontSize: "13px",
+                        border:
+                          msg.sender === "assistant"
+                            ? "1px solid #24303A"
+                            : "none",
+                      }}
+                    >
+                      <p style={{ margin: 0, lineHeight: 1.55 }}>{msg.text}</p>
+                      <p
+                        style={{
+                          margin: "4px 0 0",
+                          fontSize: "10px",
+                          opacity: 0.55,
+                          textAlign: "right",
+                        }}
+                      >
+                        {formatTime(msg.timestamp)}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Smart Insight card */}
                   {msg.insight && (
@@ -775,27 +833,31 @@ export default function ClientChatBox({
                 borderTop: "1px solid #24303A",
               }}
             >
-              {["SIP advice", "Loan EMI", "My policy", "Risk profile"].map(
-                (prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => setInput(prompt)}
-                    disabled={isLoading}
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: "12px",
-                      background: "#0F141B",
-                      border: "1px solid #24303A",
-                      color: isLoading ? "#4A5568" : "#9AA6B2",
-                      fontSize: "11px",
-                      cursor: isLoading ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    {prompt}
-                  </button>
-                ),
-              )}
+              {[
+                "Analyze my policy",
+                "Plan SIP",
+                "Check goals",
+                "Loan EMI",
+                "Risk profile",
+              ].map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => setInput(prompt)}
+                  disabled={isLoading}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: "12px",
+                    background: "#0F141B",
+                    border: "1px solid #24303A",
+                    color: isLoading ? "#4A5568" : "#9AA6B2",
+                    fontSize: "11px",
+                    cursor: isLoading ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {prompt}
+                </button>
+              ))}
             </div>
 
             {/* Input */}
