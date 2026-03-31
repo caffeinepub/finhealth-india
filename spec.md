@@ -1,50 +1,62 @@
-# FinHealth AI — Premium Redesign & Enhancement
+# FinHealth AI — Full Platform Upgrade
 
 ## Current State
 
-The app already exists with:
-- Landing page (LandingPageNew.tsx) with hero, problem/solution/capabilities sections
-- Login page (LoginPageNew.tsx) with Google/Apple/email auth
-- AppLayout with fixed sidebar (9 items: Dashboard, Financial Health, Investments, Insurance, Planning, Loans, Tax, AI Assistant, Tools Hub)
-- Dashboard (DashboardNew.tsx) with SVG gauge, income/expense chart, health sub-scores, smart alerts, quick actions
-- Tool Hub (ToolsHub.tsx) with categorized tools grid
-- All section pages: InvestmentsPage, InsurancePage, PlanningPage, LoansPage, TaxPage, AIAssistantPage, FinancialHealthPage
-- Dark theme (#070A12), blue/purple/cyan gradients, glassmorphism cards
-- CSS in index.css: `.glass-card`, `.gradient-btn`, `.gradient-text`, `.sidebar-item`, `.sidebar-item-active`
-- localStorage-based auth and user profile
+The app uses a **custom state machine for routing** (`page` state in App.tsx with values: `landing | login | signup | app`) — no React Router, no URL updates, browser Back/Forward broken. A secondary state machine inside `AppLayout.tsx` handles sidebar pages. `GlobalNav.tsx` is an orphaned component never mounted anywhere, using a different type system.
+
+**Critical broken items identified:**
+- All 10 footer links are `<button>` with zero `onClick` handlers (completely dead)
+- Profile icon in AppLayout has no `onClick`
+- Bell/notifications button has no `onClick`
+- Terms/Privacy links in login are `<span>` with no handler
+- Dashboard shows hardcoded data (score: 72, net worth: ₹4.25L) instead of reading from localStorage
+- No `/profile` page exists
+- No `/disclaimer`, `/privacy-policy`, `/terms` pages with proper routing
+- Multi-step signup doesn't exist (single-step login form with tab toggle)
+- No centralized router — URL never changes
 
 ## Requested Changes (Diff)
 
 ### Add
-- Landing page: update hero headline to "Your Personal Financial Doctor — Powered by AI", subheading to "Analyze your finances, uncover hidden mistakes, and get clear, actionable insights.", primary CTA to "Check My Financial Health", secondary CTA to "Explore Tools"
-- Landing page: final CTA section "Start Your Financial Diagnosis Today"
-- Dashboard: Smart Alerts / AI Insights section with contextual recommendations ("Your insurance is weak → Analyze Policy", "Optimize your tax → Open Tax Optimizer")
-- Dashboard: Net Worth summary card
-- Financial Health Score breakdown showing Savings, Investments, Debt, Risk sub-scores
-- Smart Recommendation System on dashboard that guides users to actions
-- Loading animations on all pages/tools
-- Back button functionality throughout the app
+- React Router v6 (`BrowserRouter`, `Routes`, `Route`, `Link`, `useNavigate`) replacing state machine
+- Routes: `/`, `/login`, `/signup`, `/dashboard`, `/tools`, `/profile`, `/disclaimer`, `/privacy-policy`, `/terms`, `/about`, `/contact`, `/financial-health`, `/investments`, `/insurance`, `/planning`, `/loans`, `/tax`, `/ai`
+- `/profile` page with 4 sections: Personal Info, Financial Info, KYC, Account Settings
+- Profile dropdown in top bar with Name, Plan, Go to Profile, Logout
+- Multi-step signup (4 steps): Basic → Financial → Goals → KYC
+- `useAuth` hook/context for persistent login state from localStorage
+- `ProtectedRoute` wrapper that redirects to `/login` if not authenticated
+- Legal pages: `/disclaimer`, `/privacy-policy`, `/terms` with full content
+- `/about` and `/contact` pages with basic content
+- Fully functional footer with Link components to all routes
+- Loading spinner on navigation transitions
+- Auth persistence: read from `finhealth_logged_in` on mount, stay logged in on refresh
 
 ### Modify
-- Overall UI: enhance glassmorphism depth, add more multi-color gradients (blue #2FE6FF, purple #7A3CFF, cyan glow), stronger neon highlights on key elements
-- Landing page: problem section highlighting "people are sold products not advice", "hidden charges in insurance & investments", "no clear financial direction"
-- Landing page: solution section as 3-step flow (Add data → Get Score → Get recommendations)
-- Landing page: platform capabilities grid (6 cards)
-- Dashboard: cleaner layout — show ONLY Health Score gauge, Net Worth, Income vs Expense chart, Smart Alerts
-- Dashboard: Financial Health Score breakdown with 4 dimensions: Savings, Investments, Debt, Risk
-- Tool Hub: maintain grid layout with search bar, 6 categories with proper icons and descriptions
-- All tool pages: ensure all buttons work, navigation is smooth, no freezing
-- AppLayout: ensure back button works, mobile hamburger menu works
+- `App.tsx`: Replace state machine with `<BrowserRouter>` + `<Routes>` + `<Route>` declarations
+- `AppLayout.tsx`: Replace `activePage` state machine with `<Outlet>` or nested routes; wire profile button onClick to profile dropdown
+- `LandingPageNew.tsx`: Replace all dead `<button>` footer elements with `<Link>` components; fix all CTA buttons to use `<Link to="/signup">` etc.
+- `LoginPageNew.tsx`: Fix Terms/Privacy links; wire to router `navigate()`
+- `DashboardNew.tsx`: Read user data from `localStorage.getItem('finhealth_user_' + userId)` and render dynamic values
+- Sidebar nav items: Use `<Link>` to proper routes
 
 ### Remove
-- Nothing should be removed — all existing tools and pages should remain functional
+- `GlobalNav.tsx` orphaned component (or repurpose)
+- All `setPage()` / `navigate("app")` state machine calls
+- All `href="#"` placeholder anchors
+- All dead button elements with no handlers
 
 ## Implementation Plan
 
-1. Update `index.css` — enhance glassmorphism variables, add stronger neon glow utilities, add `.neon-highlight` and `.gradient-border` classes
-2. Update `LandingPageNew.tsx` — new hero copy, problem/solution/capabilities/final CTA sections exactly as specified
-3. Update `DashboardNew.tsx` — cleaner 4-card layout (Health Score, Net Worth, Income/Expense, Smart Alerts), Financial Health breakdown shows Savings/Investments/Debt/Risk, Smart Recommendations strip
-4. Update `AppLayout.tsx` — ensure back button logic, smooth navigation, loading states on page switch
-5. Update `ToolsHub.tsx` — verify all 6 categories with correct tools listed, search works
-6. Ensure all section pages have loading animations and work correctly
-7. Responsive — mobile sidebar drawer, mobile-friendly tool cards
+1. Install/confirm `react-router-dom` is available (it should already be in deps)
+2. Rewrite `App.tsx` with full React Router setup — all routes defined centrally
+3. Create `src/hooks/useAuth.ts` — reads/writes localStorage session, exposes `user`, `login()`, `logout()`
+4. Create `ProtectedRoute` component — wraps authenticated routes
+5. Rewrite `AppLayout.tsx` — use `<Outlet>` for inner routes, wire profile button to dropdown
+6. Create `ProfilePage.tsx` — 4-section profile with Personal, Financial, KYC, Account Settings
+7. Create `SignupPage.tsx` — 4-step multi-step form storing full user object to localStorage
+8. Create legal pages: `DisclaimerPage.tsx`, `PrivacyPolicyPage.tsx`, `TermsPage.tsx`
+9. Create simple pages: `AboutPage.tsx`, `ContactPage.tsx`
+10. Fix `LandingPageNew.tsx` footer — replace dead buttons with `<Link>` components
+11. Fix `DashboardNew.tsx` — read from localStorage user data dynamically
+12. Fix all CTA buttons site-wide to use proper routing
+13. Validate — typecheck + build

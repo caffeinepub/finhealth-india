@@ -18,191 +18,133 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import type { AppPage } from "../App";
-import AIAssistantPage from "./AIAssistantPage";
-import Dashboard from "./DashboardNew";
-import FinancialHealthPage from "./FinancialHealthPage";
-import InsurancePage from "./InsurancePage";
-import InvestmentsPage from "./InvestmentsPage";
-import LoansPage from "./LoansPage";
-import PlanningPage from "./PlanningPage";
-import TaxPage from "./TaxPage";
-import ToolsHub from "./ToolsHub";
-
-export type SidebarPage =
-  | "dashboard"
-  | "health"
-  | "investments"
-  | "insurance"
-  | "planning"
-  | "loans"
-  | "tax"
-  | "ai"
-  | "tools";
-
-interface Props {
-  navigate: (to: AppPage) => void;
-}
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 const navItems: {
-  id: SidebarPage;
+  path: string;
   label: string;
   icon: React.ComponentType<{ size?: number }>;
 }[] = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "health", label: "Financial Health", icon: Heart },
-  { id: "investments", label: "Investments", icon: TrendingUp },
-  { id: "insurance", label: "Insurance", icon: Shield },
-  { id: "planning", label: "Planning", icon: Target },
-  { id: "loans", label: "Loans", icon: CreditCard },
-  { id: "tax", label: "Tax", icon: Calculator },
-  { id: "ai", label: "AI Assistant", icon: Bot },
-  { id: "tools", label: "Tools Hub", icon: Grid },
+  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/financial-health", label: "Financial Health", icon: Heart },
+  { path: "/investments", label: "Investments", icon: TrendingUp },
+  { path: "/insurance", label: "Insurance", icon: Shield },
+  { path: "/planning", label: "Planning", icon: Target },
+  { path: "/loans", label: "Loans", icon: CreditCard },
+  { path: "/tax", label: "Tax", icon: Calculator },
+  { path: "/ai", label: "AI Assistant", icon: Bot },
+  { path: "/tools", label: "Tools Hub", icon: Grid },
 ];
 
-const pageTitles: Record<SidebarPage, string> = {
-  dashboard: "Dashboard",
-  health: "Financial Health",
-  investments: "Investments",
-  insurance: "Insurance",
-  planning: "Planning",
-  loans: "Loans",
-  tax: "Tax Optimizer",
-  ai: "AI Assistant",
-  tools: "Tools Hub",
+const searchIndex: { label: string; keywords: string[]; path: string }[] = [
+  {
+    label: "Dashboard",
+    keywords: ["dashboard", "home", "overview"],
+    path: "/dashboard",
+  },
+  {
+    label: "Financial Health Score",
+    keywords: ["health", "score", "finhealth"],
+    path: "/financial-health",
+  },
+  {
+    label: "SIP Calculator",
+    keywords: ["sip", "mutual fund", "investment"],
+    path: "/investments",
+  },
+  {
+    label: "Portfolio Analyzer",
+    keywords: ["portfolio", "stocks", "returns"],
+    path: "/investments",
+  },
+  {
+    label: "Risk Analysis",
+    keywords: ["risk", "profile", "aggressive"],
+    path: "/investments",
+  },
+  {
+    label: "Policy Analyzer",
+    keywords: ["policy", "insurance", "irr", "ulip"],
+    path: "/insurance",
+  },
+  {
+    label: "IRR Calculator",
+    keywords: ["irr", "return", "insurance"],
+    path: "/insurance",
+  },
+  {
+    label: "Coverage Checker",
+    keywords: ["coverage", "life cover"],
+    path: "/insurance",
+  },
+  {
+    label: "Retirement Planner",
+    keywords: ["retirement", "corpus", "future"],
+    path: "/planning",
+  },
+  {
+    label: "Goal Planning",
+    keywords: ["goal", "education", "home"],
+    path: "/planning",
+  },
+  {
+    label: "EMI Calculator",
+    keywords: ["emi", "loan", "home loan"],
+    path: "/loans",
+  },
+  {
+    label: "Loan Comparison",
+    keywords: ["loan compare", "interest rate"],
+    path: "/loans",
+  },
+  {
+    label: "Tax Calculator",
+    keywords: ["tax", "old regime", "new regime"],
+    path: "/tax",
+  },
+  {
+    label: "Deduction Optimizer",
+    keywords: ["80c", "deduction", "hra"],
+    path: "/tax",
+  },
+  {
+    label: "AI Financial Assistant",
+    keywords: ["ai", "chat", "assistant"],
+    path: "/ai",
+  },
+  {
+    label: "Tools Hub",
+    keywords: ["tools", "toolkit", "all tools"],
+    path: "/tools",
+  },
+];
+
+const pageTitles: Record<string, string> = {
+  "/dashboard": "Dashboard",
+  "/financial-health": "Financial Health",
+  "/investments": "Investments",
+  "/insurance": "Insurance",
+  "/planning": "Planning",
+  "/loans": "Loans",
+  "/tax": "Tax Optimizer",
+  "/ai": "AI Assistant",
+  "/tools": "Tools Hub",
+  "/profile": "My Profile",
 };
 
-// Search index for quick navigation
-const searchIndex: { label: string; keywords: string[]; page: SidebarPage }[] =
-  [
-    {
-      label: "Dashboard",
-      keywords: ["dashboard", "home", "overview"],
-      page: "dashboard",
-    },
-    {
-      label: "Financial Health Score",
-      keywords: ["health", "score", "finhealth"],
-      page: "health",
-    },
-    {
-      label: "SIP Calculator",
-      keywords: ["sip", "mutual fund", "investment"],
-      page: "investments",
-    },
-    {
-      label: "Portfolio Analyzer",
-      keywords: ["portfolio", "stocks", "returns"],
-      page: "investments",
-    },
-    {
-      label: "Risk Analysis",
-      keywords: ["risk", "profile", "aggressive"],
-      page: "investments",
-    },
-    {
-      label: "Policy Analyzer",
-      keywords: ["policy", "insurance", "irr", "ulip"],
-      page: "insurance",
-    },
-    {
-      label: "IRR Calculator",
-      keywords: ["irr", "return", "insurance"],
-      page: "insurance",
-    },
-    {
-      label: "Coverage Checker",
-      keywords: ["coverage", "life cover", "health cover"],
-      page: "insurance",
-    },
-    {
-      label: "Retirement Planner",
-      keywords: ["retirement", "corpus", "future"],
-      page: "planning",
-    },
-    {
-      label: "Goal Planning",
-      keywords: ["goal", "education", "home"],
-      page: "planning",
-    },
-    {
-      label: "Wealth Projection",
-      keywords: ["wealth", "net worth", "projection"],
-      page: "planning",
-    },
-    {
-      label: "EMI Calculator",
-      keywords: ["emi", "loan", "home loan", "car loan"],
-      page: "loans",
-    },
-    {
-      label: "Loan Comparison",
-      keywords: ["loan compare", "interest rate"],
-      page: "loans",
-    },
-    {
-      label: "Prepayment Strategy",
-      keywords: ["prepayment", "part payment"],
-      page: "loans",
-    },
-    {
-      label: "Tax Calculator",
-      keywords: ["tax", "old regime", "new regime"],
-      page: "tax",
-    },
-    {
-      label: "Deduction Optimizer",
-      keywords: ["80c", "deduction", "hra", "save tax"],
-      page: "tax",
-    },
-    {
-      label: "AI Financial Assistant",
-      keywords: ["ai", "chat", "assistant"],
-      page: "ai",
-    },
-    {
-      label: "Tools Hub",
-      keywords: ["tools", "toolkit", "all tools"],
-      page: "tools",
-    },
-  ];
-
-function getUserData() {
-  const uid = localStorage.getItem("finhealth_current_user_id") || "";
-  try {
-    return JSON.parse(localStorage.getItem(`finhealth_user_${uid}`) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-export default function AppLayout({ navigate }: Props) {
-  const [activePage, setActivePage] = useState<SidebarPage>("dashboard");
-  const [pageHistory, setPageHistory] = useState<SidebarPage[]>([]);
+export default function AppLayout() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const user = getUserData();
-
-  const navigateTo = (page: SidebarPage) => {
-    setPageHistory((prev) => [...prev, activePage]);
-    setActivePage(page);
-    setSidebarOpen(false);
-  };
-
-  const goBack = () => {
-    if (pageHistory.length > 0) {
-      const prev = pageHistory[pageHistory.length - 1];
-      setPageHistory((h) => h.slice(0, -1));
-      setActivePage(prev);
-    } else {
-      setActivePage("dashboard");
-    }
-  };
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem("finhealth_logged_in");
-    navigate("landing");
+    logout();
+    navigate("/");
   };
 
   const searchResults =
@@ -218,6 +160,8 @@ export default function AppLayout({ navigate }: Props) {
           .slice(0, 6)
       : [];
 
+  const currentTitle = pageTitles[location.pathname] || "Dashboard";
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div
@@ -227,29 +171,32 @@ export default function AppLayout({ navigate }: Props) {
         <div className="w-8 h-8 rounded-lg gradient-btn flex items-center justify-center">
           <Sparkles size={16} className="text-white" />
         </div>
-        <span
+        <Link
+          to="/dashboard"
           className="font-bold"
           style={{ fontFamily: "Bricolage Grotesque, sans-serif" }}
         >
           <span className="gradient-text">FinHealth</span>
           <span className="text-white"> AI</span>
-        </span>
+        </Link>
       </div>
 
       <nav className="flex-1 py-4 overflow-y-auto">
         {navItems.map((item) => {
-          const active = activePage === item.id;
+          const active = location.pathname === item.path;
           return (
-            <button
-              type="button"
-              key={item.id}
-              onClick={() => navigateTo(item.id)}
-              className={`w-full text-left ${active ? "sidebar-item-active" : "sidebar-item"}`}
-              data-ocid={`sidebar.${item.id}_link`}
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-all w-full ${
+                active ? "sidebar-item-active" : "sidebar-item"
+              }`}
+              data-ocid={`sidebar.${item.path.slice(1)}_link`}
             >
               <item.icon size={18} />
               <span>{item.label}</span>
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -264,10 +211,10 @@ export default function AppLayout({ navigate }: Props) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium text-white truncate">
-              {user.name || "User"}
+              {user?.name || "User"}
             </div>
             <div className="text-xs truncate" style={{ color: "#9AA6BF" }}>
-              {user.plan === "pro" ? "Pro Plan" : "Free Plan"}
+              {user?.plan === "pro" ? "Pro Plan" : "Free Plan"}
             </div>
           </div>
         </div>
@@ -360,11 +307,10 @@ export default function AppLayout({ navigate }: Props) {
             <Menu size={20} />
           </button>
 
-          {/* Back button — visible when not on dashboard */}
-          {activePage !== "dashboard" && (
+          {location.pathname !== "/dashboard" && (
             <button
               type="button"
-              onClick={goBack}
+              onClick={() => navigate(-1)}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
               style={{
                 color: "#9AA6BF",
@@ -381,7 +327,7 @@ export default function AppLayout({ navigate }: Props) {
             className="font-bold text-white text-lg flex-1"
             style={{ fontFamily: "Bricolage Grotesque, sans-serif" }}
           >
-            {pageTitles[activePage]}
+            {currentTitle}
           </h1>
 
           {/* Search */}
@@ -425,7 +371,7 @@ export default function AppLayout({ navigate }: Props) {
                     className="w-full text-left px-4 py-2.5 text-sm transition-all"
                     style={{ color: "#F2F5FF" }}
                     onMouseDown={() => {
-                      navigateTo(r.page);
+                      navigate(r.path);
                       setSearchQuery("");
                       setSearchOpen(false);
                     }}
@@ -448,7 +394,7 @@ export default function AppLayout({ navigate }: Props) {
                   >
                     {r.label}
                     <span className="ml-2 text-xs" style={{ color: "#9AA6BF" }}>
-                      → {pageTitles[r.page]}
+                      → {pageTitles[r.path] || r.path}
                     </span>
                   </button>
                 ))}
@@ -466,25 +412,70 @@ export default function AppLayout({ navigate }: Props) {
               3
             </span>
           </button>
-          <div className="w-8 h-8 rounded-full gradient-btn flex items-center justify-center cursor-pointer">
-            <User size={14} className="text-white" />
+
+          {/* Profile dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowProfileMenu((v) => !v)}
+              className="w-8 h-8 rounded-full gradient-btn flex items-center justify-center cursor-pointer"
+              data-ocid="topbar.profile_button"
+            >
+              <User size={14} className="text-white" />
+            </button>
+            {showProfileMenu && (
+              <div
+                className="absolute top-full right-0 mt-2 w-56 rounded-xl overflow-hidden shadow-2xl z-50"
+                style={{
+                  background: "rgba(18,24,42,0.98)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  backdropFilter: "blur(20px)",
+                }}
+              >
+                <div
+                  className="px-4 py-3"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+                >
+                  <div className="text-sm font-semibold text-white">
+                    {user?.name || "User"}
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: "#9AA6BF" }}>
+                    {user?.plan === "pro" ? "Pro Plan" : "Free Plan"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-white/5"
+                  style={{ color: "#F2F5FF" }}
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    navigate("/profile");
+                  }}
+                  data-ocid="profile_menu.profile_link"
+                >
+                  View Profile
+                </button>
+                <button
+                  type="button"
+                  className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-white/5"
+                  style={{ color: "#FF6B6B" }}
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    handleLogout();
+                  }}
+                  data-ocid="profile_menu.logout_button"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto relative" style={{ zIndex: 1 }}>
-          <div className="p-4 sm:p-6">
-            {activePage === "dashboard" && (
-              <Dashboard setActivePage={navigateTo} />
-            )}
-            {activePage === "health" && <FinancialHealthPage />}
-            {activePage === "investments" && <InvestmentsPage />}
-            {activePage === "insurance" && <InsurancePage />}
-            {activePage === "planning" && <PlanningPage />}
-            {activePage === "loans" && <LoansPage />}
-            {activePage === "tax" && <TaxPage />}
-            {activePage === "ai" && <AIAssistantPage />}
-            {activePage === "tools" && <ToolsHub setActivePage={navigateTo} />}
+          <div className="p-4 sm:p-6 page-transition">
+            <Outlet />
           </div>
         </main>
       </div>

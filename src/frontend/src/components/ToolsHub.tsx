@@ -10,11 +10,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
-import type { SidebarPage } from "./AppLayout";
-
-interface Props {
-  setActivePage: (p: SidebarPage) => void;
-}
+import { useNavigate } from "react-router-dom";
 
 const categories = [
   {
@@ -27,22 +23,22 @@ const categories = [
       {
         name: "SIP Calculator",
         desc: "Calculate your SIP maturity value and wealth growth",
-        page: "investments" as SidebarPage,
+        page: "/investments",
       },
       {
         name: "Portfolio Analyzer",
         desc: "Analyze your portfolio performance and allocation",
-        page: "investments" as SidebarPage,
+        page: "/investments",
       },
       {
         name: "Return Calculator",
         desc: "Calculate CAGR and annualized returns on investments",
-        page: "investments" as SidebarPage,
+        page: "/investments",
       },
       {
         name: "Risk Analysis",
         desc: "Assess your portfolio risk and get rebalancing signals",
-        page: "investments" as SidebarPage,
+        page: "/investments",
       },
     ],
   },
@@ -56,17 +52,17 @@ const categories = [
       {
         name: "Policy Analyzer",
         desc: "Upload any policy and get real IRR and hidden charges",
-        page: "insurance" as SidebarPage,
+        page: "/insurance",
       },
       {
         name: "IRR Calculator",
         desc: "Calculate the true Internal Rate of Return on your policy",
-        page: "insurance" as SidebarPage,
+        page: "/insurance",
       },
       {
         name: "Coverage Checker",
         desc: "Check if your life and health coverage is adequate",
-        page: "insurance" as SidebarPage,
+        page: "/insurance",
       },
     ],
   },
@@ -80,17 +76,17 @@ const categories = [
       {
         name: "Retirement Planner",
         desc: "Plan your retirement corpus and monthly savings needed",
-        page: "planning" as SidebarPage,
+        page: "/planning",
       },
       {
         name: "Goal Planning",
         desc: "Set financial goals and track progress with projections",
-        page: "planning" as SidebarPage,
+        page: "/planning",
       },
       {
         name: "Wealth Projection",
         desc: "Project your net worth growth over the next 10-30 years",
-        page: "planning" as SidebarPage,
+        page: "/planning",
       },
     ],
   },
@@ -104,17 +100,17 @@ const categories = [
       {
         name: "EMI Calculator",
         desc: "Calculate your monthly EMI for home, car, or personal loans",
-        page: "loans" as SidebarPage,
+        page: "/loans",
       },
       {
         name: "Loan Comparison",
         desc: "Compare multiple loan offers side by side on real cost",
-        page: "loans" as SidebarPage,
+        page: "/loans",
       },
       {
         name: "Prepayment Strategy",
         desc: "Find the optimal prepayment plan to save on interest",
-        page: "loans" as SidebarPage,
+        page: "/loans",
       },
     ],
   },
@@ -128,12 +124,12 @@ const categories = [
       {
         name: "Tax Calculator",
         desc: "Compare old vs new income tax regime for your income",
-        page: "tax" as SidebarPage,
+        page: "/tax",
       },
       {
         name: "Deduction Optimizer",
         desc: "Find all deductions under 80C, 80D, HRA, and more",
-        page: "tax" as SidebarPage,
+        page: "/tax",
       },
     ],
   },
@@ -147,18 +143,19 @@ const categories = [
       {
         name: "Financial Assistant",
         desc: "Chat with AI for instant answers to financial questions",
-        page: "ai" as SidebarPage,
+        page: "/ai",
       },
       {
         name: "Report Explainer",
         desc: "Upload any financial document and get a plain-English summary",
-        page: "ai" as SidebarPage,
+        page: "/ai",
       },
     ],
   },
 ];
 
-export default function ToolsHub({ setActivePage }: Props) {
+export default function ToolsHub() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
   const filtered = categories
@@ -238,7 +235,7 @@ export default function ToolsHub({ setActivePage }: Props) {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setActivePage(tool.page)}
+                  onClick={() => navigate(tool.page)}
                   className="flex items-center gap-1 text-xs font-semibold"
                   style={{ color: cat.color }}
                 >

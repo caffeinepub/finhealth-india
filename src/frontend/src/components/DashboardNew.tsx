@@ -13,6 +13,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Area,
   AreaChart,
@@ -22,11 +23,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { SidebarPage } from "./AppLayout";
-
-interface Props {
-  setActivePage: (p: SidebarPage) => void;
-}
 
 function getUserData() {
   const uid = localStorage.getItem("finhealth_current_user_id") || "";
@@ -141,7 +137,16 @@ function GaugeRing({ score }: GaugeProps) {
 }
 
 function NetWorthCard() {
-  const netWorth = 425000;
+  const uid = localStorage.getItem("finhealth_current_user_id") || "";
+  let userData: { savings?: number; investments?: number } = {};
+  try {
+    userData = JSON.parse(
+      localStorage.getItem(`finhealth_user_${uid}`) || "{}",
+    );
+  } catch {
+    /* empty */
+  }
+  const netWorth = (userData.savings || 0) + (userData.investments || 0);
   const assets = 680000;
   const liabilities = 255000;
 
@@ -225,7 +230,8 @@ function NetWorthCard() {
   );
 }
 
-export default function Dashboard({ setActivePage }: Props) {
+export default function Dashboard() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(getUserData());
   const [loaded, setLoaded] = useState(false);
 
@@ -234,7 +240,23 @@ export default function Dashboard({ setActivePage }: Props) {
     setTimeout(() => setLoaded(true), 300);
   }, []);
 
-  const score = 72;
+  const score = (() => {
+    if (!user) return 45;
+    let s = 0;
+    const savingsRate = user.income > 0 ? user.savings / user.income : 0;
+    s += savingsRate > 0.3 ? 20 : savingsRate > 0.2 ? 15 : 10;
+    s +=
+      (user.goals?.length || 0) >= 3
+        ? 20
+        : (user.goals?.length || 0) >= 1
+          ? 15
+          : 5;
+    const expenseRate = user.income > 0 ? user.expenses / user.income : 1;
+    s += expenseRate < 0.5 ? 20 : expenseRate < 0.7 ? 15 : 10;
+    s += user.kyc_status === "Verified" ? 20 : 10;
+    s += user.name && user.email ? 20 : 10;
+    return Math.min(s, 100);
+  })();
   const greeting = () => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
@@ -250,7 +272,7 @@ export default function Dashboard({ setActivePage }: Props) {
       title: "Your insurance coverage appears weak",
       desc: "Based on your profile, your life cover may be insufficient.",
       action: "Analyze Policy",
-      page: "insurance" as SidebarPage,
+      page: "/insurance",
     },
     {
       icon: AlertTriangle,
@@ -259,7 +281,7 @@ export default function Dashboard({ setActivePage }: Props) {
       title: "You may be able to save more tax",
       desc: "Potential ₹18,000+ in additional deductions available.",
       action: "Open Tax Optimizer",
-      page: "tax" as SidebarPage,
+      page: "/tax",
     },
     {
       icon: TrendingUp,
@@ -268,7 +290,7 @@ export default function Dashboard({ setActivePage }: Props) {
       title: "Improve your score by +15",
       desc: "3 quick actions can significantly boost your health score.",
       action: "View Financial Health",
-      page: "health" as SidebarPage,
+      page: "/financial-health",
     },
     {
       icon: CheckCircle,
@@ -287,21 +309,21 @@ export default function Dashboard({ setActivePage }: Props) {
       color: "#B05CFF",
       title: "Analyze Insurance",
       desc: "Upload policy for real IRR",
-      page: "insurance" as SidebarPage,
+      page: "/insurance",
     },
     {
       icon: Bot,
       color: "#2FE6FF",
       title: "Optimize Tax",
       desc: "Save more with deductions",
-      page: "tax" as SidebarPage,
+      page: "/tax",
     },
     {
       icon: Sparkles,
       color: "#31E981",
       title: "Improve Score",
       desc: "Boost your health score",
-      page: "health" as SidebarPage,
+      page: "/financial-health",
     },
   ];
 
@@ -349,7 +371,7 @@ export default function Dashboard({ setActivePage }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => setActivePage("health")}
+              onClick={() => navigate("/financial-health")}
               className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
               style={{ background: "rgba(47,230,255,0.1)", color: "#2FE6FF" }}
             >
@@ -517,7 +539,7 @@ export default function Dashboard({ setActivePage }: Props) {
                     {a.action && a.page && (
                       <button
                         type="button"
-                        onClick={() => setActivePage(a.page!)}
+                        onClick={() => navigate(a.page!)}
                         className="flex items-center gap-1 text-xs font-semibold"
                         style={{ color: a.color }}
                         data-ocid={`dashboard.${a.page}_button`}
@@ -549,26 +571,26 @@ export default function Dashboard({ setActivePage }: Props) {
                 {
                   icon: Upload,
                   label: "Upload Policy",
-                  page: "insurance" as SidebarPage,
+                  page: "/insurance",
                   color: "#2FE6FF",
                 },
                 {
                   icon: Plus,
                   label: "Add Investment",
-                  page: "investments" as SidebarPage,
+                  page: "/investments",
                   color: "#2D7BFF",
                 },
                 {
                   icon: TrendingUp,
                   label: "View Portfolio",
-                  page: "investments" as SidebarPage,
+                  page: "/investments",
                   color: "#7A3CFF",
                 },
               ].map((qa) => (
                 <button
                   type="button"
                   key={qa.label}
-                  onClick={() => setActivePage(qa.page)}
+                  onClick={() => navigate(qa.page)}
                   className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-sm font-medium transition-all"
                   style={{
                     background: `${qa.color}12`,
@@ -637,7 +659,7 @@ export default function Dashboard({ setActivePage }: Props) {
               </div>
               <button
                 type="button"
-                onClick={() => setActivePage(r.page)}
+                onClick={() => navigate(r.page)}
                 className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
                 style={{ background: `${r.color}18`, color: r.color }}
                 data-ocid={`dashboard.recommend_${r.page}_button`}

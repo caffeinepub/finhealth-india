@@ -13,11 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useState } from "react";
-import type { AppPage } from "../App";
-
-interface Props {
-  navigate: (to: AppPage) => void;
-}
+import { Link, useNavigate } from "react-router-dom";
 
 const capabilities = [
   {
@@ -94,7 +90,8 @@ const steps = [
   },
 ];
 
-export default function LandingPageNew({ navigate }: Props) {
+export default function LandingPageNew() {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -123,12 +120,18 @@ export default function LandingPageNew({ navigate }: Props) {
           </div>
 
           <div className="hidden md:flex items-center gap-8">
-            {["Features", "Tools", "Pricing"].map((l) => (
+            {(["Features", "Tools", "Pricing"] as const).map((l) => (
               <button
                 type="button"
                 key={l}
-                className="text-sm font-medium"
+                className="text-sm font-medium transition-colors hover:text-white"
                 style={{ color: "#9AA6BF" }}
+                onClick={() => {
+                  const id = l.toLowerCase();
+                  document
+                    .getElementById(id)
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
               >
                 {l}
               </button>
@@ -139,14 +142,14 @@ export default function LandingPageNew({ navigate }: Props) {
             <button
               type="button"
               className="hidden md:block ghost-btn px-4 py-2 rounded-lg text-sm"
-              onClick={() => navigate("login")}
+              onClick={() => navigate("/login")}
             >
               Login
             </button>
             <button
               type="button"
               className="gradient-btn px-4 py-2 rounded-lg text-sm"
-              onClick={() => navigate("login")}
+              onClick={() => navigate("/signup")}
             >
               Get Started
             </button>
@@ -166,12 +169,19 @@ export default function LandingPageNew({ navigate }: Props) {
             className="md:hidden px-4 pb-4"
             style={{ background: "rgba(7,10,18,0.95)" }}
           >
-            {["Features", "Tools", "Pricing"].map((l) => (
+            {(["Features", "Tools", "Pricing"] as const).map((l) => (
               <button
                 type="button"
                 key={l}
-                className="block w-full text-left py-2 text-sm"
+                className="block w-full text-left py-2 text-sm transition-colors hover:text-white"
                 style={{ color: "#9AA6BF" }}
+                onClick={() => {
+                  const id = l.toLowerCase();
+                  setMenuOpen(false);
+                  document
+                    .getElementById(id)
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
               >
                 {l}
               </button>
@@ -179,7 +189,7 @@ export default function LandingPageNew({ navigate }: Props) {
             <button
               type="button"
               className="block w-full text-left py-2 text-sm gradient-text font-semibold"
-              onClick={() => navigate("login")}
+              onClick={() => navigate("/login")}
             >
               Login / Sign Up
             </button>
@@ -258,14 +268,14 @@ export default function LandingPageNew({ navigate }: Props) {
             <button
               type="button"
               className="gradient-btn px-8 py-3.5 rounded-xl text-base flex items-center justify-center gap-2 glow-cyan"
-              onClick={() => navigate("login")}
+              onClick={() => navigate("/login")}
             >
               Check My Financial Health <ArrowRight size={18} />
             </button>
             <button
               type="button"
               className="ghost-btn px-8 py-3.5 rounded-xl text-base"
-              onClick={() => navigate("login")}
+              onClick={() => navigate("/login")}
             >
               Explore Tools
             </button>
@@ -316,7 +326,7 @@ export default function LandingPageNew({ navigate }: Props) {
       </section>
 
       {/* 3-Step Solution */}
-      <section className="py-20 px-4">
+      <section id="tools" className="py-20 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-white mb-3">How It Works</h2>
@@ -355,7 +365,7 @@ export default function LandingPageNew({ navigate }: Props) {
       </section>
 
       {/* Platform Capabilities */}
-      <section className="py-20 px-4">
+      <section id="features" className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div
@@ -470,6 +480,146 @@ export default function LandingPageNew({ navigate }: Props) {
         </div>
       </section>
 
+      {/* Pricing */}
+      <section id="pricing" className="py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
+              style={{
+                background: "rgba(49,233,129,0.1)",
+                border: "1px solid rgba(49,233,129,0.25)",
+              }}
+            >
+              <Sparkles size={12} style={{ color: "#31E981" }} />
+              <span
+                className="text-xs font-medium"
+                style={{ color: "#31E981" }}
+              >
+                Simple Pricing
+              </span>
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-3">
+              Choose Your Plan
+            </h2>
+            <p style={{ color: "#9AA6BF" }}>
+              Start free, upgrade when you're ready.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            {/* Free Plan */}
+            <div
+              className="glass-card p-8"
+              style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+            >
+              <div className="mb-6">
+                <div
+                  className="text-sm font-medium mb-1"
+                  style={{ color: "#9AA6BF" }}
+                >
+                  Free Plan
+                </div>
+                <div className="text-4xl font-bold text-white">₹0</div>
+                <div className="text-sm mt-1" style={{ color: "#9AA6BF" }}>
+                  Forever free
+                </div>
+              </div>
+              <ul className="space-y-3 mb-8">
+                {[
+                  "Financial Health Score",
+                  "SIP Calculator",
+                  "EMI Calculator",
+                  "Basic Policy Analyzer",
+                  "AI Chat (10 queries/day)",
+                ].map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-center gap-3 text-sm"
+                    style={{ color: "#9AA6BF" }}
+                  >
+                    <CheckCircle
+                      size={14}
+                      style={{ color: "#31E981", flexShrink: 0 }}
+                    />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                className="w-full ghost-btn py-3 rounded-xl text-sm font-medium"
+                onClick={() => navigate("/signup")}
+                data-ocid="pricing.free.button"
+              >
+                Get Started Free
+              </button>
+            </div>
+            {/* Pro Plan */}
+            <div
+              className="glass-card p-8 relative overflow-hidden"
+              style={{
+                border: "1px solid rgba(47,230,255,0.35)",
+                background: "rgba(47,230,255,0.04)",
+              }}
+            >
+              <div
+                className="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full"
+                style={{
+                  background: "linear-gradient(135deg,#2FE6FF,#7A3CFF)",
+                  color: "#fff",
+                }}
+              >
+                Most Popular
+              </div>
+              <div className="mb-6">
+                <div
+                  className="text-sm font-medium mb-1"
+                  style={{ color: "#2FE6FF" }}
+                >
+                  Pro Plan
+                </div>
+                <div className="text-4xl font-bold text-white">₹99</div>
+                <div className="text-sm mt-1" style={{ color: "#9AA6BF" }}>
+                  per month
+                </div>
+              </div>
+              <ul className="space-y-3 mb-8">
+                {[
+                  "Everything in Free",
+                  "Advanced AI Insights",
+                  "Full Policy Analyzer + IRR",
+                  "Portfolio Intelligence",
+                  "Goal-based Planning",
+                  "Tax Optimizer",
+                  "Unlimited AI Chat",
+                  "Priority Support",
+                ].map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-center gap-3 text-sm"
+                    style={{ color: "#C5D3E8" }}
+                  >
+                    <CheckCircle
+                      size={14}
+                      style={{ color: "#2FE6FF", flexShrink: 0 }}
+                    />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                className="w-full gradient-btn py-3 rounded-xl text-sm font-medium glow-cyan"
+                onClick={() => navigate("/signup")}
+                data-ocid="pricing.pro.button"
+              >
+                Upgrade to Pro
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-24 px-4 text-center relative overflow-hidden">
         <div
@@ -490,7 +640,7 @@ export default function LandingPageNew({ navigate }: Props) {
           <button
             type="button"
             className="gradient-btn px-10 py-4 rounded-xl text-lg flex items-center gap-2 mx-auto glow-cyan"
-            onClick={() => navigate("login")}
+            onClick={() => navigate("/signup")}
           >
             Get Started — It's Free <ChevronRight size={20} />
           </button>
@@ -518,30 +668,90 @@ export default function LandingPageNew({ navigate }: Props) {
                 Your personal financial decision engine, powered by AI.
               </p>
             </div>
-            {[
-              [
-                "Platform",
-                ["Dashboard", "Tools Hub", "AI Assistant", "Pricing"],
-              ],
-              ["Legal", ["Disclaimer", "Privacy Policy", "Terms of Use"]],
-              ["Company", ["About", "Contact", "Blog"]],
-            ].map(([title, links]) => (
-              <div key={title as string}>
-                <div className="font-semibold text-white text-sm mb-3">
-                  {title as string}
-                </div>
-                {(links as string[]).map((l) => (
-                  <button
-                    type="button"
-                    key={l}
-                    className="block text-xs mb-2"
-                    style={{ color: "#9AA6BF" }}
-                  >
-                    {l}
-                  </button>
-                ))}
+            <div>
+              <div className="font-semibold text-white text-sm mb-3">
+                Platform
               </div>
-            ))}
+              <Link
+                to="/dashboard"
+                className="block text-xs mb-2"
+                style={{ color: "#9AA6BF" }}
+                data-ocid="footer.dashboard_link"
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/tools"
+                className="block text-xs mb-2"
+                style={{ color: "#9AA6BF" }}
+                data-ocid="footer.tools_link"
+              >
+                Tools Hub
+              </Link>
+              <Link
+                to="/ai"
+                className="block text-xs mb-2"
+                style={{ color: "#9AA6BF" }}
+                data-ocid="footer.ai_link"
+              >
+                AI Assistant
+              </Link>
+              <a
+                href="#pricing"
+                className="block text-xs mb-2"
+                style={{ color: "#9AA6BF" }}
+              >
+                Pricing
+              </a>
+            </div>
+            <div>
+              <div className="font-semibold text-white text-sm mb-3">Legal</div>
+              <Link
+                to="/disclaimer"
+                className="block text-xs mb-2"
+                style={{ color: "#9AA6BF" }}
+                data-ocid="footer.disclaimer_link"
+              >
+                Disclaimer
+              </Link>
+              <Link
+                to="/privacy-policy"
+                className="block text-xs mb-2"
+                style={{ color: "#9AA6BF" }}
+                data-ocid="footer.privacy_link"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                to="/terms"
+                className="block text-xs mb-2"
+                style={{ color: "#9AA6BF" }}
+                data-ocid="footer.terms_link"
+              >
+                Terms of Use
+              </Link>
+            </div>
+            <div>
+              <div className="font-semibold text-white text-sm mb-3">
+                Company
+              </div>
+              <Link
+                to="/about"
+                className="block text-xs mb-2"
+                style={{ color: "#9AA6BF" }}
+                data-ocid="footer.about_link"
+              >
+                About
+              </Link>
+              <Link
+                to="/contact"
+                className="block text-xs mb-2"
+                style={{ color: "#9AA6BF" }}
+                data-ocid="footer.contact_link"
+              >
+                Contact
+              </Link>
+            </div>
           </div>
           <div
             className="pt-6"

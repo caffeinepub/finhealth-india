@@ -7,14 +7,13 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
-import { useState } from "react";
-import type { AppPage } from "../App";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
-interface Props {
-  navigate: (to: AppPage) => void;
-}
-
-export default function LoginPageNew({ navigate }: Props) {
+export default function LoginPageNew() {
+  const navigate = useNavigate();
+  const { login, isLoggedIn } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,23 +23,25 @@ export default function LoginPageNew({ navigate }: Props) {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
 
-  const mockLogin = (gName?: string, gEmail?: string) => {
-    const userId = `user_${Date.now()}`;
-    const userData = {
-      id: userId,
-      name: gName || name || email.split("@")[0] || "User",
+  useEffect(() => {
+    if (isLoggedIn) navigate("/dashboard", { replace: true });
+  }, [isLoggedIn, navigate]);
+
+  const doLogin = (gName?: string, gEmail?: string) => {
+    login({
+      name: gName || name || (email.split("@")[0] ?? "User"),
       email: gEmail || email,
-      loginType: gName ? "google" : "email",
-      plan: "free",
-      createdAt: new Date().toISOString(),
       income: 85000,
+      expenses: 52000,
       savings: 32000,
+      investments: 0,
+      goals: [],
+      kyc_status: "Pending",
+      plan: "free",
       riskProfile: "moderate",
-    };
-    localStorage.setItem("finhealth_logged_in", "true");
-    localStorage.setItem("finhealth_current_user_id", userId);
-    localStorage.setItem(`finhealth_user_${userId}`, JSON.stringify(userData));
-    navigate("app");
+      createdAt: new Date().toISOString(),
+    });
+    navigate("/dashboard");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -61,7 +62,7 @@ export default function LoginPageNew({ navigate }: Props) {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      mockLogin();
+      doLogin();
     }, 1200);
   };
 
@@ -69,7 +70,7 @@ export default function LoginPageNew({ navigate }: Props) {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      mockLogin("Demo User", "demo@gmail.com");
+      doLogin("Demo User", "demo@gmail.com");
     }, 1000);
   };
 
@@ -104,14 +105,14 @@ export default function LoginPageNew({ navigate }: Props) {
       </div>
 
       <div className="w-full max-w-md relative z-10">
-        <button
-          type="button"
+        <Link
+          to="/"
           className="flex items-center gap-2 mb-6 text-sm"
           style={{ color: "#9AA6BF" }}
-          onClick={() => navigate("landing")}
+          data-ocid="login.back_link"
         >
           <ArrowLeft size={16} /> Back to Home
-        </button>
+        </Link>
 
         <div className="glass-card p-8">
           {/* Logo */}
@@ -136,6 +137,7 @@ export default function LoginPageNew({ navigate }: Props) {
               border: "1px solid rgba(255,255,255,0.12)",
               color: "#F2F5FF",
             }}
+            data-ocid="login.google_button"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
               <path
@@ -172,7 +174,11 @@ export default function LoginPageNew({ navigate }: Props) {
             />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            data-ocid="login.modal"
+          >
             {mode === "signup" && (
               <div>
                 <div className="fin-label">Full Name</div>
@@ -188,6 +194,7 @@ export default function LoginPageNew({ navigate }: Props) {
                     placeholder="Your name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    data-ocid="login.name_input"
                   />
                 </div>
               </div>
@@ -207,6 +214,7 @@ export default function LoginPageNew({ navigate }: Props) {
                   placeholder="you@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  data-ocid="login.email_input"
                 />
               </div>
             </div>
@@ -225,6 +233,7 @@ export default function LoginPageNew({ navigate }: Props) {
                   placeholder="Min. 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  data-ocid="login.password_input"
                 />
                 <button
                   type="button"
@@ -244,16 +253,25 @@ export default function LoginPageNew({ navigate }: Props) {
                   className="mt-0.5"
                   checked={agreed}
                   onChange={(e) => setAgreed(e.target.checked)}
+                  data-ocid="login.terms_checkbox"
                 />
                 <span className="text-xs" style={{ color: "#9AA6BF" }}>
                   I agree to the{" "}
-                  <span className="underline" style={{ color: "#2FE6FF" }}>
+                  <Link
+                    to="/terms"
+                    className="underline"
+                    style={{ color: "#2FE6FF" }}
+                  >
                     Terms of Service
-                  </span>{" "}
+                  </Link>{" "}
                   and{" "}
-                  <span className="underline" style={{ color: "#2FE6FF" }}>
+                  <Link
+                    to="/privacy-policy"
+                    className="underline"
+                    style={{ color: "#2FE6FF" }}
+                  >
                     Privacy Policy
-                  </span>
+                  </Link>
                   . Platform outputs are for informational purposes only.
                 </span>
               </div>
@@ -263,6 +281,7 @@ export default function LoginPageNew({ navigate }: Props) {
               <p
                 className="text-xs text-red-400 py-2 px-3 rounded-lg"
                 style={{ background: "rgba(239,68,68,0.1)" }}
+                data-ocid="login.error_state"
               >
                 {error}
               </p>
@@ -272,6 +291,7 @@ export default function LoginPageNew({ navigate }: Props) {
               type="submit"
               disabled={loading}
               className="gradient-btn w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
+              data-ocid="login.submit_button"
             >
               {loading ? (
                 <>
@@ -305,6 +325,19 @@ export default function LoginPageNew({ navigate }: Props) {
               {mode === "login" ? "Sign up" : "Sign in"}
             </button>
           </div>
+
+          {mode === "login" && (
+            <div className="mt-2 text-center">
+              <Link
+                to="/signup"
+                className="text-xs"
+                style={{ color: "#2FE6FF" }}
+                data-ocid="login.signup_link"
+              >
+                New user? Create account →
+              </Link>
+            </div>
+          )}
         </div>
 
         <p className="text-center text-xs mt-4" style={{ color: "#9AA6BF" }}>
