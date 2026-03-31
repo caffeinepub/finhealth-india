@@ -64,6 +64,7 @@ import KycChecklistTab from "./components/KycChecklistTab";
 import LandingPage from "./components/LandingPage";
 import LifeStageRoadmapTab from "./components/LifeStageRoadmapTab";
 import LoanPrepaymentTab from "./components/LoanPrepaymentTab";
+import LoginPage from "./components/LoginPage";
 import MyAccountPage from "./components/MyAccountPage";
 import OnboardingWizard from "./components/OnboardingWizard";
 import PolicyAnalyzerTab from "./components/PolicyAnalyzerTab";
@@ -1069,7 +1070,7 @@ export default function App() {
   const [_showProfileMenu, _setShowProfileMenu] = useState(false);
   const [showMyAccount, setShowMyAccount] = useState(false);
   const [currentPage, setCurrentPage] = useState<
-    "home" | "app" | "advisory" | "financialai"
+    "home" | "app" | "advisory" | "financialai" | "login"
   >("home");
   const [_googleLoggedIn, setGoogleLoggedIn] = useState(false);
   const [googlePhotoURL, setGooglePhotoURL] = useState<string>("");
@@ -1089,6 +1090,16 @@ export default function App() {
 
   // Auto-login with Google if stored
   useEffect(() => {
+    const authSession = localStorage.getItem("finhealth_auth_session");
+    if (authSession) {
+      try {
+        JSON.parse(authSession);
+        setCurrentPage("app");
+        return;
+      } catch {
+        localStorage.removeItem("finhealth_auth_session");
+      }
+    }
     const gId = localStorage.getItem("finhealth_google_user_id");
     if (gId) {
       const raw = localStorage.getItem(`finhealth_user_${gId}`);
@@ -1543,6 +1554,16 @@ export default function App() {
         onMyAccount={() => setShowMyAccount(true)}
         onCloseMyAccount={() => setShowMyAccount(false)}
         onLogout={() => {
+          const authSession = localStorage.getItem("finhealth_auth_session");
+          if (authSession) {
+            try {
+              JSON.parse(authSession);
+              setCurrentPage("app");
+              return;
+            } catch {
+              localStorage.removeItem("finhealth_auth_session");
+            }
+          }
           const gId = localStorage.getItem("finhealth_google_user_id");
           if (gId) {
             localStorage.removeItem("finhealth_google_user_id");
@@ -1559,9 +1580,17 @@ export default function App() {
         setAnalysisSubTab={setAnalysisSubTab}
       />
 
+      {currentPage === "login" && (
+        <LoginPage
+          onLoginSuccess={() => setCurrentPage("app")}
+          onBack={() => setCurrentPage("home")}
+          initialMode="login"
+        />
+      )}
       {currentPage === "home" && (
         <LandingPage
-          onEnterApp={() => setCurrentPage("app")}
+          onEnterApp={() => setCurrentPage("login")}
+          onLogin={() => setCurrentPage("login")}
           onGoAdvisory={() => setCurrentPage("advisory")}
           onGoFinancialAI={() => setCurrentPage("financialai")}
         />

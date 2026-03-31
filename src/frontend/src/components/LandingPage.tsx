@@ -25,6 +25,7 @@ interface LandingPageProps {
   onEnterApp: () => void;
   onGoAdvisory: () => void;
   onGoFinancialAI?: () => void;
+  onLogin?: () => void;
 }
 
 const features = [
@@ -229,6 +230,7 @@ const aiFeatureCards = [
 export default function LandingPage({
   onEnterApp,
   onGoAdvisory: _onGoAdvisory,
+  onLogin,
   onGoFinancialAI,
 }: LandingPageProps) {
   return (
@@ -303,7 +305,7 @@ export default function LandingPage({
               <button
                 type="button"
                 data-ocid="landing.hero.login_button"
-                onClick={onEnterApp}
+                onClick={() => (onLogin != null ? onLogin() : onEnterApp())}
                 className="flex items-center gap-2 px-7 py-3.5 rounded-2xl text-sm font-semibold transition-all hover:bg-white/5"
                 style={{ color: "#EAF0F6", border: "1px solid #24303A" }}
               >

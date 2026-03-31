@@ -6,7 +6,8 @@ import {
   Menu,
   Save,
   Search,
-  Sparkles,
+  Shield,
+  Target,
   TrendingUp,
   X,
   Zap,
@@ -14,8 +15,10 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 interface GlobalNavProps {
-  currentPage: "home" | "app" | "advisory" | "financialai";
-  setCurrentPage: (page: "home" | "app" | "advisory" | "financialai") => void;
+  currentPage: "home" | "app" | "advisory" | "financialai" | "login";
+  setCurrentPage: (
+    page: "home" | "app" | "advisory" | "financialai" | "login",
+  ) => void;
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
   userProfile: { name: string } | null;
@@ -78,8 +81,7 @@ const SEARCH_ITEMS = [
   },
 ];
 
-// 4-step journey module keys
-type JourneyKey = "understand" | "analyze" | "improve" | "track";
+type NavDropdown = "tools" | "analysis" | null;
 
 interface DropdownItem {
   icon: React.ElementType;
@@ -87,7 +89,6 @@ interface DropdownItem {
   action: () => void;
 }
 
-// Dropdown panel styles
 const dropdownPanelStyle: React.CSSProperties = {
   position: "absolute",
   top: "calc(100% + 8px)",
@@ -104,10 +105,7 @@ const dropdownPanelStyle: React.CSSProperties = {
 function DropdownPanel({
   items,
   visible,
-}: {
-  items: DropdownItem[];
-  visible: boolean;
-}) {
+}: { items: DropdownItem[]; visible: boolean }) {
   return (
     <div
       style={{
@@ -130,7 +128,7 @@ function DropdownPanel({
               background: "none",
               border: "none",
               cursor: "pointer",
-              padding: "12px 16px",
+              padding: "11px 16px",
               textAlign: "left",
               color: "#EAF0F6",
               fontSize: 13,
@@ -149,14 +147,14 @@ function DropdownPanel({
               el.style.background = "none";
               el.style.color = "#EAF0F6";
               const iconEl = el.querySelector(".dd-icon") as HTMLElement | null;
-              if (iconEl) iconEl.style.color = "#9AA6B2";
+              if (iconEl) iconEl.style.color = "#6B7A8D";
             }}
           >
             <Icon
-              size={16}
+              size={15}
               className="dd-icon"
               style={{
-                color: "#9AA6B2",
+                color: "#6B7A8D",
                 flexShrink: 0,
                 transition: "color 150ms ease",
               }}
@@ -190,13 +188,11 @@ export default function GlobalNav({
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [openDropdown, setOpenDropdown] = useState<JourneyKey | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<NavDropdown>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLDivElement>(null);
-
-  // Hover-delay refs for dropdowns
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -244,68 +240,68 @@ export default function GlobalNav({
     setShowMobileMenu(false);
   }
 
-  // 4-step journey module dropdown configs
-  const journeyDropdownConfigs: Record<JourneyKey, DropdownItem[]> = {
-    understand: [
-      {
-        icon: FileText,
-        label: "Policy Analyzer",
-        action: () => navigate("app", "tools", "policy-analyzer"),
-      },
-    ],
-    analyze: [
-      {
-        icon: BarChart3,
-        label: "Portfolio",
-        action: () =>
-          navigate("app", "analysis", undefined, "financial-analysis"),
-      },
-    ],
-    improve: [
-      {
-        icon: Sparkles,
-        label: "Insights",
-        action: () =>
-          navigate("app", "analysis", undefined, "financial-analysis"),
-      },
-    ],
-    track: [
-      {
-        icon: TrendingUp,
-        label: "Dashboard",
-        action: () => navigate("app", "dashboard"),
-      },
-    ],
-  };
-
-  // Journey module labels
-  const journeyKeys: JourneyKey[] = [
-    "understand",
-    "analyze",
-    "improve",
-    "track",
+  const toolsItems: DropdownItem[] = [
+    {
+      icon: FileText,
+      label: "Policy Analyzer",
+      action: () => navigate("app", "tools", "policy-analyzer"),
+    },
+    {
+      icon: Target,
+      label: "Goal Planner",
+      action: () => navigate("app", "tools", "goal-planner"),
+    },
+    {
+      icon: TrendingUp,
+      label: "Loan Prepayment",
+      action: () => navigate("app", "tools", "loan"),
+    },
+    {
+      icon: BarChart3,
+      label: "Rebalancing",
+      action: () => navigate("app", "tools", "rebalancing"),
+    },
+    {
+      icon: Zap,
+      label: "Tax Optimizer",
+      action: () => navigate("app", "tools", "tax"),
+    },
   ];
 
-  const journeyLabelMap: Record<JourneyKey, string> = {
-    understand: "Understand",
-    analyze: "Analyze",
-    improve: "Improve",
-    track: "Track",
-  };
+  const analysisItems: DropdownItem[] = [
+    {
+      icon: TrendingUp,
+      label: "SIP Calculator",
+      action: () => navigate("app", "analysis", undefined, "sip-calculator"),
+    },
+    {
+      icon: Zap,
+      label: "Risk Profile",
+      action: () => navigate("app", "analysis", undefined, "risk-profile"),
+    },
+    {
+      icon: BarChart3,
+      label: "Financial Analysis",
+      action: () =>
+        navigate("app", "analysis", undefined, "financial-analysis"),
+    },
+    {
+      icon: Shield,
+      label: "Investor Protection",
+      action: () =>
+        navigate("app", "analysis", undefined, "investor-protection"),
+    },
+  ];
 
-  // Journey step icons for visual distinction
-  const journeyIconMap: Record<JourneyKey, string> = {
-    understand: "🔍",
-    analyze: "📊",
-    improve: "🧠",
-    track: "📈",
-  };
-
-  function isJourneyActive(key: JourneyKey) {
-    if (currentPage !== "app") return false;
-    if (key === "track") return activeTab === "dashboard";
-    if (key === "understand") return activeTab === "tools";
-    if (key === "analyze" || key === "improve") return activeTab === "analysis";
+  function isNavActive(key: string) {
+    if (key === "home") return currentPage === "home";
+    if (key === "dashboard")
+      return currentPage === "app" && activeTab === "dashboard";
+    if (key === "tools") return currentPage === "app" && activeTab === "tools";
+    if (key === "analysis")
+      return currentPage === "app" && activeTab === "analysis";
+    if (key === "reports")
+      return currentPage === "app" && activeTab === "reports";
     return false;
   }
 
@@ -331,7 +327,6 @@ export default function GlobalNav({
       }
       return;
     }
-
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedIndex((prev) => Math.min(prev + 1, filteredItems.length - 1));
@@ -350,7 +345,7 @@ export default function GlobalNav({
     }
   }
 
-  function handleDropdownMouseEnter(key: JourneyKey) {
+  function handleDropdownMouseEnter(key: NavDropdown) {
     if (leaveTimerRef.current) {
       clearTimeout(leaveTimerRef.current);
       leaveTimerRef.current = null;
@@ -370,48 +365,51 @@ export default function GlobalNav({
     }, 150);
   }
 
-  // Mobile nav links
-  const mobileNavLinks = [
-    {
-      label: "🔍 Understand",
-      action: () => {
-        onCloseMyAccount?.();
-        setCurrentPage("app");
-        setActiveTab?.("tools");
-        setToolsSubTab?.("policy-analyzer");
-        setShowMobileMenu(false);
-      },
-    },
-    {
-      label: "📊 Analyze",
-      action: () => {
-        onCloseMyAccount?.();
-        setCurrentPage("app");
-        setActiveTab?.("analysis");
-        setAnalysisSubTab?.("financial-analysis");
-        setShowMobileMenu(false);
-      },
-    },
-    {
-      label: "🧠 Improve",
-      action: () => {
-        onCloseMyAccount?.();
-        setCurrentPage("app");
-        setActiveTab?.("analysis");
-        setAnalysisSubTab?.("financial-analysis");
-        setShowMobileMenu(false);
-      },
-    },
-    {
-      label: "📈 Track",
-      action: () => {
-        onCloseMyAccount?.();
-        setCurrentPage("app");
-        setActiveTab?.("dashboard");
-        setShowMobileMenu(false);
-      },
-    },
-  ];
+  // Simple link button component
+  function NavLink({
+    label,
+    active,
+    onClick,
+    "data-ocid": ocid,
+  }: {
+    label: string;
+    active: boolean;
+    onClick: () => void;
+    "data-ocid": string;
+  }) {
+    return (
+      <button
+        type="button"
+        data-ocid={ocid}
+        onClick={onClick}
+        className="px-3 py-1.5 rounded-lg text-sm font-medium"
+        style={{
+          color: active ? "#B8FF4A" : "#9AA6B2",
+          fontWeight: active ? 600 : 500,
+          background: active ? "rgba(184,255,74,0.08)" : "transparent",
+          border: "none",
+          cursor: "pointer",
+          transition: "all 150ms ease",
+          whiteSpace: "nowrap",
+        }}
+        onMouseEnter={(e) => {
+          if (!active) {
+            (e.currentTarget as HTMLElement).style.color = "#B8FF4A";
+            (e.currentTarget as HTMLElement).style.background =
+              "rgba(184,255,74,0.06)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!active) {
+            (e.currentTarget as HTMLElement).style.color = "#9AA6B2";
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+          }
+        }}
+      >
+        {label}
+      </button>
+    );
+  }
 
   return (
     <>
@@ -430,7 +428,7 @@ export default function GlobalNav({
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-3">
-          {/* Left: Logo */}
+          {/* Logo */}
           <button
             type="button"
             data-ocid="nav.logo.button"
@@ -450,88 +448,153 @@ export default function GlobalNav({
             </span>
           </button>
 
-          {/* Center: Journey Module Nav (desktop) */}
+          {/* Center Nav (desktop) */}
           <nav ref={navRef} className="hidden md:flex items-center gap-0.5">
-            {/* Journey step number labels */}
-            {journeyKeys.map((key, idx) => (
-              <div
-                key={key}
-                style={{ position: "relative" }}
-                onMouseEnter={() => handleDropdownMouseEnter(key)}
-                onMouseLeave={handleDropdownMouseLeave}
-              >
-                <button
-                  type="button"
-                  data-ocid={`nav.${key}.link`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium"
-                  style={{
-                    color:
-                      isJourneyActive(key) || openDropdown === key
-                        ? "#B8FF4A"
-                        : "#9AA6B2",
-                    fontWeight:
-                      isJourneyActive(key) || openDropdown === key ? 700 : 500,
-                    background:
-                      isJourneyActive(key) || openDropdown === key
-                        ? "rgba(184,255,74,0.08)"
-                        : "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    transition: "all 150ms ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isJourneyActive(key) && openDropdown !== key) {
-                      (e.currentTarget as HTMLElement).style.color = "#B8FF4A";
-                      (e.currentTarget as HTMLElement).style.background =
-                        "rgba(184,255,74,0.06)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isJourneyActive(key) && openDropdown !== key) {
-                      (e.currentTarget as HTMLElement).style.color = "#9AA6B2";
-                      (e.currentTarget as HTMLElement).style.background =
-                        "transparent";
-                    }
-                  }}
-                >
-                  {/* Step badge */}
-                  <span
-                    className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold"
-                    style={{
-                      background:
-                        isJourneyActive(key) || openDropdown === key
-                          ? "#B8FF4A"
-                          : "rgba(184,255,74,0.15)",
-                      color:
-                        isJourneyActive(key) || openDropdown === key
-                          ? "#060A10"
-                          : "#B8FF4A",
-                    }}
-                  >
-                    {idx + 1}
-                  </span>
-                  <span className="hidden lg:inline">
-                    {journeyIconMap[key]}
-                  </span>
-                  {journeyLabelMap[key]}
-                  <ChevronDown
-                    size={12}
-                    style={{
-                      transition: "transform 180ms ease",
-                      transform:
-                        openDropdown === key
-                          ? "rotate(180deg)"
-                          : "rotate(0deg)",
-                    }}
-                  />
-                </button>
+            {/* Home */}
+            <NavLink
+              label="Home"
+              active={isNavActive("home")}
+              onClick={() => setCurrentPage("home")}
+              data-ocid="nav.home.link"
+            />
 
-                <DropdownPanel
-                  items={journeyDropdownConfigs[key]}
-                  visible={openDropdown === key}
+            {/* Dashboard */}
+            <NavLink
+              label="Dashboard"
+              active={isNavActive("dashboard")}
+              onClick={() => navigate("app", "dashboard")}
+              data-ocid="nav.dashboard.link"
+            />
+
+            {/* Tools dropdown */}
+            <div
+              style={{ position: "relative" }}
+              onMouseEnter={() => handleDropdownMouseEnter("tools")}
+              onMouseLeave={handleDropdownMouseLeave}
+            >
+              <button
+                type="button"
+                data-ocid="nav.tools.link"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium"
+                style={{
+                  color:
+                    isNavActive("tools") || openDropdown === "tools"
+                      ? "#B8FF4A"
+                      : "#9AA6B2",
+                  fontWeight:
+                    isNavActive("tools") || openDropdown === "tools"
+                      ? 600
+                      : 500,
+                  background:
+                    isNavActive("tools") || openDropdown === "tools"
+                      ? "rgba(184,255,74,0.08)"
+                      : "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 150ms ease",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isNavActive("tools") && openDropdown !== "tools") {
+                    (e.currentTarget as HTMLElement).style.color = "#B8FF4A";
+                    (e.currentTarget as HTMLElement).style.background =
+                      "rgba(184,255,74,0.06)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isNavActive("tools") && openDropdown !== "tools") {
+                    (e.currentTarget as HTMLElement).style.color = "#9AA6B2";
+                    (e.currentTarget as HTMLElement).style.background =
+                      "transparent";
+                  }
+                }}
+              >
+                Tools
+                <ChevronDown
+                  size={13}
+                  style={{
+                    transition: "transform 180ms ease",
+                    transform:
+                      openDropdown === "tools"
+                        ? "rotate(180deg)"
+                        : "rotate(0deg)",
+                  }}
                 />
-              </div>
-            ))}
+              </button>
+              <DropdownPanel
+                items={toolsItems}
+                visible={openDropdown === "tools"}
+              />
+            </div>
+
+            {/* Analysis dropdown */}
+            <div
+              style={{ position: "relative" }}
+              onMouseEnter={() => handleDropdownMouseEnter("analysis")}
+              onMouseLeave={handleDropdownMouseLeave}
+            >
+              <button
+                type="button"
+                data-ocid="nav.analysis.link"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium"
+                style={{
+                  color:
+                    isNavActive("analysis") || openDropdown === "analysis"
+                      ? "#B8FF4A"
+                      : "#9AA6B2",
+                  fontWeight:
+                    isNavActive("analysis") || openDropdown === "analysis"
+                      ? 600
+                      : 500,
+                  background:
+                    isNavActive("analysis") || openDropdown === "analysis"
+                      ? "rgba(184,255,74,0.08)"
+                      : "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 150ms ease",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isNavActive("analysis") && openDropdown !== "analysis") {
+                    (e.currentTarget as HTMLElement).style.color = "#B8FF4A";
+                    (e.currentTarget as HTMLElement).style.background =
+                      "rgba(184,255,74,0.06)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isNavActive("analysis") && openDropdown !== "analysis") {
+                    (e.currentTarget as HTMLElement).style.color = "#9AA6B2";
+                    (e.currentTarget as HTMLElement).style.background =
+                      "transparent";
+                  }
+                }}
+              >
+                Analysis
+                <ChevronDown
+                  size={13}
+                  style={{
+                    transition: "transform 180ms ease",
+                    transform:
+                      openDropdown === "analysis"
+                        ? "rotate(180deg)"
+                        : "rotate(0deg)",
+                  }}
+                />
+              </button>
+              <DropdownPanel
+                items={analysisItems}
+                visible={openDropdown === "analysis"}
+              />
+            </div>
+
+            {/* Reports */}
+            <NavLink
+              label="Reports"
+              active={isNavActive("reports")}
+              onClick={() => navigate("app", "reports")}
+              data-ocid="nav.reports.link"
+            />
           </nav>
 
           {/* Search bar (desktop) */}
@@ -661,7 +724,7 @@ export default function GlobalNav({
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2">
-            {/* Save button (app page only) */}
+            {/* Save button */}
             {currentPage === "app" && onSave && (
               <button
                 type="button"
@@ -696,11 +759,8 @@ export default function GlobalNav({
                   background: showProfileMenu
                     ? "rgba(184,255,74,0.12)"
                     : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${
-                    showProfileMenu ? "rgba(184,255,74,0.3)" : "#24303A"
-                  }`,
+                  border: `1px solid ${showProfileMenu ? "rgba(184,255,74,0.3)" : "#24303A"}`,
                   cursor: "pointer",
-                  transform: "scale(1)",
                   transition: "transform 150ms ease",
                 }}
                 onMouseEnter={(e) => {
@@ -752,6 +812,7 @@ export default function GlobalNav({
 
               {showProfileMenu && (
                 <div
+                  data-ocid="profile.dropdown_menu"
                   className="absolute right-0 top-full mt-2 z-50 py-1 min-w-[160px]"
                   style={{
                     background: "#0F141B",
@@ -759,7 +820,6 @@ export default function GlobalNav({
                     borderRadius: 12,
                     boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
                   }}
-                  data-ocid="profile.dropdown_menu"
                 >
                   <button
                     type="button"
@@ -832,7 +892,7 @@ export default function GlobalNav({
               type="button"
               data-ocid="nav.hamburger.button"
               onClick={() => setShowMobileMenu((v) => !v)}
-              className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl transition-all"
+              className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl"
               style={{
                 background: showMobileMenu
                   ? "rgba(184,255,74,0.12)"
@@ -847,7 +907,7 @@ export default function GlobalNav({
           </div>
         </div>
 
-        {/* Mobile menu dropdown */}
+        {/* Mobile menu */}
         {showMobileMenu && (
           <div
             style={{
@@ -889,7 +949,6 @@ export default function GlobalNav({
               />
             </div>
 
-            {/* Mobile search results */}
             {filteredItems.length > 0 && (
               <div
                 style={{
@@ -924,50 +983,65 @@ export default function GlobalNav({
               </div>
             )}
 
-            {/* 4-step journey journey nav */}
-            <div className="mb-3">
-              <div
-                className="text-xs font-semibold mb-2 px-2"
-                style={{ color: "#4A5568" }}
-              >
-                JOURNEY
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {mobileNavLinks.map((link, idx) => (
-                  <button
-                    key={link.label}
-                    type="button"
-                    onClick={link.action}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-                    style={{
-                      background: "rgba(184,255,74,0.05)",
-                      border: "1px solid rgba(184,255,74,0.15)",
-                      color: "#EAF0F6",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <span
-                      className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold flex-shrink-0"
-                      style={{
-                        background: "rgba(184,255,74,0.15)",
-                        color: "#B8FF4A",
-                      }}
-                    >
-                      {idx + 1}
-                    </span>
-                    {link.label}
-                  </button>
-                ))}
-              </div>
+            {/* Mobile nav links */}
+            <div className="flex flex-col gap-1 mb-3">
+              {[
+                {
+                  label: "🏠 Home",
+                  action: () => {
+                    onCloseMyAccount?.();
+                    setCurrentPage("home");
+                    setShowMobileMenu(false);
+                  },
+                },
+                {
+                  label: "📊 Dashboard",
+                  action: () => navigate("app", "dashboard"),
+                },
+                {
+                  label: "📋 Policy Analyzer",
+                  action: () => navigate("app", "tools", "policy-analyzer"),
+                },
+                {
+                  label: "🎯 Goal Planner",
+                  action: () => navigate("app", "tools", "goal-planner"),
+                },
+                {
+                  label: "📈 SIP Calculator",
+                  action: () =>
+                    navigate("app", "analysis", undefined, "sip-calculator"),
+                },
+                {
+                  label: "⚡ Risk Profile",
+                  action: () =>
+                    navigate("app", "analysis", undefined, "risk-profile"),
+                },
+                {
+                  label: "📄 Reports",
+                  action: () => navigate("app", "reports"),
+                },
+              ].map((link) => (
+                <button
+                  key={link.label}
+                  type="button"
+                  onClick={link.action}
+                  className="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
+                  style={{
+                    color: "#EAF0F6",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid transparent",
+                    cursor: "pointer",
+                  }}
+                >
+                  {link.label}
+                </button>
+              ))}
             </div>
 
             <div
-              style={{
-                height: 1,
-                background: "#24303A",
-                margin: "8px 0",
-              }}
+              style={{ height: 1, background: "#24303A", margin: "8px 0" }}
             />
+
             {currentPage === "app" && onSave && (
               <button
                 type="button"
