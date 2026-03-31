@@ -51,6 +51,7 @@ import ClientChatBox from "./components/ClientChatBox";
 import ContactModal from "./components/ContactModal";
 import DashboardInsights from "./components/DashboardInsights";
 import DnaReportTab from "./components/DnaReportTab";
+import FinancialAIPage from "./components/FinancialAIPage";
 import FinancialIntelligencePanel from "./components/FinancialIntelligencePanel";
 import GlobalNav from "./components/GlobalNav";
 import GoalPlannerTab from "./components/GoalPlannerTab";
@@ -1066,9 +1067,9 @@ export default function App() {
   const [showTerms, setShowTerms] = useState(false);
   const [_showProfileMenu, _setShowProfileMenu] = useState(false);
   const [showMyAccount, setShowMyAccount] = useState(false);
-  const [currentPage, setCurrentPage] = useState<"home" | "app" | "advisory">(
-    "home",
-  );
+  const [currentPage, setCurrentPage] = useState<
+    "home" | "app" | "advisory" | "financialai"
+  >("home");
   const [_googleLoggedIn, setGoogleLoggedIn] = useState(false);
   const [googlePhotoURL, setGooglePhotoURL] = useState<string>("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -1550,6 +1551,7 @@ export default function App() {
         <LandingPage
           onEnterApp={() => setCurrentPage("app")}
           onGoAdvisory={() => setCurrentPage("advisory")}
+          onGoFinancialAI={() => setCurrentPage("financialai")}
         />
       )}
       {currentPage === "advisory" && (
@@ -1562,6 +1564,9 @@ export default function App() {
             onOpenChat={() => setCurrentPage("app")}
           />
         </>
+      )}
+      {currentPage === "financialai" && (
+        <FinancialAIPage onBack={() => setCurrentPage("home")} />
       )}
       {currentPage === "app" && (
         <>

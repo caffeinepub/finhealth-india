@@ -20,9 +20,11 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 
+import TrustCounter from "./TrustCounter";
 interface LandingPageProps {
   onEnterApp: () => void;
   onGoAdvisory: () => void;
+  onGoFinancialAI?: () => void;
 }
 
 const features = [
@@ -227,6 +229,7 @@ const aiFeatureCards = [
 export default function LandingPage({
   onEnterApp,
   onGoAdvisory: _onGoAdvisory,
+  onGoFinancialAI,
 }: LandingPageProps) {
   return (
     <div
@@ -346,6 +349,7 @@ export default function LandingPage({
         </div>
       </section>
 
+      <TrustCounter />
       {/* FinancialAI Experience Showcase */}
       <section className="py-24 sm:py-32 relative overflow-hidden">
         <div
@@ -1395,9 +1399,25 @@ export default function LandingPage({
               FinHealth India
             </span>
           </div>
-          <p className="text-xs text-center" style={{ color: "#9AA6B2" }}>
-            For educational purposes only. Not investment advice.
-          </p>
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-xs text-center" style={{ color: "#9AA6B2" }}>
+              For educational purposes only. Not investment advice.
+            </p>
+            <button
+              type="button"
+              onClick={() => onGoFinancialAI?.()}
+              className="text-xs underline underline-offset-2 transition-colors duration-150"
+              style={{
+                color: "#B8FF4A",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+              }}
+              data-ocid="footer.financialai_disclaimer.link"
+            >
+              FinancialAI Disclaimer
+            </button>
+          </div>
           <p className="text-xs" style={{ color: "#9AA6B2" }}>
             © {new Date().getFullYear()}. Built with ❤️ using{" "}
             <a

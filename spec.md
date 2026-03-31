@@ -1,32 +1,39 @@
 # FinHealth India
 
 ## Current State
-The app has a full LandingPage.tsx with hero, problems, solutions, features grid, market insights, pricing, and CTA sections. The Policy Analyzer (PolicyAnalyzerTab.tsx) is already fully implemented with IRR calculation, comparisons, and verdicts. The Dashboard (FinancialIntelligencePanel.tsx) has FinHealth Score, Money Loss Tracker, Goals, and Alerts.
+
+The app uses a `currentPage` state with values `"home" | "app" | "advisory"` to switch between pages. Navigation is handled by `GlobalNav`. The landing page (`LandingPage.tsx`) has a footer and CTAs. The Advisory page (`AdvisoryPage.tsx`) is a separate full-page component. There is no dedicated disclaimer/legal page for FinancialAI's positioning.
 
 ## Requested Changes (Diff)
 
 ### Add
-- A new dedicated **FinancialAI Feature Showcase** section on the Landing Page, positioned after the hero and before the existing problem section. This section announces the "Complete FinancialAI Experience" with:
-  - Intro banner: "Your platform just got significantly more powerful"
-  - 5 feature highlight cards with icons, titles, descriptions, and CTAs:
-    1. Policy Analyzer — Know the Truth (CTA: Upload Your Policy)
-    2. Wealth Dashboard — See Everything Together (asset list: MF, Stocks, FD, Real Estate, Insurance)
-    3. Portfolio Intelligence — Go Beyond Returns (XIRR, rebalancing signals)
-    4. AI Financial Insights — Your Smart Advisor (detect low-return products, optimization)
-    5. Goal-Based Planning — Build Your Future (retirement, home, education)
-  - "Why This Changes Everything" differentiator block (Track OR Sell vs Understand+Evaluate+Improve)
-  - "The Complete Package" summary block
-  - Three CTA buttons: Upload Your Policy, Explore Dashboard, Start Your Analysis
-  - Final tagline: "FinancialAI — From Confusion to Complete Control."
+- New page component: `FinancialAIPage.tsx` — a full-page legal/compliance disclosure for FinancialAI
+  - Hero section: "FinancialAI — Data, Insights, and Clarity (Not Advice)" with tagline
+  - Scope section: what FinancialAI provides (document analysis, portfolio metrics, IRR/XIRR, forecasts, AI insights)
+  - Important Clarification section: NOT a financial/investment/insurance advisor or portfolio manager
+  - No Guarantees section: no returns guaranteed, projections indicative only
+  - Nature of Insights section: informational, educational, not intended to direct decisions
+  - User Responsibility section: user is solely responsible, must consult professionals
+  - Data Usage & Privacy section: data processed for analysis only, no selling, deletion on request
+  - Compliance Positioning section: technology-driven platform, no regulated activities
+  - Platform Philosophy section: simplify complexity, present clearly, enable understanding
+  - Final Statement banner: "FinancialAI — From Data to Understanding. Decisions remain yours."
+- Extend `currentPage` type to include `"financialai"` in App.tsx
+- Add conditional render for `currentPage === "financialai"` in App.tsx
+- Add "FinancialAI" or "Disclaimer" link in the landing page footer and/or GlobalNav to navigate to this page
+- Pass `setCurrentPage` to `LandingPage` footer so it can link to the new page
 
 ### Modify
-- LandingPage.tsx: Insert the new FinancialAI showcase section after the hero
+- `App.tsx`: extend page type and add render branch for `"financialai"` page
+- `LandingPage.tsx`: add a footer link "FinancialAI Disclaimer" that sets page to `"financialai"`
+- `GlobalNav.tsx`: optionally add a footer link or update sitemap to include the new page
 
 ### Remove
-- Nothing
+- Nothing removed
 
 ## Implementation Plan
-1. Add the FinancialAI showcase section inside LandingPage.tsx after the hero section
-2. Each feature card should link/navigate to the respective tool (onEnterApp with tab targeting or just onEnterApp)
-3. Style consistent with existing dark theme (#060A10, accent #B8FF4A), card-based, smooth animations with motion/react
-4. The three CTA buttons at the bottom should call onEnterApp()
+
+1. Create `src/frontend/src/components/FinancialAIPage.tsx` with all content sections using dark theme (#060A10), accent (#B8FF4A), card-based layout
+2. Update `App.tsx` to extend `currentPage` type to `"home" | "app" | "advisory" | "financialai"` and add the render branch with BackButton pointing back to home
+3. Update `LandingPage.tsx` footer to include a "FinancialAI" or "About FinancialAI" link
+4. Pass `onGoFinancialAI` callback prop from App.tsx → LandingPage.tsx (or use a shared setter)

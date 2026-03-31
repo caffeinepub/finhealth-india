@@ -1,9 +1,25 @@
-import { Loader2, Menu, Save, Search, X, Zap } from "lucide-react";
+import {
+  BarChart3,
+  ChevronDown,
+  Download,
+  FileText,
+  Loader2,
+  Menu,
+  PieChart,
+  Save,
+  Search,
+  Shield,
+  Sparkles,
+  Target,
+  TrendingUp,
+  X,
+  Zap,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface GlobalNavProps {
-  currentPage: "home" | "app" | "advisory";
-  setCurrentPage: (page: "home" | "app" | "advisory") => void;
+  currentPage: "home" | "app" | "advisory" | "financialai";
+  setCurrentPage: (page: "home" | "app" | "advisory" | "financialai") => void;
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
   userProfile: { name: string } | null;
@@ -66,6 +82,96 @@ const SEARCH_ITEMS = [
   },
 ];
 
+type DropdownKey = "tools" | "analysis" | "reports";
+
+interface DropdownItem {
+  icon: React.ElementType;
+  label: string;
+  action: () => void;
+}
+
+// Dropdown panel styles
+const dropdownPanelStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "calc(100% + 8px)",
+  left: 0,
+  minWidth: 200,
+  background: "#0D1420",
+  border: "1px solid #24303A",
+  borderRadius: 12,
+  boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
+  zIndex: 150,
+  overflow: "hidden",
+};
+
+function DropdownPanel({
+  items,
+  visible,
+}: {
+  items: DropdownItem[];
+  visible: boolean;
+}) {
+  return (
+    <div
+      style={{
+        ...dropdownPanelStyle,
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(-8px)",
+        pointerEvents: visible ? "auto" : "none",
+        transition: "opacity 180ms ease-out, transform 180ms ease-out",
+      }}
+    >
+      {items.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.label}
+            type="button"
+            onClick={item.action}
+            className="w-full flex items-center gap-3"
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "12px 16px",
+              textAlign: "left",
+              color: "#EAF0F6",
+              fontSize: 13,
+              fontWeight: 500,
+              transition: "all 150ms ease",
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "rgba(184,255,74,0.08)";
+              el.style.color = "#B8FF4A";
+              const iconEl = el.querySelector(".dd-icon") as HTMLElement | null;
+              if (iconEl) iconEl.style.color = "#B8FF4A";
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget as HTMLElement;
+              el.style.background = "none";
+              el.style.color = "#EAF0F6";
+              const iconEl = el.querySelector(".dd-icon") as HTMLElement | null;
+              if (iconEl) iconEl.style.color = "#9AA6B2";
+            }}
+          >
+            <Icon
+              size={16}
+              className="dd-icon"
+              style={{
+                color: "#9AA6B2",
+                flexShrink: 0,
+                transition: "color 150ms ease",
+              }}
+            />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function GlobalNav({
   currentPage,
   setCurrentPage,
@@ -86,8 +192,16 @@ export default function GlobalNav({
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [openDropdown, setOpenDropdown] = useState<DropdownKey | null>(null);
+
   const profileRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+
+  // Hover-delay refs for dropdowns
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const displayName = userProfile?.name ?? shortPrincipal;
   const initial = displayName.charAt(0).toUpperCase();
@@ -108,13 +222,184 @@ export default function GlobalNav({
       }
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowSearchDropdown(false);
+        setSelectedIndex(-1);
+      }
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const navLinks = [
+  function navigate(
+    page: "home" | "app" | "advisory",
+    tab?: string,
+    toolsTab?: string,
+    analysisTab?: string,
+  ) {
+    onCloseMyAccount?.();
+    setCurrentPage(page);
+    if (tab) setActiveTab?.(tab);
+    if (toolsTab) setToolsSubTab?.(toolsTab);
+    if (analysisTab) setAnalysisSubTab?.(analysisTab);
+    setOpenDropdown(null);
+    setShowMobileMenu(false);
+  }
+
+  // Dropdown configs
+  const dropdownConfigs: Record<DropdownKey, DropdownItem[]> = {
+    tools: [
+      {
+        icon: FileText,
+        label: "Policy Analyzer",
+        action: () => navigate("app", "tools", "policy-analyzer"),
+      },
+      {
+        icon: TrendingUp,
+        label: "SIP Calculator",
+        action: () => navigate("app", "analysis", undefined, "sip-calculator"),
+      },
+      {
+        icon: Target,
+        label: "Goal Planner",
+        action: () => navigate("app", "tools", "goal-planner"),
+      },
+    ],
+    analysis: [
+      {
+        icon: BarChart3,
+        label: "Portfolio Analysis",
+        action: () =>
+          navigate("app", "analysis", undefined, "financial-analysis"),
+      },
+      {
+        icon: Shield,
+        label: "Risk Analysis",
+        action: () => navigate("app", "analysis", undefined, "risk-profile"),
+      },
+      {
+        icon: PieChart,
+        label: "Asset Allocation",
+        action: () =>
+          navigate("app", "analysis", undefined, "financial-analysis"),
+      },
+    ],
+    reports: [
+      {
+        icon: FileText,
+        label: "All Reports",
+        action: () => navigate("app", "reports"),
+      },
+      {
+        icon: Download,
+        label: "Download Reports",
+        action: () => navigate("app", "reports"),
+      },
+      {
+        icon: Sparkles,
+        label: "Insights",
+        action: () => navigate("app", "dashboard"),
+      },
+    ],
+  };
+
+  // Desktop nav: base links (non-dropdown)
+  const staticNavLinks = [
+    {
+      label: "Home",
+      action: () => navigate("home"),
+    },
+    {
+      label: "Dashboard",
+      action: () => navigate("app", "dashboard"),
+    },
+  ];
+
+  // Dropdown trigger labels
+  const dropdownLabels: DropdownKey[] = ["tools", "analysis", "reports"];
+
+  function isLinkActive(label: string) {
+    if (label === "Home") return currentPage === "home";
+    if (currentPage !== "app") return false;
+    const tabMap: Record<string, string> = {
+      Dashboard: "dashboard",
+      tools: "tools",
+      analysis: "analysis",
+      reports: "reports",
+    };
+    return activeTab === tabMap[label];
+  }
+
+  function handleSearchNavigate(item: (typeof SEARCH_ITEMS)[0]) {
+    onCloseMyAccount?.();
+    setCurrentPage("app");
+    setActiveTab?.(item.tab);
+    if (item.subTab) {
+      if (item.tab === "tools") setToolsSubTab?.(item.subTab);
+      if (item.tab === "analysis") setAnalysisSubTab?.(item.subTab);
+    }
+    setSearchQuery("");
+    setShowSearchDropdown(false);
+    setSelectedIndex(-1);
+  }
+
+  function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showSearchDropdown || filteredItems.length === 0) {
+      if (e.key === "Escape") {
+        setSearchQuery("");
+        setShowSearchDropdown(false);
+        setSelectedIndex(-1);
+      }
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => Math.min(prev + 1, filteredItems.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (selectedIndex >= 0 && selectedIndex < filteredItems.length) {
+        handleSearchNavigate(filteredItems[selectedIndex]);
+      }
+    } else if (e.key === "Escape") {
+      setSearchQuery("");
+      setShowSearchDropdown(false);
+      setSelectedIndex(-1);
+    }
+  }
+
+  function handleDropdownMouseEnter(key: DropdownKey) {
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+    hoverTimerRef.current = setTimeout(() => {
+      setOpenDropdown(key);
+    }, 150);
+  }
+
+  function handleDropdownMouseLeave() {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    leaveTimerRef.current = setTimeout(() => {
+      setOpenDropdown(null);
+    }, 150);
+  }
+
+  const dropdownLabelMap: Record<DropdownKey, string> = {
+    tools: "Tools",
+    analysis: "Analysis",
+    reports: "Reports",
+  };
+
+  // Mobile nav links (all flat)
+  const mobileNavLinks = [
     {
       label: "Home",
       action: () => {
@@ -161,30 +446,6 @@ export default function GlobalNav({
     },
   ];
 
-  function isLinkActive(label: string) {
-    if (label === "Home") return currentPage === "home";
-    if (currentPage !== "app") return false;
-    const tabMap: Record<string, string> = {
-      Dashboard: "dashboard",
-      Tools: "tools",
-      Analysis: "analysis",
-      Reports: "reports",
-    };
-    return activeTab === tabMap[label];
-  }
-
-  function handleSearchNavigate(item: (typeof SEARCH_ITEMS)[0]) {
-    onCloseMyAccount?.();
-    setCurrentPage("app");
-    setActiveTab?.(item.tab);
-    if (item.subTab) {
-      if (item.tab === "tools") setToolsSubTab?.(item.subTab);
-      if (item.tab === "analysis") setAnalysisSubTab?.(item.subTab);
-    }
-    setSearchQuery("");
-    setShowSearchDropdown(false);
-  }
-
   return (
     <>
       <header
@@ -223,14 +484,15 @@ export default function GlobalNav({
           </button>
 
           {/* Center: Nav links (desktop) */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+          <nav ref={navRef} className="hidden md:flex items-center gap-1">
+            {/* Static links: Home, Dashboard */}
+            {staticNavLinks.map((link) => (
               <button
                 key={link.label}
                 type="button"
                 data-ocid={`nav.${link.label.toLowerCase()}.link`}
                 onClick={link.action}
-                className="px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
+                className="px-3 py-1.5 rounded-xl text-sm font-medium"
                 style={{
                   color: isLinkActive(link.label) ? "#B8FF4A" : "#9AA6B2",
                   fontWeight: isLinkActive(link.label) ? 700 : 500,
@@ -239,10 +501,98 @@ export default function GlobalNav({
                     : "transparent",
                   border: "none",
                   cursor: "pointer",
+                  transition: "all 150ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLinkActive(link.label)) {
+                    (e.currentTarget as HTMLElement).style.color = "#B8FF4A";
+                    (e.currentTarget as HTMLElement).style.background =
+                      "rgba(184,255,74,0.06)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLinkActive(link.label)) {
+                    (e.currentTarget as HTMLElement).style.color = "#9AA6B2";
+                    (e.currentTarget as HTMLElement).style.background =
+                      "transparent";
+                  }
                 }}
               >
                 {link.label}
               </button>
+            ))}
+
+            {/* Dropdown nav links: Tools, Analysis, Reports */}
+            {dropdownLabels.map((key) => (
+              <div
+                key={key}
+                style={{ position: "relative" }}
+                onMouseEnter={() => handleDropdownMouseEnter(key)}
+                onMouseLeave={handleDropdownMouseLeave}
+              >
+                <button
+                  type="button"
+                  data-ocid={`nav.${key}.link`}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium"
+                  style={{
+                    color:
+                      isLinkActive(dropdownLabelMap[key]) ||
+                      openDropdown === key
+                        ? "#B8FF4A"
+                        : "#9AA6B2",
+                    fontWeight:
+                      isLinkActive(dropdownLabelMap[key]) ||
+                      openDropdown === key
+                        ? 700
+                        : 500,
+                    background:
+                      isLinkActive(dropdownLabelMap[key]) ||
+                      openDropdown === key
+                        ? "rgba(184,255,74,0.08)"
+                        : "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 150ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (
+                      !isLinkActive(dropdownLabelMap[key]) &&
+                      openDropdown !== key
+                    ) {
+                      (e.currentTarget as HTMLElement).style.color = "#B8FF4A";
+                      (e.currentTarget as HTMLElement).style.background =
+                        "rgba(184,255,74,0.06)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (
+                      !isLinkActive(dropdownLabelMap[key]) &&
+                      openDropdown !== key
+                    ) {
+                      (e.currentTarget as HTMLElement).style.color = "#9AA6B2";
+                      (e.currentTarget as HTMLElement).style.background =
+                        "transparent";
+                    }
+                  }}
+                >
+                  {dropdownLabelMap[key]}
+                  <ChevronDown
+                    size={13}
+                    style={{
+                      transition: "transform 180ms ease",
+                      transform:
+                        openDropdown === key
+                          ? "rotate(180deg)"
+                          : "rotate(0deg)",
+                    }}
+                  />
+                </button>
+
+                <DropdownPanel
+                  items={dropdownConfigs[key]}
+                  visible={openDropdown === key}
+                />
+              </div>
             ))}
           </nav>
 
@@ -274,8 +624,10 @@ export default function GlobalNav({
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
+                  setSelectedIndex(-1);
                   setShowSearchDropdown(true);
                 }}
+                onKeyDown={handleSearchKeyDown}
                 style={{
                   background: "none",
                   border: "none",
@@ -291,6 +643,7 @@ export default function GlobalNav({
                   onClick={() => {
                     setSearchQuery("");
                     setShowSearchDropdown(false);
+                    setSelectedIndex(-1);
                   }}
                   style={{
                     background: "none",
@@ -322,28 +675,40 @@ export default function GlobalNav({
                   overflow: "hidden",
                 }}
               >
-                {filteredItems.map((item) => (
+                {filteredItems.map((item, idx) => (
                   <button
                     key={item.label}
                     type="button"
                     onClick={() => handleSearchNavigate(item)}
                     className="w-full flex items-center gap-2 px-3 py-2.5 text-sm transition-all"
                     style={{
-                      background: "none",
-                      border: "none",
+                      background:
+                        idx === selectedIndex
+                          ? "rgba(184,255,74,0.12)"
+                          : "none",
+                      borderLeft:
+                        idx === selectedIndex
+                          ? "2px solid #B8FF4A"
+                          : "2px solid transparent",
                       cursor: "pointer",
-                      color: "#EAF0F6",
+                      color: idx === selectedIndex ? "#B8FF4A" : "#EAF0F6",
                       textAlign: "left",
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.background =
-                        "rgba(184,255,74,0.08)";
-                      (e.currentTarget as HTMLElement).style.color = "#B8FF4A";
+                      if (idx !== selectedIndex) {
+                        (e.currentTarget as HTMLElement).style.background =
+                          "rgba(184,255,74,0.08)";
+                        (e.currentTarget as HTMLElement).style.color =
+                          "#B8FF4A";
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.background =
-                        "none";
-                      (e.currentTarget as HTMLElement).style.color = "#EAF0F6";
+                      if (idx !== selectedIndex) {
+                        (e.currentTarget as HTMLElement).style.background =
+                          "none";
+                        (e.currentTarget as HTMLElement).style.color =
+                          "#EAF0F6";
+                      }
                     }}
                   >
                     <span style={{ fontSize: 14 }}>{item.icon}</span>
@@ -397,6 +762,15 @@ export default function GlobalNav({
                     showProfileMenu ? "rgba(184,255,74,0.3)" : "#24303A"
                   }`,
                   cursor: "pointer",
+                  transform: "scale(1)",
+                  transition: "transform 150ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.transform =
+                    "scale(1.02)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.transform = "scale(1)";
                 }}
               >
                 <div
@@ -542,6 +916,8 @@ export default function GlobalNav({
               background: "rgba(6,10,16,0.98)",
               borderBottom: "1px solid #24303A",
               padding: "12px 16px 16px",
+              maxHeight: "calc(100vh - 64px)",
+              overflowY: "auto",
             }}
           >
             {/* Mobile search */}
@@ -611,7 +987,7 @@ export default function GlobalNav({
             )}
 
             <div className="flex flex-col gap-1">
-              {navLinks.map((link) => (
+              {mobileNavLinks.map((link) => (
                 <button
                   key={link.label}
                   type="button"
@@ -634,8 +1010,47 @@ export default function GlobalNav({
                   {link.label}
                 </button>
               ))}
+
+              {/* Mobile dropdown items for Tools */}
               <div
-                style={{ height: 1, background: "#24303A", margin: "8px 0" }}
+                style={{
+                  borderLeft: "2px solid rgba(184,255,74,0.2)",
+                  marginLeft: 16,
+                  paddingLeft: 12,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                }}
+              >
+                {dropdownConfigs.tools.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.action}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#9AA6B2",
+                        textAlign: "left",
+                      }}
+                    >
+                      <Icon size={13} style={{ color: "#9AA6B2" }} />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  height: 1,
+                  background: "#24303A",
+                  margin: "8px 0",
+                }}
               />
               {currentPage === "app" && onSave && (
                 <button
