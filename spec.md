@@ -1,45 +1,45 @@
-# FinHealth India – Legal, Compliance & Usage Framework
+# FinHealth India — Guided Journey Architecture
 
 ## Current State
 
-The app has a `FinancialAIPage.tsx` component (~647 lines) accessible via `currentPage === 'financialai'` and linked from the LandingPage footer as "FinancialAI Disclaimer". It currently covers a basic disclaimer with 9 sections (scope, what we're not, no guarantees, nature of insights, user responsibility, data privacy, compliance positioning, platform philosophy, final statement).
-
-The page type union in App.tsx is: `"home" | "app" | "advisory" | "financialai"`.
-
-The LandingPage footer button calls `onGoFinancialAI?.()` which sets `currentPage = 'financialai'`.
+The app has a tab-based navigation (Home/Dashboard/Tools/Analysis/Reports) that presents tools as a collection. The GlobalNav uses dropdowns for Tools, Analysis, and Reports. The main app view is controlled by `activeTab` state switching between dashboard, tools, analysis, and reports tabs. The dashboard (FinancialIntelligencePanel + DashboardInsights) already has FinHealth Score, Money Loss Tracker, Goal Tracking, Smart Alerts. All existing tools (PolicyAnalyzerTab, SipCalculatorTab, GoalPlannerTab, etc.) are under Tools/Analysis tabs.
 
 ## Requested Changes (Diff)
 
 ### Add
-- 6 new sections not currently present:
-  - Section 2: Nature of Services (what FinancialAI is NOT)
-  - Section 3: No Advisory or Recommendation
-  - Section 8: AI Usage & Guardrails (Allowed/Prohibited/Mandatory Language table)
-  - Section 10: Legal Compliance (India) — IT Act 2000, DPDPA 2023
-  - Section 11: Prohibited Use
-  - Section 13: Modifications
-  - Section 14: Governing Law
-- Collapsible accordion navigation so users can jump to any section from a sticky sidebar or top TOC
-- Prominent top hero banner with the final statement tagline
-- Section numbering matching the 15-section framework
+- **Financial Overview card** at top of dashboard: 4-metric grid showing Net Worth (₹X), Total Assets (₹X), Total Liabilities (₹X), Policies Analyzed (count)
+- **Key Insights strip** below overview: 2–3 auto-generated contextual insight chips (e.g. "Your overall returns appear moderate", "Insurance allocation is high") — pulled from existing portfolio data, labeled "For informational purposes only"
+- **Quick Actions row** on dashboard: Upload Policy, Add Investment, View Portfolio — each navigates to correct module
+- **Recent Activity section** on dashboard: shows last analyzed policy name/date and last report, drawn from localStorage events
+- **New navbar structure** replacing Tools/Analysis/Reports dropdowns with journey-based menu:
+  - Understand ▼ → Policy Analyzer
+  - Analyze ▼ → Portfolio
+  - Improve ▼ → Insights & Comparison
+  - Track ▼ → Dashboard / Wealth Tracking
+- **Legal footnote** on each module result screen: small muted text "For informational purposes only. Not a recommendation. Estimates based on assumptions."
+- **Policies analyzed counter** in state: increment each time a policy upload/analysis is completed, persist in localStorage under `finhealth_stats_{userId}`
 
 ### Modify
-- Rewrite all existing sections to match the exact language in the Legal Framework document (sections 1, 4, 5, 6, 7, 9, 12, 15)
-- Update footer link label from "FinancialAI Disclaimer" to "Legal & Compliance" (optional: keep both terms)
-- Improve visual hierarchy: section icons, dividers, colored tags (Allowed=green, Prohibited=red, Mandatory=amber)
+- **GlobalNav.tsx**: Replace center nav links and dropdowns (Home/Dashboard/Tools/Analysis/Reports) with four journey modules: Understand / Analyze / Improve / Track, each with a dropdown. Keep Home link on logo. Keep search, profile dropdown, mobile hamburger.
+- **App.tsx activeTab mapping**: Map new journey modules to existing tab values:
+  - Understand → opens tools tab with policy-analyzer subTab
+  - Analyze → opens analysis tab with portfolio subTab  
+  - Improve → opens analysis tab with insights subTab (new sub-section or existing financial-analysis)
+  - Track → opens dashboard tab
+- **Dashboard layout**: Restructure dashboard tab to show Financial Overview → Key Insights → Quick Actions → Recent Activity → then existing FinancialIntelligencePanel content (FinHealth Score, Money Loss Tracker, Smart Alerts, Goal Tracking)
+- **Policy Analyzer flow**: After analysis completes, increment policies-analyzed counter and fire a state update so dashboard Financial Overview reflects the new count
 
 ### Remove
-- Remove old "policy analyzer walkthrough" content that was previously part of this page (it belongs on FinancialAIPage only if it's the policy analyzer; this page should be purely legal/compliance)
+- Old center navbar items: Home (text link), Dashboard, Tools, Analysis, Reports as top-level labels
+- No existing tool components are removed — only reorganized under new nav structure
 
 ## Implementation Plan
 
-1. Fully rewrite `src/frontend/src/components/FinancialAIPage.tsx` with all 15 sections:
-   - Hero banner: title + tagline + "Last Updated" date
-   - Table of Contents (sticky on desktop, scrollable on mobile) linking to section anchors
-   - 15 numbered sections rendered as `<SectionCard>` blocks with anchor IDs
-   - Section 8 AI Guardrails: three-column layout (Allowed / Prohibited / Mandatory Language)
-   - Section 9 Data Privacy: two-column grid (Data Collected + Usage, Security + Rights)
-   - Section 4 Scope: four sub-cards (Document Analysis, Financial Calculations, Projections, AI Insights)
-   - Final Statement banner with tagline
-2. Update `src/frontend/src/components/LandingPage.tsx` footer button label to "Legal & Compliance Framework" for clarity
-3. No changes to App.tsx routing (page type stays `'financialai'`)
+1. **GlobalNav.tsx** — Replace the center navigation with four journey-based dropdown menus (Understand / Analyze / Improve / Track). Each opens a dropdown with one item per the spec. Keep logo → home, search bar, profile dropdown, mobile hamburger. Update props to support new navigation callbacks.
+2. **App.tsx** — Add `journeyModule` state or reuse `activeTab` with new mappings. Add `policiesAnalyzed` counter to state (loaded from localStorage `finhealth_stats_{userId}`). Pass `setPoliciesAnalyzed` increment callback down to PolicyAnalyzerTab.
+3. **New FinancialOverviewCard component** (or inline in dashboard section of App.tsx) — Shows Net Worth, Total Assets, Total Liabilities, Policies Analyzed. Reads from existing `entries` state (assets/liabilities) and new policiesAnalyzed counter.
+4. **KeyInsights strip** — Derives 2–3 insight strings from existing portfolio data (equity %, savings rate, policy count) and renders them as chips with disclaimer label.
+5. **QuickActions row** — Three buttons that call `setActiveTab` / `setToolsSubTab` to navigate to the right module.
+6. **RecentActivity section** — Reads `finhealth_events_{userId}` from localStorage, filters for `policy_analyzed` and report events, shows last 2 items.
+7. **Legal footnote** — Small `<p>` rendered at the bottom of PolicyAnalyzerTab result section, PortfolioAnalysis panel, and Insights panel.
+8. **Dashboard layout restructuring** — In App.tsx dashboard TabsContent, insert Financial Overview → Key Insights → Quick Actions → Recent Activity blocks above the existing FinancialIntelligencePanel.

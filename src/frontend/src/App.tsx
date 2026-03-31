@@ -16,6 +16,7 @@ import {
   Scale,
   Share2,
   Shield,
+  Sparkles,
   Trash2,
   TrendingUp,
   Wallet,
@@ -1075,6 +1076,17 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const dataLoadedRef = useRef(false);
 
+  // Policies analyzed counter
+  const [policiesAnalyzed, setPoliciesAnalyzed] = useState<number>(() => {
+    try {
+      const googleId = localStorage.getItem("finhealth_google_user_id") ?? "";
+      const uid = googleId || "guest";
+      const raw = localStorage.getItem(`finhealth_stats_${uid}`);
+      if (raw) return JSON.parse(raw).policiesAnalyzed || 0;
+    } catch {}
+    return 0;
+  });
+
   // Auto-login with Google if stored
   useEffect(() => {
     const gId = localStorage.getItem("finhealth_google_user_id");
@@ -1723,6 +1735,349 @@ export default function App() {
                     </button>
                   </div>
                 )}
+                {/* ── Financial Overview Card ── */}
+                <div
+                  className="mb-5 rounded-2xl p-5"
+                  style={{ background: "#0F141B", border: "1px solid #24303A" }}
+                  data-ocid="dashboard.financial_overview.card"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h2
+                      className="text-sm font-bold"
+                      style={{ color: "#EAF0F6" }}
+                    >
+                      Financial Overview
+                    </h2>
+                    <span
+                      className="text-xs italic"
+                      style={{ color: "#4A5568" }}
+                    >
+                      For informational purposes only
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      {
+                        label: "Net Worth",
+                        value: formatINR(netWorth),
+                        accent: netWorth >= 0 ? "#B8FF4A" : "#FF4A4A",
+                        glow: netWorth >= 0,
+                      },
+                      {
+                        label: "Total Assets",
+                        value: formatINR(totalAssets),
+                        accent: "#4AB8FF",
+                        glow: false,
+                      },
+                      {
+                        label: "Liabilities",
+                        value: formatINR(totalLiabilities),
+                        accent: "#FF4A4A",
+                        glow: false,
+                      },
+                      {
+                        label: "Policies Analyzed",
+                        value: String(policiesAnalyzed),
+                        accent: "#C74AFF",
+                        glow: false,
+                      },
+                    ].map((metric) => (
+                      <div
+                        key={metric.label}
+                        className="p-3 rounded-xl"
+                        style={{
+                          background: "#0A0F15",
+                          border: "1px solid #1A2230",
+                        }}
+                      >
+                        <div
+                          className="text-xs mb-1"
+                          style={{ color: "#9AA6B2" }}
+                        >
+                          {metric.label}
+                        </div>
+                        <div
+                          className="text-xl font-bold"
+                          style={{
+                            color: metric.accent,
+                            textShadow: metric.glow
+                              ? `0 0 12px ${metric.accent}60`
+                              : "none",
+                          }}
+                        >
+                          {metric.value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Key Insights Strip ── */}
+                <div className="mb-5" data-ocid="dashboard.key_insights.panel">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles size={15} style={{ color: "#B8FF4A" }} />
+                    <span
+                      className="text-sm font-bold"
+                      style={{ color: "#EAF0F6" }}
+                    >
+                      Key Insights
+                    </span>
+                    <span
+                      className="text-xs italic"
+                      style={{ color: "#4A5568" }}
+                    >
+                      · Not a recommendation
+                    </span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {(() => {
+                      const chips: { msg: string; type: "info" | "warn" }[] =
+                        [];
+                      if (entries.length === 0) {
+                        chips.push({
+                          msg: "Add your investments to see personalized insights",
+                          type: "info",
+                        });
+                        chips.push({
+                          msg: "Upload a policy to analyze your returns",
+                          type: "info",
+                        });
+                      } else {
+                        if (equityPct > 60)
+                          chips.push({
+                            msg: "Equity allocation is high — consider diversifying",
+                            type: "warn",
+                          });
+                        if (equityPct >= 40 && equityPct <= 60)
+                          chips.push({
+                            msg: "Your overall returns appear moderate",
+                            type: "info",
+                          });
+                        if (
+                          userProfile &&
+                          userProfile.income > 0 &&
+                          totalAssets > 0
+                        ) {
+                          const savings = userProfile.income * 0.3;
+                          if (savings < userProfile.income * 0.2)
+                            chips.push({
+                              msg: "Your savings rate appears low",
+                              type: "warn",
+                            });
+                        }
+                        if (totalLiabilities > totalAssets * 0.4)
+                          chips.push({
+                            msg: "Insurance allocation is high relative to assets",
+                            type: "warn",
+                          });
+                        if (chips.length === 0)
+                          chips.push({
+                            msg: "Portfolio appears balanced across categories",
+                            type: "info",
+                          });
+                        if (chips.length < 2)
+                          chips.push({
+                            msg: "Analyze portfolio for detailed insights",
+                            type: "info",
+                          });
+                      }
+                      return chips.slice(0, 3).map((chip) => (
+                        <div
+                          key={chip.msg}
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
+                          style={{
+                            background:
+                              chip.type === "warn"
+                                ? "rgba(255,184,74,0.08)"
+                                : "rgba(74,184,255,0.08)",
+                            borderLeft: `3px solid ${chip.type === "warn" ? "#FFB84A" : "#4AB8FF"}`,
+                            border: `1px solid ${chip.type === "warn" ? "rgba(255,184,74,0.2)" : "rgba(74,184,255,0.2)"}`,
+                            color: chip.type === "warn" ? "#FFB84A" : "#4AB8FF",
+                          }}
+                        >
+                          {chip.msg}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                  <p
+                    className="text-xs italic mt-2"
+                    style={{ color: "#4A5568" }}
+                  >
+                    For informational purposes only · Not a recommendation ·
+                    Estimates based on assumptions
+                  </p>
+                </div>
+
+                {/* ── Quick Actions Row ── */}
+                <div className="mb-5" data-ocid="dashboard.quick_actions.panel">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap size={15} style={{ color: "#B8FF4A" }} />
+                    <span
+                      className="text-sm font-bold"
+                      style={{ color: "#EAF0F6" }}
+                    >
+                      Quick Actions
+                    </span>
+                  </div>
+                  <div className="flex gap-3 flex-wrap">
+                    {[
+                      {
+                        label: "📋 Upload Policy",
+                        ocid: "dashboard.upload_policy.button",
+                        action: () => {
+                          setActiveTab("tools");
+                          setToolsSubTab("policy-analyzer");
+                        },
+                      },
+                      {
+                        label: "➕ Add Investment",
+                        ocid: "dashboard.add_investment.button",
+                        action: () => {
+                          setActiveTab("analysis");
+                          setAnalysisSubTab("financial-analysis");
+                        },
+                      },
+                      {
+                        label: "📊 View Portfolio",
+                        ocid: "dashboard.view_portfolio.button",
+                        action: () => {
+                          setActiveTab("analysis");
+                          setAnalysisSubTab("financial-analysis");
+                        },
+                      },
+                    ].map((btn) => (
+                      <button
+                        key={btn.label}
+                        type="button"
+                        data-ocid={btn.ocid}
+                        onClick={btn.action}
+                        className="px-5 py-2.5 rounded-full text-sm font-semibold transition-all"
+                        style={{
+                          background: "transparent",
+                          border: "1px solid #B8FF4A",
+                          color: "#B8FF4A",
+                          cursor: "pointer",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLElement).style.background =
+                            "#B8FF4A";
+                          (e.currentTarget as HTMLElement).style.color =
+                            "#060A10";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLElement).style.background =
+                            "transparent";
+                          (e.currentTarget as HTMLElement).style.color =
+                            "#B8FF4A";
+                        }}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Recent Activity Section ── */}
+                <div
+                  className="mb-5 p-4 rounded-2xl"
+                  style={{ background: "#0F141B", border: "1px solid #24303A" }}
+                  data-ocid="dashboard.recent_activity.panel"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Activity size={15} style={{ color: "#B8FF4A" }} />
+                    <span
+                      className="text-sm font-bold"
+                      style={{ color: "#EAF0F6" }}
+                    >
+                      Recent Activity
+                    </span>
+                  </div>
+                  {(() => {
+                    try {
+                      const raw = localStorage.getItem(
+                        `finhealth_events_${userId}`,
+                      );
+                      if (!raw) throw new Error("no events");
+                      const events = JSON.parse(raw) as {
+                        eventType: string;
+                        toolName: string;
+                        timestamp: number;
+                      }[];
+                      const relevant = events
+                        .filter(
+                          (e) =>
+                            e.eventType === "tool_used" ||
+                            e.eventType === "analysis_run",
+                        )
+                        .slice(-2)
+                        .reverse();
+                      if (relevant.length === 0) throw new Error("no relevant");
+                      return (
+                        <div className="space-y-2">
+                          {relevant.map((evt, evtIdx) => {
+                            const ago = Date.now() - evt.timestamp;
+                            const mins = Math.floor(ago / 60000);
+                            const hrs = Math.floor(mins / 60);
+                            const days = Math.floor(hrs / 24);
+                            const timeStr =
+                              days > 0
+                                ? `${days}d ago`
+                                : hrs > 0
+                                  ? `${hrs}h ago`
+                                  : mins > 0
+                                    ? `${mins}m ago`
+                                    : "just now";
+                            return (
+                              <div
+                                key={evt.timestamp}
+                                data-ocid={`dashboard.recent_activity.item.${evtIdx + 1}`}
+                                className="flex items-center justify-between rounded-lg px-3 py-2"
+                                style={{
+                                  background: "#0A0F15",
+                                  border: "1px solid #1A2230",
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm">
+                                    {evt.eventType === "analysis_run"
+                                      ? "📊"
+                                      : "🔧"}
+                                  </span>
+                                  <span
+                                    className="text-xs font-medium capitalize"
+                                    style={{ color: "#EAF0F6" }}
+                                  >
+                                    {evt.toolName
+                                      ? evt.toolName.replace(/-/g, " ")
+                                      : evt.eventType.replace(/_/g, " ")}
+                                  </span>
+                                </div>
+                                <span
+                                  className="text-xs"
+                                  style={{ color: "#4A5568" }}
+                                >
+                                  {timeStr}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    } catch {
+                      return (
+                        <div
+                          className="text-xs text-center py-3"
+                          style={{ color: "#4A5568" }}
+                          data-ocid="dashboard.recent_activity.empty_state"
+                        >
+                          No recent activity — start by uploading a policy
+                        </div>
+                      );
+                    }
+                  })()}
+                </div>
+
                 <UploadSection onImport={handleImportRows} />
 
                 <section className="fintech-card p-6 mb-6">
@@ -3436,7 +3791,19 @@ export default function App() {
                   <LoanPrepaymentTab entries={entries} />
                 )}
                 {toolsSubTab === "policy-analyzer" && (
-                  <PolicyAnalyzerTab entries={entries} />
+                  <PolicyAnalyzerTab
+                    entries={entries}
+                    onPolicyAnalyzed={() => {
+                      setPoliciesAnalyzed((n) => {
+                        const next = n + 1;
+                        localStorage.setItem(
+                          `finhealth_stats_${userId}`,
+                          JSON.stringify({ policiesAnalyzed: next }),
+                        );
+                        return next;
+                      });
+                    }}
+                  />
                 )}
                 {toolsSubTab === "ulip-sip" && (
                   <UlipVsSipTab entries={entries} />

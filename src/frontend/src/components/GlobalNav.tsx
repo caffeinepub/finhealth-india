@@ -1,16 +1,12 @@
 import {
   BarChart3,
   ChevronDown,
-  Download,
   FileText,
   Loader2,
   Menu,
-  PieChart,
   Save,
   Search,
-  Shield,
   Sparkles,
-  Target,
   TrendingUp,
   X,
   Zap,
@@ -82,7 +78,8 @@ const SEARCH_ITEMS = [
   },
 ];
 
-type DropdownKey = "tools" | "analysis" | "reports";
+// 4-step journey module keys
+type JourneyKey = "understand" | "analyze" | "improve" | "track";
 
 interface DropdownItem {
   icon: React.ElementType;
@@ -193,7 +190,7 @@ export default function GlobalNav({
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [openDropdown, setOpenDropdown] = useState<DropdownKey | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<JourneyKey | null>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -247,88 +244,69 @@ export default function GlobalNav({
     setShowMobileMenu(false);
   }
 
-  // Dropdown configs
-  const dropdownConfigs: Record<DropdownKey, DropdownItem[]> = {
-    tools: [
+  // 4-step journey module dropdown configs
+  const journeyDropdownConfigs: Record<JourneyKey, DropdownItem[]> = {
+    understand: [
       {
         icon: FileText,
         label: "Policy Analyzer",
         action: () => navigate("app", "tools", "policy-analyzer"),
       },
-      {
-        icon: TrendingUp,
-        label: "SIP Calculator",
-        action: () => navigate("app", "analysis", undefined, "sip-calculator"),
-      },
-      {
-        icon: Target,
-        label: "Goal Planner",
-        action: () => navigate("app", "tools", "goal-planner"),
-      },
     ],
-    analysis: [
+    analyze: [
       {
         icon: BarChart3,
-        label: "Portfolio Analysis",
-        action: () =>
-          navigate("app", "analysis", undefined, "financial-analysis"),
-      },
-      {
-        icon: Shield,
-        label: "Risk Analysis",
-        action: () => navigate("app", "analysis", undefined, "risk-profile"),
-      },
-      {
-        icon: PieChart,
-        label: "Asset Allocation",
+        label: "Portfolio",
         action: () =>
           navigate("app", "analysis", undefined, "financial-analysis"),
       },
     ],
-    reports: [
-      {
-        icon: FileText,
-        label: "All Reports",
-        action: () => navigate("app", "reports"),
-      },
-      {
-        icon: Download,
-        label: "Download Reports",
-        action: () => navigate("app", "reports"),
-      },
+    improve: [
       {
         icon: Sparkles,
         label: "Insights",
+        action: () =>
+          navigate("app", "analysis", undefined, "financial-analysis"),
+      },
+    ],
+    track: [
+      {
+        icon: TrendingUp,
+        label: "Dashboard",
         action: () => navigate("app", "dashboard"),
       },
     ],
   };
 
-  // Desktop nav: base links (non-dropdown)
-  const staticNavLinks = [
-    {
-      label: "Home",
-      action: () => navigate("home"),
-    },
-    {
-      label: "Dashboard",
-      action: () => navigate("app", "dashboard"),
-    },
+  // Journey module labels
+  const journeyKeys: JourneyKey[] = [
+    "understand",
+    "analyze",
+    "improve",
+    "track",
   ];
 
-  // Dropdown trigger labels
-  const dropdownLabels: DropdownKey[] = ["tools", "analysis", "reports"];
+  const journeyLabelMap: Record<JourneyKey, string> = {
+    understand: "Understand",
+    analyze: "Analyze",
+    improve: "Improve",
+    track: "Track",
+  };
 
-  function isLinkActive(label: string) {
-    if (label === "Home") return currentPage === "home";
+  // Journey step icons for visual distinction
+  const journeyIconMap: Record<JourneyKey, string> = {
+    understand: "🔍",
+    analyze: "📊",
+    improve: "🧠",
+    track: "📈",
+  };
+
+  function isJourneyActive(key: JourneyKey) {
     if (currentPage !== "app") return false;
-    const tabMap: Record<string, string> = {
-      Dashboard: "dashboard",
-      tools: "tools",
-      analysis: "analysis",
-      reports: "reports",
-    };
-    return activeTab === tabMap[label];
+    if (key === "track") return activeTab === "dashboard";
+    if (key === "understand") return activeTab === "tools";
+    if (key === "analyze" || key === "improve") return activeTab === "analysis";
+    return false;
   }
 
   function handleSearchNavigate(item: (typeof SEARCH_ITEMS)[0]) {
@@ -372,7 +350,7 @@ export default function GlobalNav({
     }
   }
 
-  function handleDropdownMouseEnter(key: DropdownKey) {
+  function handleDropdownMouseEnter(key: JourneyKey) {
     if (leaveTimerRef.current) {
       clearTimeout(leaveTimerRef.current);
       leaveTimerRef.current = null;
@@ -392,55 +370,44 @@ export default function GlobalNav({
     }, 150);
   }
 
-  const dropdownLabelMap: Record<DropdownKey, string> = {
-    tools: "Tools",
-    analysis: "Analysis",
-    reports: "Reports",
-  };
-
-  // Mobile nav links (all flat)
+  // Mobile nav links
   const mobileNavLinks = [
     {
-      label: "Home",
-      action: () => {
-        onCloseMyAccount?.();
-        setCurrentPage("home");
-        setShowMobileMenu(false);
-      },
-    },
-    {
-      label: "Dashboard",
-      action: () => {
-        onCloseMyAccount?.();
-        setCurrentPage("app");
-        setActiveTab?.("dashboard");
-        setShowMobileMenu(false);
-      },
-    },
-    {
-      label: "Tools",
+      label: "🔍 Understand",
       action: () => {
         onCloseMyAccount?.();
         setCurrentPage("app");
         setActiveTab?.("tools");
+        setToolsSubTab?.("policy-analyzer");
         setShowMobileMenu(false);
       },
     },
     {
-      label: "Analysis",
+      label: "📊 Analyze",
       action: () => {
         onCloseMyAccount?.();
         setCurrentPage("app");
         setActiveTab?.("analysis");
+        setAnalysisSubTab?.("financial-analysis");
         setShowMobileMenu(false);
       },
     },
     {
-      label: "Reports",
+      label: "🧠 Improve",
       action: () => {
         onCloseMyAccount?.();
         setCurrentPage("app");
-        setActiveTab?.("reports");
+        setActiveTab?.("analysis");
+        setAnalysisSubTab?.("financial-analysis");
+        setShowMobileMenu(false);
+      },
+    },
+    {
+      label: "📈 Track",
+      action: () => {
+        onCloseMyAccount?.();
+        setCurrentPage("app");
+        setActiveTab?.("dashboard");
         setShowMobileMenu(false);
       },
     },
@@ -483,47 +450,10 @@ export default function GlobalNav({
             </span>
           </button>
 
-          {/* Center: Nav links (desktop) */}
-          <nav ref={navRef} className="hidden md:flex items-center gap-1">
-            {/* Static links: Home, Dashboard */}
-            {staticNavLinks.map((link) => (
-              <button
-                key={link.label}
-                type="button"
-                data-ocid={`nav.${link.label.toLowerCase()}.link`}
-                onClick={link.action}
-                className="px-3 py-1.5 rounded-xl text-sm font-medium"
-                style={{
-                  color: isLinkActive(link.label) ? "#B8FF4A" : "#9AA6B2",
-                  fontWeight: isLinkActive(link.label) ? 700 : 500,
-                  background: isLinkActive(link.label)
-                    ? "rgba(184,255,74,0.08)"
-                    : "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  transition: "all 150ms ease",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isLinkActive(link.label)) {
-                    (e.currentTarget as HTMLElement).style.color = "#B8FF4A";
-                    (e.currentTarget as HTMLElement).style.background =
-                      "rgba(184,255,74,0.06)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isLinkActive(link.label)) {
-                    (e.currentTarget as HTMLElement).style.color = "#9AA6B2";
-                    (e.currentTarget as HTMLElement).style.background =
-                      "transparent";
-                  }
-                }}
-              >
-                {link.label}
-              </button>
-            ))}
-
-            {/* Dropdown nav links: Tools, Analysis, Reports */}
-            {dropdownLabels.map((key) => (
+          {/* Center: Journey Module Nav (desktop) */}
+          <nav ref={navRef} className="hidden md:flex items-center gap-0.5">
+            {/* Journey step number labels */}
+            {journeyKeys.map((key, idx) => (
               <div
                 key={key}
                 style={{ position: "relative" }}
@@ -533,21 +463,16 @@ export default function GlobalNav({
                 <button
                   type="button"
                   data-ocid={`nav.${key}.link`}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-medium"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium"
                   style={{
                     color:
-                      isLinkActive(dropdownLabelMap[key]) ||
-                      openDropdown === key
+                      isJourneyActive(key) || openDropdown === key
                         ? "#B8FF4A"
                         : "#9AA6B2",
                     fontWeight:
-                      isLinkActive(dropdownLabelMap[key]) ||
-                      openDropdown === key
-                        ? 700
-                        : 500,
+                      isJourneyActive(key) || openDropdown === key ? 700 : 500,
                     background:
-                      isLinkActive(dropdownLabelMap[key]) ||
-                      openDropdown === key
+                      isJourneyActive(key) || openDropdown === key
                         ? "rgba(184,255,74,0.08)"
                         : "transparent",
                     border: "none",
@@ -555,29 +480,42 @@ export default function GlobalNav({
                     transition: "all 150ms ease",
                   }}
                   onMouseEnter={(e) => {
-                    if (
-                      !isLinkActive(dropdownLabelMap[key]) &&
-                      openDropdown !== key
-                    ) {
+                    if (!isJourneyActive(key) && openDropdown !== key) {
                       (e.currentTarget as HTMLElement).style.color = "#B8FF4A";
                       (e.currentTarget as HTMLElement).style.background =
                         "rgba(184,255,74,0.06)";
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (
-                      !isLinkActive(dropdownLabelMap[key]) &&
-                      openDropdown !== key
-                    ) {
+                    if (!isJourneyActive(key) && openDropdown !== key) {
                       (e.currentTarget as HTMLElement).style.color = "#9AA6B2";
                       (e.currentTarget as HTMLElement).style.background =
                         "transparent";
                     }
                   }}
                 >
-                  {dropdownLabelMap[key]}
+                  {/* Step badge */}
+                  <span
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold"
+                    style={{
+                      background:
+                        isJourneyActive(key) || openDropdown === key
+                          ? "#B8FF4A"
+                          : "rgba(184,255,74,0.15)",
+                      color:
+                        isJourneyActive(key) || openDropdown === key
+                          ? "#060A10"
+                          : "#B8FF4A",
+                    }}
+                  >
+                    {idx + 1}
+                  </span>
+                  <span className="hidden lg:inline">
+                    {journeyIconMap[key]}
+                  </span>
+                  {journeyLabelMap[key]}
                   <ChevronDown
-                    size={13}
+                    size={12}
                     style={{
                       transition: "transform 180ms ease",
                       transform:
@@ -589,7 +527,7 @@ export default function GlobalNav({
                 </button>
 
                 <DropdownPanel
-                  items={dropdownConfigs[key]}
+                  items={journeyDropdownConfigs[key]}
                   visible={openDropdown === key}
                 />
               </div>
@@ -620,7 +558,7 @@ export default function GlobalNav({
               <input
                 data-ocid="nav.search_input"
                 type="text"
-                placeholder="Search tools, insights, goals..."
+                placeholder="Search tools, insights..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -937,7 +875,7 @@ export default function GlobalNav({
               <input
                 data-ocid="nav.mobile.search_input"
                 type="text"
-                placeholder="Search tools, insights, goals..."
+                placeholder="Search tools, insights..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
@@ -986,124 +924,101 @@ export default function GlobalNav({
               </div>
             )}
 
-            <div className="flex flex-col gap-1">
-              {mobileNavLinks.map((link) => (
-                <button
-                  key={link.label}
-                  type="button"
-                  onClick={link.action}
-                  className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all"
-                  style={{
-                    color: isLinkActive(link.label) ? "#B8FF4A" : "#EAF0F6",
-                    fontWeight: isLinkActive(link.label) ? 700 : 500,
-                    background: isLinkActive(link.label)
-                      ? "rgba(184,255,74,0.08)"
-                      : "rgba(255,255,255,0.02)",
-                    border: `1px solid ${
-                      isLinkActive(link.label)
-                        ? "rgba(184,255,74,0.2)"
-                        : "transparent"
-                    }`,
-                    cursor: "pointer",
-                  }}
-                >
-                  {link.label}
-                </button>
-              ))}
-
-              {/* Mobile dropdown items for Tools */}
+            {/* 4-step journey journey nav */}
+            <div className="mb-3">
               <div
-                style={{
-                  borderLeft: "2px solid rgba(184,255,74,0.2)",
-                  marginLeft: 16,
-                  paddingLeft: 12,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 2,
-                }}
+                className="text-xs font-semibold mb-2 px-2"
+                style={{ color: "#4A5568" }}
               >
-                {dropdownConfigs.tools.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={item.action}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium"
+                JOURNEY
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {mobileNavLinks.map((link, idx) => (
+                  <button
+                    key={link.label}
+                    type="button"
+                    onClick={link.action}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+                    style={{
+                      background: "rgba(184,255,74,0.05)",
+                      border: "1px solid rgba(184,255,74,0.15)",
+                      color: "#EAF0F6",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold flex-shrink-0"
                       style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "#9AA6B2",
-                        textAlign: "left",
+                        background: "rgba(184,255,74,0.15)",
+                        color: "#B8FF4A",
                       }}
                     >
-                      <Icon size={13} style={{ color: "#9AA6B2" }} />
-                      {item.label}
-                    </button>
-                  );
-                })}
+                      {idx + 1}
+                    </span>
+                    {link.label}
+                  </button>
+                ))}
               </div>
-
-              <div
-                style={{
-                  height: 1,
-                  background: "#24303A",
-                  margin: "8px 0",
-                }}
-              />
-              {currentPage === "app" && onSave && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSave();
-                    setShowMobileMenu(false);
-                  }}
-                  disabled={isSaving}
-                  className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium"
-                  style={{
-                    color: "#B8FF4A",
-                    background: "rgba(184,255,74,0.08)",
-                    border: "1px solid rgba(184,255,74,0.2)",
-                    cursor: "pointer",
-                  }}
-                >
-                  {isSaving ? "Saving..." : "💾 Save Portfolio"}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  onMyAccount();
-                  setShowMobileMenu(false);
-                }}
-                className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium"
-                style={{
-                  color: "#EAF0F6",
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid transparent",
-                  cursor: "pointer",
-                }}
-              >
-                👤 My Account
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onLogout();
-                  setShowMobileMenu(false);
-                }}
-                className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium"
-                style={{
-                  color: "#FF4A4A",
-                  background: "rgba(255,74,74,0.05)",
-                  border: "1px solid transparent",
-                  cursor: "pointer",
-                }}
-              >
-                🚪 Sign Out
-              </button>
             </div>
+
+            <div
+              style={{
+                height: 1,
+                background: "#24303A",
+                margin: "8px 0",
+              }}
+            />
+            {currentPage === "app" && onSave && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSave();
+                  setShowMobileMenu(false);
+                }}
+                disabled={isSaving}
+                className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium mb-2"
+                style={{
+                  color: "#B8FF4A",
+                  background: "rgba(184,255,74,0.08)",
+                  border: "1px solid rgba(184,255,74,0.2)",
+                  cursor: "pointer",
+                }}
+              >
+                {isSaving ? "Saving..." : "💾 Save Portfolio"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                onMyAccount();
+                setShowMobileMenu(false);
+              }}
+              className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium mb-1"
+              style={{
+                color: "#EAF0F6",
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid transparent",
+                cursor: "pointer",
+              }}
+            >
+              👤 My Account
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onLogout();
+                setShowMobileMenu(false);
+              }}
+              className="w-full text-left px-4 py-3 rounded-xl text-sm font-medium"
+              style={{
+                color: "#FF4A4A",
+                background: "rgba(255,74,74,0.05)",
+                border: "1px solid transparent",
+                cursor: "pointer",
+              }}
+            >
+              🚪 Sign Out
+            </button>
           </div>
         )}
       </header>

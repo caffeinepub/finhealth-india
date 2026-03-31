@@ -69,7 +69,8 @@ function calcFD(annualPayment: number, years: number, rate: number): number {
 
 export default function PolicyAnalyzerTab({
   entries: _entries,
-}: { entries: Entry[] }) {
+  onPolicyAnalyzed,
+}: { entries: Entry[]; onPolicyAnalyzed?: () => void }) {
   const [uploadState, setUploadState] = useState<"idle" | "analyzing" | "done">(
     "idle",
   );
@@ -96,6 +97,7 @@ export default function PolicyAnalyzerTab({
     setUploadState("analyzing");
     setTimeout(() => {
       setUploadState("done");
+      onPolicyAnalyzed?.();
       toast.success(
         "Document processed. Please verify the extracted details below.",
       );
@@ -1331,18 +1333,23 @@ export default function PolicyAnalyzerTab({
         ))}
       </motion.div>
 
-      <p
-        className="text-xs text-center px-4 py-3 rounded-xl"
+      <div
+        className="rounded-xl p-4"
         style={{
-          color: "#9AA6B2",
-          background: "#0F141B",
-          border: "1px solid #24303A",
+          background: "#0A0F15",
+          border: "1px solid #1A2230",
         }}
       >
-        ⚠️ For educational purposes only. Not investment advice. IRR calculations
-        assume premiums paid at year start and maturity received at end of
-        policy term.
-      </p>
+        <p className="text-xs text-center mb-1" style={{ color: "#9AA6B2" }}>
+          ⚠️ For educational purposes only. Not investment advice. IRR
+          calculations assume premiums paid at year start and maturity received
+          at end of policy term.
+        </p>
+        <p className="text-xs text-center italic" style={{ color: "#4A5568" }}>
+          For informational purposes only · Not a recommendation · Estimates
+          based on assumptions
+        </p>
+      </div>
     </div>
   );
 }
