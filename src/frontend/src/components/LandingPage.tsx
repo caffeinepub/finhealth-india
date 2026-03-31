@@ -1415,7 +1415,7 @@ export default function LandingPage({
               }}
               data-ocid="footer.financialai_disclaimer.link"
             >
-              FinancialAI Disclaimer
+              Legal &amp; Compliance Framework
             </button>
           </div>
           <p className="text-xs" style={{ color: "#9AA6B2" }}>

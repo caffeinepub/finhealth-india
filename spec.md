@@ -1,39 +1,45 @@
-# FinHealth India
+# FinHealth India – Legal, Compliance & Usage Framework
 
 ## Current State
 
-The app uses a `currentPage` state with values `"home" | "app" | "advisory"` to switch between pages. Navigation is handled by `GlobalNav`. The landing page (`LandingPage.tsx`) has a footer and CTAs. The Advisory page (`AdvisoryPage.tsx`) is a separate full-page component. There is no dedicated disclaimer/legal page for FinancialAI's positioning.
+The app has a `FinancialAIPage.tsx` component (~647 lines) accessible via `currentPage === 'financialai'` and linked from the LandingPage footer as "FinancialAI Disclaimer". It currently covers a basic disclaimer with 9 sections (scope, what we're not, no guarantees, nature of insights, user responsibility, data privacy, compliance positioning, platform philosophy, final statement).
+
+The page type union in App.tsx is: `"home" | "app" | "advisory" | "financialai"`.
+
+The LandingPage footer button calls `onGoFinancialAI?.()` which sets `currentPage = 'financialai'`.
 
 ## Requested Changes (Diff)
 
 ### Add
-- New page component: `FinancialAIPage.tsx` — a full-page legal/compliance disclosure for FinancialAI
-  - Hero section: "FinancialAI — Data, Insights, and Clarity (Not Advice)" with tagline
-  - Scope section: what FinancialAI provides (document analysis, portfolio metrics, IRR/XIRR, forecasts, AI insights)
-  - Important Clarification section: NOT a financial/investment/insurance advisor or portfolio manager
-  - No Guarantees section: no returns guaranteed, projections indicative only
-  - Nature of Insights section: informational, educational, not intended to direct decisions
-  - User Responsibility section: user is solely responsible, must consult professionals
-  - Data Usage & Privacy section: data processed for analysis only, no selling, deletion on request
-  - Compliance Positioning section: technology-driven platform, no regulated activities
-  - Platform Philosophy section: simplify complexity, present clearly, enable understanding
-  - Final Statement banner: "FinancialAI — From Data to Understanding. Decisions remain yours."
-- Extend `currentPage` type to include `"financialai"` in App.tsx
-- Add conditional render for `currentPage === "financialai"` in App.tsx
-- Add "FinancialAI" or "Disclaimer" link in the landing page footer and/or GlobalNav to navigate to this page
-- Pass `setCurrentPage` to `LandingPage` footer so it can link to the new page
+- 6 new sections not currently present:
+  - Section 2: Nature of Services (what FinancialAI is NOT)
+  - Section 3: No Advisory or Recommendation
+  - Section 8: AI Usage & Guardrails (Allowed/Prohibited/Mandatory Language table)
+  - Section 10: Legal Compliance (India) — IT Act 2000, DPDPA 2023
+  - Section 11: Prohibited Use
+  - Section 13: Modifications
+  - Section 14: Governing Law
+- Collapsible accordion navigation so users can jump to any section from a sticky sidebar or top TOC
+- Prominent top hero banner with the final statement tagline
+- Section numbering matching the 15-section framework
 
 ### Modify
-- `App.tsx`: extend page type and add render branch for `"financialai"` page
-- `LandingPage.tsx`: add a footer link "FinancialAI Disclaimer" that sets page to `"financialai"`
-- `GlobalNav.tsx`: optionally add a footer link or update sitemap to include the new page
+- Rewrite all existing sections to match the exact language in the Legal Framework document (sections 1, 4, 5, 6, 7, 9, 12, 15)
+- Update footer link label from "FinancialAI Disclaimer" to "Legal & Compliance" (optional: keep both terms)
+- Improve visual hierarchy: section icons, dividers, colored tags (Allowed=green, Prohibited=red, Mandatory=amber)
 
 ### Remove
-- Nothing removed
+- Remove old "policy analyzer walkthrough" content that was previously part of this page (it belongs on FinancialAIPage only if it's the policy analyzer; this page should be purely legal/compliance)
 
 ## Implementation Plan
 
-1. Create `src/frontend/src/components/FinancialAIPage.tsx` with all content sections using dark theme (#060A10), accent (#B8FF4A), card-based layout
-2. Update `App.tsx` to extend `currentPage` type to `"home" | "app" | "advisory" | "financialai"` and add the render branch with BackButton pointing back to home
-3. Update `LandingPage.tsx` footer to include a "FinancialAI" or "About FinancialAI" link
-4. Pass `onGoFinancialAI` callback prop from App.tsx → LandingPage.tsx (or use a shared setter)
+1. Fully rewrite `src/frontend/src/components/FinancialAIPage.tsx` with all 15 sections:
+   - Hero banner: title + tagline + "Last Updated" date
+   - Table of Contents (sticky on desktop, scrollable on mobile) linking to section anchors
+   - 15 numbered sections rendered as `<SectionCard>` blocks with anchor IDs
+   - Section 8 AI Guardrails: three-column layout (Allowed / Prohibited / Mandatory Language)
+   - Section 9 Data Privacy: two-column grid (Data Collected + Usage, Security + Rights)
+   - Section 4 Scope: four sub-cards (Document Analysis, Financial Calculations, Projections, AI Insights)
+   - Final Statement banner with tagline
+2. Update `src/frontend/src/components/LandingPage.tsx` footer button label to "Legal & Compliance Framework" for clarity
+3. No changes to App.tsx routing (page type stays `'financialai'`)
