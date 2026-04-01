@@ -8,28 +8,41 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const AIChatResponse = IDL.Record({
-  'action' : IDL.Opt(IDL.Text),
-  'insight' : IDL.Opt(IDL.Text),
-  'reply' : IDL.Text,
-});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const ShoppingItem = IDL.Record({
+  'productName' : IDL.Text,
+  'currency' : IDL.Text,
+  'quantity' : IDL.Nat,
+  'priceInCents' : IDL.Nat,
+  'productDescription' : IDL.Text,
+});
+export const StripeSessionStatus = IDL.Variant({
+  'completed' : IDL.Record({
+    'userPrincipal' : IDL.Opt(IDL.Text),
+    'response' : IDL.Text,
+  }),
+  'failed' : IDL.Record({ 'error' : IDL.Text }),
+});
+export const ChatResponse = IDL.Record({
+  'action' : IDL.Opt(IDL.Text),
+  'reply' : IDL.Text,
+});
+export const PlanType = IDL.Variant({ 'pro' : IDL.Null, 'free' : IDL.Null });
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
+  'plan' : PlanType,
   'onboardingComplete' : IDL.Bool,
   'income' : IDL.Nat,
   'goals' : IDL.Vec(IDL.Text),
   'riskProfile' : IDL.Text,
 });
-export const Portfolio = IDL.Text;
-export const Transactions = IDL.Text;
-export const ChatResponse = IDL.Record({
-  'action' : IDL.Opt(IDL.Text),
-  'reply' : IDL.Text,
+export const StripeConfiguration = IDL.Record({
+  'allowedCountries' : IDL.Vec(IDL.Text),
+  'secretKey' : IDL.Text,
 });
 export const http_header = IDL.Record({
   'value' : IDL.Text,
@@ -52,60 +65,69 @@ export const TransformationOutput = IDL.Record({
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'aiChat' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [AIChatResponse], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
-  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getFinHealthScore' : IDL.Func([], [IDL.Nat], ['query']),
-  'getPortfolio' : IDL.Func([], [Portfolio], ['query']),
-  'getReferralCode' : IDL.Func([], [IDL.Text], ['query']),
-  'getReferralCount' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
-  'getTransactions' : IDL.Func([], [Transactions], ['query']),
-  'getUserProfile' : IDL.Func(
-      [IDL.Principal],
-      [IDL.Opt(UserProfile)],
-      ['query'],
+  'createCheckoutSession' : IDL.Func(
+      [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
+      [IDL.Text],
+      [],
     ),
+  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
+  'handleStripeWebhook' : IDL.Func([IDL.Text, IDL.Principal], [], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
   'processChat' : IDL.Func([IDL.Text], [ChatResponse], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'saveFinHealthScore' : IDL.Func([IDL.Nat], [], []),
-  'savePortfolio' : IDL.Func([Portfolio], [], []),
-  'saveTransactions' : IDL.Func([Transactions], [], []),
+  'savePortfolio' : IDL.Func([IDL.Text], [], []),
+  'saveTransactions' : IDL.Func([IDL.Text], [], []),
   'setAIApiKey' : IDL.Func([IDL.Text], [], []),
+  'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
   'transform' : IDL.Func(
       [TransformationInput],
       [TransformationOutput],
       ['query'],
     ),
-  'useReferralCode' : IDL.Func([IDL.Principal], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
-  const AIChatResponse = IDL.Record({
-    'action' : IDL.Opt(IDL.Text),
-    'insight' : IDL.Opt(IDL.Text),
-    'reply' : IDL.Text,
-  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const ShoppingItem = IDL.Record({
+    'productName' : IDL.Text,
+    'currency' : IDL.Text,
+    'quantity' : IDL.Nat,
+    'priceInCents' : IDL.Nat,
+    'productDescription' : IDL.Text,
+  });
+  const StripeSessionStatus = IDL.Variant({
+    'completed' : IDL.Record({
+      'userPrincipal' : IDL.Opt(IDL.Text),
+      'response' : IDL.Text,
+    }),
+    'failed' : IDL.Record({ 'error' : IDL.Text }),
+  });
+  const ChatResponse = IDL.Record({
+    'action' : IDL.Opt(IDL.Text),
+    'reply' : IDL.Text,
+  });
+  const PlanType = IDL.Variant({ 'pro' : IDL.Null, 'free' : IDL.Null });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
+    'plan' : PlanType,
     'onboardingComplete' : IDL.Bool,
     'income' : IDL.Nat,
     'goals' : IDL.Vec(IDL.Text),
     'riskProfile' : IDL.Text,
   });
-  const Portfolio = IDL.Text;
-  const Transactions = IDL.Text;
-  const ChatResponse = IDL.Record({
-    'action' : IDL.Opt(IDL.Text),
-    'reply' : IDL.Text,
+  const StripeConfiguration = IDL.Record({
+    'allowedCountries' : IDL.Vec(IDL.Text),
+    'secretKey' : IDL.Text,
   });
   const http_header = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
   const http_request_result = IDL.Record({
@@ -125,33 +147,29 @@ export const idlFactory = ({ IDL }) => {
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'aiChat' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [AIChatResponse], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
-    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getFinHealthScore' : IDL.Func([], [IDL.Nat], ['query']),
-    'getPortfolio' : IDL.Func([], [Portfolio], ['query']),
-    'getReferralCode' : IDL.Func([], [IDL.Text], ['query']),
-    'getReferralCount' : IDL.Func([IDL.Principal], [IDL.Nat], ['query']),
-    'getTransactions' : IDL.Func([], [Transactions], ['query']),
-    'getUserProfile' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Opt(UserProfile)],
-        ['query'],
+    'createCheckoutSession' : IDL.Func(
+        [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
+        [IDL.Text],
+        [],
       ),
+    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
+    'handleStripeWebhook' : IDL.Func([IDL.Text, IDL.Principal], [], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
     'processChat' : IDL.Func([IDL.Text], [ChatResponse], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'saveFinHealthScore' : IDL.Func([IDL.Nat], [], []),
-    'savePortfolio' : IDL.Func([Portfolio], [], []),
-    'saveTransactions' : IDL.Func([Transactions], [], []),
+    'savePortfolio' : IDL.Func([IDL.Text], [], []),
+    'saveTransactions' : IDL.Func([IDL.Text], [], []),
     'setAIApiKey' : IDL.Func([IDL.Text], [], []),
+    'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
     'transform' : IDL.Func(
         [TransformationInput],
         [TransformationOutput],
         ['query'],
       ),
-    'useReferralCode' : IDL.Func([IDL.Principal], [], []),
   });
 };
 

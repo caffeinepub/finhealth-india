@@ -12,6 +12,8 @@ import {
   YAxis,
 } from "recharts";
 import { toast } from "sonner";
+import ProGate from "./ProGate";
+import ProUpgradeModal from "./ProUpgradeModal";
 import SmartTooltip, { FINANCE_TERMS } from "./SmartTooltip";
 
 type EntryType = "Asset" | "Liability";
@@ -74,6 +76,7 @@ export default function PolicyAnalyzerTab({
   const [uploadState, setUploadState] = useState<"idle" | "analyzing" | "done">(
     "idle",
   );
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState("");
   const [selectedAlt, setSelectedAlt] = useState<
@@ -855,70 +858,75 @@ export default function PolicyAnalyzerTab({
         ))}
       </motion.div>
 
-      {/* Verdict Card */}
-      <motion.div
-        key={`verdict-${verdict}`}
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
-        className="p-5 rounded-xl"
-        style={{ ...CARD, border: `1px solid ${verdictColor}44` }}
-        data-ocid="policy_analyzer.card"
+      <ProGate
+        feature="Insurance IRR Analysis"
+        onUpgrade={() => setShowUpgradeModal(true)}
       >
-        <div className="flex items-start gap-4 mb-4">
-          <div
-            className="text-2xl font-black px-4 py-2 rounded-xl shrink-0"
-            style={{ background: verdictBg, color: verdictColor }}
-          >
-            {verdict}
-          </div>
-          <div>
-            <div
-              className="text-sm font-bold mb-1"
-              style={{ color: "#EAF0F6" }}
-            >
-              Investment Verdict
-            </div>
-            <div
-              className="text-xs leading-relaxed"
-              style={{ color: "#9AA6B2" }}
-            >
-              {verdictText}
-            </div>
-          </div>
-        </div>
-
-        {/* 3-Question Q&A Grid */}
-        <div
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3"
-          style={{ borderTop: "1px solid #24303A" }}
+        {/* Verdict Card */}
+        <motion.div
+          key={`verdict-${verdict}`}
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="p-5 rounded-xl"
+          style={{ ...CARD, border: `1px solid ${verdictColor}44` }}
+          data-ocid="policy_analyzer.card"
         >
-          {[
-            { question: "Is this good for investment?", ...q1 },
-            { question: "Is it suitable only for insurance?", ...q2 },
-            { question: "Should you continue or reconsider?", ...q3 },
-          ].map((qa) => (
+          <div className="flex items-start gap-4 mb-4">
             <div
-              key={qa.question}
-              className="p-3 rounded-xl"
-              style={{
-                background: "#0A0F15",
-                border: `1px solid ${qa.color}33`,
-              }}
+              className="text-2xl font-black px-4 py-2 rounded-xl shrink-0"
+              style={{ background: verdictBg, color: verdictColor }}
             >
-              <div className="text-xs mb-2" style={{ color: "#9AA6B2" }}>
-                {qa.question}
+              {verdict}
+            </div>
+            <div>
+              <div
+                className="text-sm font-bold mb-1"
+                style={{ color: "#EAF0F6" }}
+              >
+                Investment Verdict
               </div>
               <div
-                className="text-xs font-bold leading-relaxed"
-                style={{ color: qa.color }}
+                className="text-xs leading-relaxed"
+                style={{ color: "#9AA6B2" }}
               >
-                {qa.answer}
+                {verdictText}
               </div>
             </div>
-          ))}
-        </div>
-      </motion.div>
+          </div>
+
+          {/* 3-Question Q&A Grid */}
+          <div
+            className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3"
+            style={{ borderTop: "1px solid #24303A" }}
+          >
+            {[
+              { question: "Is this good for investment?", ...q1 },
+              { question: "Is it suitable only for insurance?", ...q2 },
+              { question: "Should you continue or reconsider?", ...q3 },
+            ].map((qa) => (
+              <div
+                key={qa.question}
+                className="p-3 rounded-xl"
+                style={{
+                  background: "#0A0F15",
+                  border: `1px solid ${qa.color}33`,
+                }}
+              >
+                <div className="text-xs mb-2" style={{ color: "#9AA6B2" }}>
+                  {qa.question}
+                </div>
+                <div
+                  className="text-xs font-bold leading-relaxed"
+                  style={{ color: qa.color }}
+                >
+                  {qa.answer}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </ProGate>
 
       {/* Alternative Comparison Section */}
       <div
@@ -1350,6 +1358,10 @@ export default function PolicyAnalyzerTab({
           based on assumptions
         </p>
       </div>
+      <ProUpgradeModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </div>
   );
 }

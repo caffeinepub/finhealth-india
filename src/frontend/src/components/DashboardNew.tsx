@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Bot,
   CheckCircle,
+  Crown,
   Info,
   Plus,
   Shield,
@@ -11,9 +12,10 @@ import {
   TrendingUp,
   Upload,
   Wallet,
+  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Area,
   AreaChart,
@@ -23,6 +25,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { toast } from "sonner";
+import useFinHealthScore from "../hooks/useFinHealthScore";
+import usePlan from "../hooks/usePlan";
+import ProUpgradeModal from "./ProUpgradeModal";
 
 function getUserData() {
   const uid = localStorage.getItem("finhealth_current_user_id") || "";
@@ -42,13 +48,6 @@ const chartData = [
   { month: "Jun", income: 85000, expense: 49000 },
 ];
 
-const subScores = [
-  { label: "Savings", value: 80, color: "#2FE6FF" },
-  { label: "Investments", value: 75, color: "#31E981" },
-  { label: "Debt", value: 65, color: "#2D7BFF" },
-  { label: "Risk", value: 70, color: "#B05CFF" },
-];
-
 interface GaugeProps {
   score: number;
 }
@@ -59,8 +58,8 @@ function GaugeRing({ score }: GaugeProps) {
   const circumference = 2 * Math.PI * r;
   const startAngle = 225;
   const scoreColor =
-    score >= 75 ? "#31E981" : score >= 50 ? "#FBCE24" : "#F87171";
-  const label = score >= 75 ? "Good" : score >= 50 ? "Fair" : "Needs Work";
+    score >= 80 ? "#31E981" : score >= 60 ? "#FBCE24" : "#F87171";
+  const label = score >= 80 ? "Healthy" : score >= 60 ? "Moderate" : "Risky";
 
   return (
     <div className="relative flex flex-col items-center">
@@ -136,7 +135,10 @@ function GaugeRing({ score }: GaugeProps) {
   );
 }
 
-function NetWorthCard() {
+function NetWorthCard({
+  income,
+  expenses,
+}: { income: number; expenses: number }) {
   const uid = localStorage.getItem("finhealth_current_user_id") || "";
   let userData: { savings?: number; investments?: number } = {};
   try {
@@ -149,10 +151,14 @@ function NetWorthCard() {
   const netWorth = (userData.savings || 0) + (userData.investments || 0);
   const assets = 680000;
   const liabilities = 255000;
+  const surplus = income - expenses;
+  const surplusPositive = surplus >= 0;
 
   const fmt = (v: number) => {
-    if (v >= 100000) return `₹${(v / 100000).toFixed(2)}L`;
-    return `₹${(v / 1000).toFixed(1)}K`;
+    const abs = Math.abs(v);
+    const sign = v < 0 ? "-" : "";
+    if (abs >= 100000) return `${sign}₹${(abs / 100000).toFixed(2)}L`;
+    return `${sign}₹${(abs / 1000).toFixed(1)}K`;
   };
 
   return (
@@ -170,7 +176,7 @@ function NetWorthCard() {
         <Wallet size={16} style={{ color: "#2FE6FF" }} />
         <h3 className="font-semibold text-white text-sm">Net Worth Summary</h3>
       </div>
-      <div className="text-center mb-6">
+      <div className="text-center mb-4">
         <div className="text-xs mb-1" style={{ color: "#9AA6BF" }}>
           Total Net Worth
         </div>
@@ -190,7 +196,7 @@ function NetWorthCard() {
           +4.2% this month
         </div>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div
           className="flex items-center justify-between p-3 rounded-xl"
           style={{
@@ -225,6 +231,28 @@ function NetWorthCard() {
             {fmt(liabilities)}
           </span>
         </div>
+        {/* Monthly Surplus */}
+        <div
+          className="flex items-center justify-between p-3 rounded-xl"
+          style={{
+            background: surplusPositive
+              ? "rgba(47,230,255,0.07)"
+              : "rgba(248,113,113,0.07)",
+            border: `1px solid ${surplusPositive ? "rgba(47,230,255,0.2)" : "rgba(248,113,113,0.2)"}`,
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xs" style={{ color: "#9AA6BF" }}>
+              💰 Monthly Surplus
+            </span>
+          </div>
+          <span
+            className="text-sm font-bold"
+            style={{ color: surplusPositive ? "#2FE6FF" : "#F87171" }}
+          >
+            {fmt(surplus)}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -232,37 +260,52 @@ function NetWorthCard() {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState(getUserData());
   const [loaded, setLoaded] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [dismissBanner, setDismissBanner] = useState(false);
+  const { isPro, upgradeToPro } = usePlan();
+  const { score, category, breakdown, insights } = useFinHealthScore();
 
   useEffect(() => {
     setUser(getUserData());
     setTimeout(() => setLoaded(true), 300);
   }, []);
 
-  const score = (() => {
-    if (!user) return 45;
-    let s = 0;
-    const savingsRate = user.income > 0 ? user.savings / user.income : 0;
-    s += savingsRate > 0.3 ? 20 : savingsRate > 0.2 ? 15 : 10;
-    s +=
-      (user.goals?.length || 0) >= 3
-        ? 20
-        : (user.goals?.length || 0) >= 1
-          ? 15
-          : 5;
-    const expenseRate = user.income > 0 ? user.expenses / user.income : 1;
-    s += expenseRate < 0.5 ? 20 : expenseRate < 0.7 ? 15 : 10;
-    s += user.kyc_status === "Verified" ? 20 : 10;
-    s += user.name && user.email ? 20 : 10;
-    return Math.min(s, 100);
-  })();
+  useEffect(() => {
+    if (searchParams.get("upgraded") === "true") {
+      upgradeToPro();
+      toast.success("🎉 Welcome to FinHealth Pro! All features unlocked.");
+    }
+  }, [searchParams, upgradeToPro]);
+
+  const income = user.income || 0;
+  const expenses = user.expenses || 0;
+
   const greeting = () => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
     if (h < 18) return "Good afternoon";
     return "Good evening";
   };
+
+  const savingsRate = income > 0 ? user.savings / income : 0;
+  const expenseRate = income > 0 ? expenses / income : 0;
+  const investmentRate = income > 0 ? (user.investments || 0) / income : 0;
+
+  const dynamicInsights = [
+    savingsRate < 0.2 && income > 0
+      ? `You are saving only ${Math.round(savingsRate * 100)}% of income — aim for 20%+`
+      : null,
+    expenseRate > 0.6 && income > 0
+      ? `Your expenses are high — reduce by ₹${Math.round(expenses - income * 0.6).toLocaleString("en-IN")} to improve score`
+      : null,
+    investmentRate < 0.1
+      ? "Start investing to improve Investment Quality score"
+      : null,
+    !user.emi ? "No debt detected — great financial discipline!" : null,
+  ].filter(Boolean) as string[];
 
   const alerts = [
     {
@@ -287,8 +330,8 @@ export default function Dashboard() {
       icon: TrendingUp,
       color: "#B05CFF",
       bgClass: "alert-purple",
-      title: "Improve your score by +15",
-      desc: "3 quick actions can significantly boost your health score.",
+      title: `Improve your score by ${100 - score > 0 ? Math.min(100 - score, 20) : 0} points`,
+      desc: `Your current score is ${score}/100 (${category}). 3 quick actions can improve it.`,
       action: "View Financial Health",
       page: "/financial-health",
     },
@@ -296,8 +339,14 @@ export default function Dashboard() {
       icon: CheckCircle,
       color: "#31E981",
       bgClass: "alert-green",
-      title: "Your savings rate is strong — keep it up!",
-      desc: "38% savings rate puts you in the top 20% of users.",
+      title:
+        score >= 75
+          ? "Your score is strong — keep it up!"
+          : "Take action to improve your score",
+      desc:
+        score >= 75
+          ? `${score}/100 puts you in the top tier.`
+          : insights[0] || "",
       action: undefined,
       page: undefined,
     },
@@ -356,6 +405,94 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Upgrade Banner for Free Users */}
+      {!isPro && !dismissBanner && (
+        <div
+          className="relative p-4 rounded-xl flex items-center gap-4"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(176,92,255,0.12), rgba(251,206,36,0.06))",
+            border: "1px solid rgba(176,92,255,0.3)",
+          }}
+          data-ocid="dashboard.upgrade_banner"
+        >
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "linear-gradient(135deg, #FBCE24, #F59E0B)" }}
+          >
+            <Crown size={18} className="text-black" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-sm text-white">
+              Unlock Advanced Analytics & Reports
+            </div>
+            <div className="text-xs mt-0.5" style={{ color: "#9AA6BF" }}>
+              Insurance IRR, tax optimization, AI advisor & downloadable reports
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowUpgradeModal(true)}
+            className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+            style={{
+              background: "linear-gradient(135deg, #B05CFF, #7A3CFF)",
+              color: "white",
+              boxShadow: "0 0 16px rgba(176,92,255,0.35)",
+            }}
+            data-ocid="dashboard.upgrade_primary_button"
+          >
+            Upgrade — ₹199/mo
+          </button>
+          <button
+            type="button"
+            onClick={() => setDismissBanner(true)}
+            className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(255,255,255,0.07)", color: "#9AA6BF" }}
+            data-ocid="dashboard.dismiss_banner_button"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* AI Insights Strip (Dynamic) */}
+      {dynamicInsights.length > 0 && (
+        <div
+          className="p-4 rounded-xl"
+          style={{
+            background: "rgba(47,230,255,0.05)",
+            border: "1px solid rgba(47,230,255,0.15)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Bot size={14} style={{ color: "#2FE6FF" }} />
+            <span className="text-xs font-bold text-white">AI Insights</span>
+            <span className="text-xs" style={{ color: "#9AA6BF" }}>
+              based on your data
+            </span>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {dynamicInsights.map((insight) => (
+              <div
+                key={insight}
+                className="flex items-start gap-2 text-xs py-1"
+                style={{ color: "#C8D0E0" }}
+              >
+                <span style={{ color: "#2FE6FF", flexShrink: 0 }}>→</span>
+                {insight}
+              </div>
+            ))}
+            <div
+              className="flex items-start gap-2 text-xs py-1"
+              style={{ color: "#4A5568" }}
+            >
+              <span style={{ flexShrink: 0 }}>ℹ</span>
+              For informational purposes only
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Row 1: Health Score + Net Worth */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Health Score Card */}
@@ -366,7 +503,7 @@ export default function Dashboard() {
                 Financial Health Score
               </h3>
               <p className="text-xs mt-0.5" style={{ color: "#9AA6BF" }}>
-                Based on 4 financial dimensions
+                Based on 5 weighted financial factors
               </p>
             </div>
             <button
@@ -381,19 +518,19 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <GaugeRing score={score} />
             <div className="flex-1 space-y-3 w-full">
-              {subScores.map((s) => (
+              {breakdown.map((s) => (
                 <div key={s.label}>
                   <div className="flex justify-between text-xs mb-1">
                     <span style={{ color: "#9AA6BF" }}>{s.label}</span>
                     <span style={{ color: s.color, fontWeight: 600 }}>
-                      {s.value}%
+                      {s.score}/{s.maxScore}
                     </span>
                   </div>
                   <div className="progress-bar">
                     <div
                       className="progress-fill"
                       style={{
-                        width: `${s.value}%`,
+                        width: `${s.pct}%`,
                         background: `linear-gradient(90deg, ${s.color}, ${s.color}88)`,
                       }}
                     />
@@ -402,11 +539,7 @@ export default function Dashboard() {
               ))}
               <div className="pt-2">
                 <p className="text-xs" style={{ color: "#9AA6BF" }}>
-                  💡 You can improve score by{" "}
-                  <span style={{ color: "#2FE6FF", fontWeight: 600 }}>
-                    +15 points
-                  </span>{" "}
-                  with 3 actions
+                  💡 {insights[0]}
                 </p>
               </div>
             </div>
@@ -414,7 +547,7 @@ export default function Dashboard() {
         </div>
 
         {/* Net Worth */}
-        <NetWorthCard />
+        <NetWorthCard income={income} expenses={expenses} />
       </div>
 
       {/* Row 2: Income vs Expense Chart */}
@@ -515,7 +648,7 @@ export default function Dashboard() {
               className="ml-auto text-xs px-2 py-0.5 rounded-full"
               style={{ background: "rgba(47,230,255,0.12)", color: "#2FE6FF" }}
             >
-              4 insights
+              {alerts.length} insights
             </span>
           </div>
           <div className="space-y-3">
@@ -542,7 +675,7 @@ export default function Dashboard() {
                         onClick={() => navigate(a.page!)}
                         className="flex items-center gap-1 text-xs font-semibold"
                         style={{ color: a.color }}
-                        data-ocid={`dashboard.${a.page}_button`}
+                        data-ocid={`dashboard.${a.page.slice(1)}_button`}
                       >
                         {a.action} <ArrowRight size={11} />
                       </button>
@@ -586,18 +719,33 @@ export default function Dashboard() {
                   page: "/investments",
                   color: "#7A3CFF",
                 },
+                {
+                  icon: Crown,
+                  label: isPro ? "Pro Active ✓" : "Upgrade to Pro",
+                  page: undefined,
+                  color: "#FBCE24",
+                  onClick: isPro ? undefined : () => setShowUpgradeModal(true),
+                },
               ].map((qa) => (
                 <button
                   type="button"
                   key={qa.label}
-                  onClick={() => navigate(qa.page)}
+                  onClick={
+                    qa.onClick ||
+                    (qa.page ? () => navigate(qa.page!) : undefined)
+                  }
+                  disabled={!qa.onClick && !qa.page}
                   className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-sm font-medium transition-all"
                   style={{
                     background: `${qa.color}12`,
                     border: `1px solid ${qa.color}25`,
                     color: "#F2F5FF",
+                    cursor: !qa.onClick && !qa.page ? "default" : "pointer",
                   }}
-                  data-ocid={`dashboard.${qa.label.toLowerCase().replace(/\s/g, "_")}_button`}
+                  data-ocid={`dashboard.${qa.label
+                    .toLowerCase()
+                    .replace(/\s/g, "_")
+                    .replace(/[^a-z0-9_]/g, "")}_button`}
                 >
                   <qa.icon size={16} style={{ color: qa.color }} />
                   {qa.label}
@@ -662,7 +810,7 @@ export default function Dashboard() {
                 onClick={() => navigate(r.page)}
                 className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
                 style={{ background: `${r.color}18`, color: r.color }}
-                data-ocid={`dashboard.recommend_${r.page}_button`}
+                data-ocid={`dashboard.recommend_${r.page.slice(1)}_button`}
               >
                 <ArrowRight size={14} />
               </button>
@@ -670,6 +818,12 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+
+      {/* Pro Upgrade Modal */}
+      <ProUpgradeModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </div>
   );
 }

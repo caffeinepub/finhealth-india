@@ -10,14 +10,24 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface AIChatResponse {
-  'action' : [] | [string],
-  'insight' : [] | [string],
-  'reply' : string,
-}
 export interface ChatResponse { 'action' : [] | [string], 'reply' : string }
-export type Portfolio = string;
-export type Transactions = string;
+export type PlanType = { 'pro' : null } |
+  { 'free' : null };
+export interface ShoppingItem {
+  'productName' : string,
+  'currency' : string,
+  'quantity' : bigint,
+  'priceInCents' : bigint,
+  'productDescription' : string,
+}
+export interface StripeConfiguration {
+  'allowedCountries' : Array<string>,
+  'secretKey' : string,
+}
+export type StripeSessionStatus = {
+    'completed' : { 'userPrincipal' : [] | [string], 'response' : string }
+  } |
+  { 'failed' : { 'error' : string } };
 export interface TransformationInput {
   'context' : Uint8Array,
   'response' : http_request_result,
@@ -29,6 +39,7 @@ export interface TransformationOutput {
 }
 export interface UserProfile {
   'name' : string,
+  'plan' : PlanType,
   'onboardingComplete' : boolean,
   'income' : bigint,
   'goals' : Array<string>,
@@ -45,25 +56,39 @@ export interface http_request_result {
 }
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'aiChat' : ActorMethod<[string, string, string], AIChatResponse>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
+  'createCheckoutSession' : ActorMethod<
+    [Array<ShoppingItem>, string, string],
+    string
+  >,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getFinHealthScore' : ActorMethod<[], bigint>,
-  'getPortfolio' : ActorMethod<[], Portfolio>,
-  'getReferralCode' : ActorMethod<[], string>,
-  'getReferralCount' : ActorMethod<[Principal], bigint>,
-  'getTransactions' : ActorMethod<[], Transactions>,
-  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
+  'handleStripeWebhook' : ActorMethod<[string, Principal], undefined>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'isStripeConfigured' : ActorMethod<[], boolean>,
+  /**
+   * / Send chat message using cached data.
+   */
   'processChat' : ActorMethod<[string], ChatResponse>,
+  /**
+   * / Store the given profile to persistent storage.
+   */
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  /**
+   * / Store the given FinHealthScore to persistent storage.
+   */
   'saveFinHealthScore' : ActorMethod<[bigint], undefined>,
-  'savePortfolio' : ActorMethod<[Portfolio], undefined>,
-  'saveTransactions' : ActorMethod<[Transactions], undefined>,
+  /**
+   * / Store the given portfolio to persistent storage.
+   */
+  'savePortfolio' : ActorMethod<[string], undefined>,
+  /**
+   * / Store the given transactions to persistent storage.
+   */
+  'saveTransactions' : ActorMethod<[string], undefined>,
   'setAIApiKey' : ActorMethod<[string], undefined>,
+  'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
-  'useReferralCode' : ActorMethod<[Principal], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

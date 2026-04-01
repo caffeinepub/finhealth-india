@@ -1,62 +1,56 @@
-# FinHealth AI — Full Platform Upgrade
+# FinHealth AI — Financial Intelligence Platform + Monetization
 
 ## Current State
-
-The app uses a **custom state machine for routing** (`page` state in App.tsx with values: `landing | login | signup | app`) — no React Router, no URL updates, browser Back/Forward broken. A secondary state machine inside `AppLayout.tsx` handles sidebar pages. `GlobalNav.tsx` is an orphaned component never mounted anywhere, using a different type system.
-
-**Critical broken items identified:**
-- All 10 footer links are `<button>` with zero `onClick` handlers (completely dead)
-- Profile icon in AppLayout has no `onClick`
-- Bell/notifications button has no `onClick`
-- Terms/Privacy links in login are `<span>` with no handler
-- Dashboard shows hardcoded data (score: 72, net worth: ₹4.25L) instead of reading from localStorage
-- No `/profile` page exists
-- No `/disclaimer`, `/privacy-policy`, `/terms` pages with proper routing
-- Multi-step signup doesn't exist (single-step login form with tab toggle)
-- No centralized router — URL never changes
+- Full React + Motoko fintech app with dashboard, tools hub, login, onboarding
+- DashboardNew.tsx: Health score (basic 5-factor mock), Net Worth card, Income/Expense chart, Smart Alerts, Quick Actions
+- Tools available: SIP Calculator, Policy Analyzer (IRR), Tax Optimizer, Goal Planner, EMI Calculator, etc.
+- Auth via localStorage session
+- No payment/subscription system
+- No feature gating (all features free)
+- Health score uses simplified mock factors (not weighted financial ratios)
+- Stripe component selected and available via backend
 
 ## Requested Changes (Diff)
 
 ### Add
-- React Router v6 (`BrowserRouter`, `Routes`, `Route`, `Link`, `useNavigate`) replacing state machine
-- Routes: `/`, `/login`, `/signup`, `/dashboard`, `/tools`, `/profile`, `/disclaimer`, `/privacy-policy`, `/terms`, `/about`, `/contact`, `/financial-health`, `/investments`, `/insurance`, `/planning`, `/loans`, `/tax`, `/ai`
-- `/profile` page with 4 sections: Personal Info, Financial Info, KYC, Account Settings
-- Profile dropdown in top bar with Name, Plan, Go to Profile, Logout
-- Multi-step signup (4 steps): Basic → Financial → Goals → KYC
-- `useAuth` hook/context for persistent login state from localStorage
-- `ProtectedRoute` wrapper that redirects to `/login` if not authenticated
-- Legal pages: `/disclaimer`, `/privacy-policy`, `/terms` with full content
-- `/about` and `/contact` pages with basic content
-- Fully functional footer with Link components to all routes
-- Loading spinner on navigation transitions
-- Auth persistence: read from `finhealth_logged_in` on mount, stay logged in on refresh
+- **Financial Health Score Engine**: Real weighted scoring (0–100) using 5 factors:
+  - Savings Ratio (25%): savings/income → score 0–25
+  - Expense Ratio (20%): expenses/income → score 0–20
+  - Debt Ratio (20%): EMI/income → score 0–20
+  - Investment Quality (20%): equity allocation % → score 0–20
+  - Emergency Fund (15%): savings/monthly_expenses → score 0–15
+  - Output: score, category (Healthy/Moderate/Risky), actionable insights
+- **Upgrade to Pro flow**: Modal/page with ₹199/month and ₹999/year pricing, feature comparison table
+- **Stripe payment integration**: Wire up Pro upgrade button to Stripe checkout via backend
+- **Feature gating**: `usePlan()` hook reading localStorage `finhealth_plan` (free/pro); lock advanced features with "Upgrade to unlock" overlay
+- **Pro-gated features**: Advanced Insurance IRR analysis details, Tax optimization deep-dive, Downloadable reports, Full AI Advisor, Advanced investment analysis
+- **AI Insights Engine**: Dynamic insights generated from user's actual financial data (savings %, tax savings estimate, insurance IRR warning)
+- **SIP Calculator upgrade**: Add chart showing wealth growth projection (invested vs returns over time)
+- **Loan Calculator upgrade**: Add prepayment savings calculation
+- **Personalized Dashboard**: Monthly surplus (income - expenses), dynamic insights from real user data
+- **PricingPage** (/pricing): Standalone pricing page with Free vs Pro comparison table
+- **ProUpgradeModal**: Reusable modal shown when locked feature is tapped
 
 ### Modify
-- `App.tsx`: Replace state machine with `<BrowserRouter>` + `<Routes>` + `<Route>` declarations
-- `AppLayout.tsx`: Replace `activePage` state machine with `<Outlet>` or nested routes; wire profile button onClick to profile dropdown
-- `LandingPageNew.tsx`: Replace all dead `<button>` footer elements with `<Link>` components; fix all CTA buttons to use `<Link to="/signup">` etc.
-- `LoginPageNew.tsx`: Fix Terms/Privacy links; wire to router `navigate()`
-- `DashboardNew.tsx`: Read user data from `localStorage.getItem('finhealth_user_' + userId)` and render dynamic values
-- Sidebar nav items: Use `<Link>` to proper routes
+- DashboardNew.tsx: Replace mock score with real weighted engine, add monthly surplus display, add "Upgrade to Pro" banner for free users, wire AI insights to real user data
+- InsurancePage / PolicyAnalyzerTab: Gate detailed IRR breakdown behind Pro
+- TaxOptimizerTab: Gate old vs new regime detailed analysis behind Pro
+- AIAssistantPage: Gate full conversation history and advanced responses behind Pro
+- AppLayout / GlobalNav: Add /pricing route link
+- App.tsx: Add /pricing route
 
 ### Remove
-- `GlobalNav.tsx` orphaned component (or repurpose)
-- All `setPage()` / `navigate("app")` state machine calls
-- All `href="#"` placeholder anchors
-- All dead button elements with no handlers
+- Static mock sub-scores in DashboardNew (replace with real calculated values)
 
 ## Implementation Plan
-
-1. Install/confirm `react-router-dom` is available (it should already be in deps)
-2. Rewrite `App.tsx` with full React Router setup — all routes defined centrally
-3. Create `src/hooks/useAuth.ts` — reads/writes localStorage session, exposes `user`, `login()`, `logout()`
-4. Create `ProtectedRoute` component — wraps authenticated routes
-5. Rewrite `AppLayout.tsx` — use `<Outlet>` for inner routes, wire profile button to dropdown
-6. Create `ProfilePage.tsx` — 4-section profile with Personal, Financial, KYC, Account Settings
-7. Create `SignupPage.tsx` — 4-step multi-step form storing full user object to localStorage
-8. Create legal pages: `DisclaimerPage.tsx`, `PrivacyPolicyPage.tsx`, `TermsPage.tsx`
-9. Create simple pages: `AboutPage.tsx`, `ContactPage.tsx`
-10. Fix `LandingPageNew.tsx` footer — replace dead buttons with `<Link>` components
-11. Fix `DashboardNew.tsx` — read from localStorage user data dynamically
-12. Fix all CTA buttons site-wide to use proper routing
-13. Validate — typecheck + build
+1. Create `src/frontend/src/hooks/usePlan.ts` — reads/writes localStorage `finhealth_plan`, exposes `isPro`, `upgradeToPro()`
+2. Create `src/frontend/src/hooks/useFinHealthScore.ts` — real 5-factor weighted calculation from user localStorage data
+3. Create `src/frontend/src/components/ProUpgradeModal.tsx` — modal with pricing, feature comparison, Stripe checkout button
+4. Create `src/frontend/src/components/PricingPage.tsx` — full pricing comparison page at /pricing
+5. Create `src/frontend/src/components/ProGate.tsx` — wrapper component that shows locked overlay for free users
+6. Update DashboardNew.tsx — real score engine, monthly surplus, dynamic AI insights, Upgrade to Pro banner
+7. Update InsurancePage/PolicyAnalyzerTab — Pro gate on IRR analysis details
+8. Update TaxOptimizerTab — Pro gate on detailed tax comparison
+9. Update AIAssistantPage — Pro gate on full access
+10. Update App.tsx — add /pricing route
+11. Wire Stripe checkout via `actor.createStripeCheckoutSession()` from backend

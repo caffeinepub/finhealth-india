@@ -1,5 +1,7 @@
 import { Calculator, Calendar, Leaf } from "lucide-react";
 import { useState } from "react";
+import ProGate from "./ProGate";
+import ProUpgradeModal from "./ProUpgradeModal";
 
 type Category = "Equity" | "Debt" | "Cash" | "Gold" | "Mutual Funds";
 type EntryType = "Asset" | "Liability";
@@ -30,6 +32,7 @@ export default function TaxOptimizerTab({ entries }: { entries: Entry[] }) {
   );
   const equityTotal = equityAssets.reduce((s, e) => s + e.amount, 0);
 
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [equityValue, setEquityValue] = useState(
     equityTotal > 0 ? equityTotal.toString() : "",
   );
@@ -157,158 +160,162 @@ export default function TaxOptimizerTab({ entries }: { entries: Entry[] }) {
           </div>
         </div>
 
-        {val > 0 && basis > 0 && (
-          <div className="space-y-4 mb-5">
-            {!isLTCG && (
-              <div
-                className="p-4 rounded-xl"
-                style={{
-                  background: "rgba(255,74,74,0.08)",
-                  border: "1px solid #FF4A4A33",
-                }}
-              >
+        <ProGate
+          feature="Tax Optimization Details"
+          onUpgrade={() => setShowUpgradeModal(true)}
+        >
+          {val > 0 && basis > 0 && (
+            <div className="space-y-4 mb-5">
+              {!isLTCG && (
                 <div
-                  className="text-sm font-semibold mb-2"
-                  style={{ color: "#FF4A4A" }}
+                  className="p-4 rounded-xl"
+                  style={{
+                    background: "rgba(255,74,74,0.08)",
+                    border: "1px solid #FF4A4A33",
+                  }}
                 >
-                  \u26a0\ufe0f Short-Term Capital Gains (STCG)
-                </div>
-                <div className="text-xs mb-2" style={{ color: "#9AA6B2" }}>
-                  Holding {holdingMonths} months \u2014 need{" "}
-                  {12 - holdingMonths} more months for LTCG treatment
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <div style={{ color: "#9AA6B2" }}>STCG Tax (15%)</div>
-                    <div
-                      className="text-base font-bold mt-1"
-                      style={{ color: "#FF4A4A" }}
-                    >
-                      {formatINR(stcgTax)}
+                  <div
+                    className="text-sm font-semibold mb-2"
+                    style={{ color: "#FF4A4A" }}
+                  >
+                    \u26a0\ufe0f Short-Term Capital Gains (STCG)
+                  </div>
+                  <div className="text-xs mb-2" style={{ color: "#9AA6B2" }}>
+                    Holding {holdingMonths} months \u2014 need{" "}
+                    {12 - holdingMonths} more months for LTCG treatment
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <div style={{ color: "#9AA6B2" }}>STCG Tax (15%)</div>
+                      <div
+                        className="text-base font-bold mt-1"
+                        style={{ color: "#FF4A4A" }}
+                      >
+                        {formatINR(stcgTax)}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ color: "#9AA6B2" }}>
+                        If you wait \u2192 LTCG Tax (10%)
+                      </div>
+                      <div
+                        className="text-base font-bold mt-1"
+                        style={{ color: "#B8FF4A" }}
+                      >
+                        {formatINR(ltcgTax)}
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div style={{ color: "#9AA6B2" }}>
-                      If you wait \u2192 LTCG Tax (10%)
-                    </div>
-                    <div
-                      className="text-base font-bold mt-1"
-                      style={{ color: "#B8FF4A" }}
-                    >
-                      {formatINR(ltcgTax)}
-                    </div>
+                  <div className="mt-2 text-xs" style={{ color: "#FFD74A" }}>
+                    \ud83d\udca1 Waiting {12 - holdingMonths} more months saves
+                    you {formatINR(stcgTax - ltcgTax)} in taxes.
                   </div>
                 </div>
-                <div className="mt-2 text-xs" style={{ color: "#FFD74A" }}>
-                  \ud83d\udca1 Waiting {12 - holdingMonths} more months saves
-                  you {formatINR(stcgTax - ltcgTax)} in taxes.
-                </div>
-              </div>
-            )}
+              )}
 
-            {isLTCG && (
+              {isLTCG && (
+                <div
+                  className="p-4 rounded-xl"
+                  style={{
+                    background:
+                      gain <= LTCG_EXEMPTION
+                        ? "rgba(184,255,74,0.08)"
+                        : "rgba(255,157,74,0.08)",
+                    border: `1px solid ${gain <= LTCG_EXEMPTION ? "#B8FF4A44" : "#FF9A4A44"}`,
+                  }}
+                >
+                  <div
+                    className="text-sm font-semibold mb-3"
+                    style={{ color: "#B8FF4A" }}
+                  >
+                    Long-Term Capital Gains (LTCG) \u2014 10%
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <div style={{ color: "#9AA6B2" }}>Total Gain</div>
+                      <div
+                        className="text-base font-bold mt-1"
+                        style={{ color: "#EAF0F6" }}
+                      >
+                        {formatINR(gain)}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ color: "#9AA6B2" }}>Exemption Used</div>
+                      <div
+                        className="text-base font-bold mt-1"
+                        style={{ color: "#B8FF4A" }}
+                      >
+                        {formatINR(exemptionUsed)}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ color: "#9AA6B2" }}>Exemption Left</div>
+                      <div
+                        className="text-base font-bold mt-1"
+                        style={{ color: "#4AB8FF" }}
+                      >
+                        {formatINR(exemptionRemaining)}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ color: "#9AA6B2" }}>Tax Payable</div>
+                      <div
+                        className="text-base font-bold mt-1"
+                        style={{ color: ltcgTax > 0 ? "#FF4A4A" : "#B8FF4A" }}
+                      >
+                        {formatINR(ltcgTax)}
+                      </div>
+                    </div>
+                  </div>
+                  {gain <= LTCG_EXEMPTION ? (
+                    <div className="mt-3 text-xs" style={{ color: "#B8FF4A" }}>
+                      \u2705 You are within the \u20b91L LTCG exemption. No tax
+                      on gains this FY.
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-xs" style={{ color: "#FFD74A" }}>
+                      \ud83d\udca1 Tax Harvest: Book {formatINR(harvestAmount)}{" "}
+                      in gains this FY. Potential annual saving:{" "}
+                      {formatINR(harvestSaving)}.
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div
                 className="p-4 rounded-xl"
                 style={{
-                  background:
-                    gain <= LTCG_EXEMPTION
-                      ? "rgba(184,255,74,0.08)"
-                      : "rgba(255,157,74,0.08)",
-                  border: `1px solid ${gain <= LTCG_EXEMPTION ? "#B8FF4A44" : "#FF9A4A44"}`,
+                  background: "rgba(74,184,255,0.06)",
+                  border: "1px solid #4AB8FF33",
                 }}
               >
-                <div
-                  className="text-sm font-semibold mb-3"
-                  style={{ color: "#B8FF4A" }}
-                >
-                  Long-Term Capital Gains (LTCG) \u2014 10%
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="flex items-start gap-2">
+                  <Leaf size={16} style={{ color: "#4AB8FF", marginTop: 2 }} />
                   <div>
-                    <div style={{ color: "#9AA6B2" }}>Total Gain</div>
                     <div
-                      className="text-base font-bold mt-1"
-                      style={{ color: "#EAF0F6" }}
-                    >
-                      {formatINR(gain)}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ color: "#9AA6B2" }}>Exemption Used</div>
-                    <div
-                      className="text-base font-bold mt-1"
-                      style={{ color: "#B8FF4A" }}
-                    >
-                      {formatINR(exemptionUsed)}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ color: "#9AA6B2" }}>Exemption Left</div>
-                    <div
-                      className="text-base font-bold mt-1"
+                      className="text-sm font-semibold mb-1"
                       style={{ color: "#4AB8FF" }}
                     >
-                      {formatINR(exemptionRemaining)}
+                      Section 80C \u2014 ELSS Tax Saving
                     </div>
+                    <p className="text-xs" style={{ color: "#9AA6B2" }}>
+                      Invest up to{" "}
+                      <strong style={{ color: "#EAF0F6" }}>
+                        \u20b91.5L in ELSS mutual funds
+                      </strong>{" "}
+                      to save up to{" "}
+                      <strong style={{ color: "#B8FF4A" }}>
+                        \u20b946,800 in income tax
+                      </strong>{" "}
+                      (at 30% slab) under Section 80C.
+                    </p>
                   </div>
-                  <div>
-                    <div style={{ color: "#9AA6B2" }}>Tax Payable</div>
-                    <div
-                      className="text-base font-bold mt-1"
-                      style={{ color: ltcgTax > 0 ? "#FF4A4A" : "#B8FF4A" }}
-                    >
-                      {formatINR(ltcgTax)}
-                    </div>
-                  </div>
-                </div>
-                {gain <= LTCG_EXEMPTION ? (
-                  <div className="mt-3 text-xs" style={{ color: "#B8FF4A" }}>
-                    \u2705 You are within the \u20b91L LTCG exemption. No tax on
-                    gains this FY.
-                  </div>
-                ) : (
-                  <div className="mt-3 text-xs" style={{ color: "#FFD74A" }}>
-                    \ud83d\udca1 Tax Harvest: Book {formatINR(harvestAmount)} in
-                    gains this FY. Potential annual saving:{" "}
-                    {formatINR(harvestSaving)}.
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div
-              className="p-4 rounded-xl"
-              style={{
-                background: "rgba(74,184,255,0.06)",
-                border: "1px solid #4AB8FF33",
-              }}
-            >
-              <div className="flex items-start gap-2">
-                <Leaf size={16} style={{ color: "#4AB8FF", marginTop: 2 }} />
-                <div>
-                  <div
-                    className="text-sm font-semibold mb-1"
-                    style={{ color: "#4AB8FF" }}
-                  >
-                    Section 80C \u2014 ELSS Tax Saving
-                  </div>
-                  <p className="text-xs" style={{ color: "#9AA6B2" }}>
-                    Invest up to{" "}
-                    <strong style={{ color: "#EAF0F6" }}>
-                      \u20b91.5L in ELSS mutual funds
-                    </strong>{" "}
-                    to save up to{" "}
-                    <strong style={{ color: "#B8FF4A" }}>
-                      \u20b946,800 in income tax
-                    </strong>{" "}
-                    (at 30% slab) under Section 80C.
-                  </p>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
+          )}
+        </ProGate>
         <div
           className="p-4 rounded-xl"
           style={{ background: "#0F141B", border: "1px solid #24303A" }}
@@ -387,6 +394,10 @@ export default function TaxOptimizerTab({ entries }: { entries: Entry[] }) {
           )}
         </div>
       </div>
+      <ProUpgradeModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </div>
   );
 }

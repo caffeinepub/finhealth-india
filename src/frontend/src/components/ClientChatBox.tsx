@@ -315,61 +315,13 @@ export default function ClientChatBox({
         null;
       try {
         if (!actor) throw new Error("Actor not ready");
-        const portfolioJson = JSON.stringify(portfolio);
-        const goalsJson = JSON.stringify(goals);
-        const result = await actor.aiChat(text, portfolioJson, goalsJson);
-
-        // The backend returns either:
-        // - A raw OpenAI API response in result.reply (when API key is set)
-        // - A keyword-based reply in result.reply (when no API key / fallback)
-        // Try to parse as OpenAI response first, then extract FinHealth JSON
-        try {
-          // Try parsing as full OpenAI response: { choices: [{ message: { content: "..." } }] }
-          const openAiParsed = JSON.parse(result.reply);
-          if (openAiParsed?.choices?.[0]?.message?.content) {
-            const content = openAiParsed.choices[0].message.content;
-            try {
-              // Try parsing content as FinHealth JSON: { reply, insight, action }
-              const finHealthParsed = JSON.parse(content);
-              if (finHealthParsed?.reply) {
-                aiReply = {
-                  reply: finHealthParsed.reply,
-                  insight: finHealthParsed.insight || undefined,
-                  action: finHealthParsed.action || result.action || undefined,
-                };
-              } else {
-                aiReply = {
-                  reply: content,
-                  insight: undefined,
-                  action: result.action || undefined,
-                };
-              }
-            } catch {
-              // Content is plain text, not JSON
-              aiReply = {
-                reply: content,
-                insight: undefined,
-                action: result.action || undefined,
-              };
-            }
-          } else {
-            // Not an OpenAI response structure
-            aiReply = {
-              reply: result.reply,
-              insight: result.insight || undefined,
-              action: result.action || undefined,
-            };
-          }
-        } catch {
-          // result.reply is plain text (keyword fallback from Motoko)
-          aiReply = {
-            reply: result.reply,
-            insight: result.insight || undefined,
-            action: result.action || undefined,
-          };
-        }
+        const result = await actor.processChat(text);
+        aiReply = {
+          reply: result.reply,
+          action: result.action || undefined,
+        };
       } catch {
-        // actor.aiChat unavailable or failed, fall through to processChat
+        // actor.processChat unavailable or failed, fall through below
       }
 
       if (aiReply) {

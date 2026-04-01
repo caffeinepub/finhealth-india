@@ -4,6 +4,7 @@ import {
   Bot,
   Calculator,
   CreditCard,
+  Crown,
   Grid,
   Heart,
   LayoutDashboard,
@@ -35,6 +36,7 @@ const navItems: {
   { path: "/tax", label: "Tax", icon: Calculator },
   { path: "/ai", label: "AI Assistant", icon: Bot },
   { path: "/tools", label: "Tools Hub", icon: Grid },
+  { path: "/pricing", label: "Pricing", icon: Crown },
 ];
 
 const searchIndex: { label: string; keywords: string[]; path: string }[] = [
@@ -130,6 +132,7 @@ const pageTitles: Record<string, string> = {
   "/tax": "Tax Optimizer",
   "/ai": "AI Assistant",
   "/tools": "Tools Hub",
+  "/pricing": "Pricing",
   "/profile": "My Profile",
 };
 

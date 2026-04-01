@@ -13,6 +13,7 @@ import LandingPageNew from "./components/LandingPageNew";
 import LoansPage from "./components/LoansPage";
 import LoginPageNew from "./components/LoginPageNew";
 import PlanningPage from "./components/PlanningPage";
+import PricingPage from "./components/PricingPage";
 import PrivacyPolicyPage from "./components/PrivacyPolicyPage";
 import ProfilePage from "./components/ProfilePage";
 import SignupPage from "./components/SignupPage";
@@ -56,6 +57,7 @@ export default function App() {
             <Route path="ai" element={<AIAssistantPage />} />
             <Route path="tools" element={<ToolsHub />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="pricing" element={<PricingPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

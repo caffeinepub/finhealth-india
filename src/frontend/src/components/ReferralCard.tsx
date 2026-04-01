@@ -1,30 +1,25 @@
 import { Copy, MessageCircle, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 export default function ReferralCard() {
   const { identity } = useInternetIdentity();
-  const { actor, isFetching } = useActor();
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralCount, setReferralCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!actor || !identity || isFetching) return;
+    if (!identity) return;
     setLoading(true);
-    Promise.all([
-      actor.getReferralCode(),
-      actor.getReferralCount(identity.getPrincipal()),
-    ])
-      .then(([code, count]) => {
-        setReferralCode(code);
-        setReferralCount(Number(count));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [actor, identity, isFetching]);
+    // Referral features are not yet available — use stub values
+    // Real implementation will call actor.getReferralCode() and actor.getReferralCount()
+    const uid = identity.getPrincipal().toString().slice(0, 8).toUpperCase();
+    const mockCode = `FH-${uid}`;
+    setReferralCode(mockCode);
+    setReferralCount(0);
+    setLoading(false);
+  }, [identity]);
 
   const copyCode = async () => {
     if (!referralCode) return;
@@ -38,7 +33,7 @@ export default function ReferralCard() {
 
   const shareWhatsApp = () => {
     if (!referralCode) return;
-    const url = `https://wa.me/?text=${encodeURIComponent(`Join FinPulse and use my referral code ${referralCode} to get started! ${window.location.href}`)}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(`Join FinHealth AI and use my referral code ${referralCode} to get started! ${window.location.href}`)}`;
     window.open(url, "_blank");
   };
 
