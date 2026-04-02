@@ -6,14 +6,16 @@ import {
   CheckCircle,
   ChevronRight,
   Heart,
+  Loader2,
   PieChart,
   Shield,
   Sparkles,
   TrendingUp,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { type BackendStatusResponse, callBackendStatus } from "../lib/api";
 
 const capabilities = [
   {
@@ -93,6 +95,31 @@ const steps = [
 export default function LandingPageNew() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [apiStatus, setApiStatus] = useState<string | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthResult, setHealthResult] =
+    useState<BackendStatusResponse | null>(null);
+  const [healthError, setHealthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    callBackendStatus()
+      .then((data) => setApiStatus(data.message ?? "Connected"))
+      .catch(() => setApiStatus("Backend unreachable"));
+  }, []);
+
+  const handleCheckHealth = async () => {
+    setHealthLoading(true);
+    setHealthError(null);
+    setHealthResult(null);
+    try {
+      const data = await callBackendStatus();
+      setHealthResult(data);
+    } catch (_e) {
+      setHealthError("Unable to reach backend. Please try again.");
+    } finally {
+      setHealthLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen" style={{ background: "#070A12" }}>
@@ -245,6 +272,26 @@ export default function LandingPageNew() {
               AI-Powered Financial Intelligence
             </span>
           </div>
+          {apiStatus && (
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3"
+              style={{
+                background: "rgba(49,233,129,0.1)",
+                border: "1px solid rgba(49,233,129,0.25)",
+              }}
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ background: "#31E981", boxShadow: "0 0 6px #31E981" }}
+              />
+              <span
+                className="text-xs font-medium"
+                style={{ color: "#31E981" }}
+              >
+                {apiStatus}
+              </span>
+            </div>
+          )}
           <h1
             className="font-extrabold mb-6 leading-tight"
             style={{
@@ -268,9 +315,19 @@ export default function LandingPageNew() {
             <button
               type="button"
               className="gradient-btn px-8 py-3.5 rounded-xl text-base flex items-center justify-center gap-2 glow-cyan"
-              onClick={() => navigate("/login")}
+              onClick={handleCheckHealth}
+              disabled={healthLoading}
+              data-ocid="hero.check_health.button"
             >
-              Check My Financial Health <ArrowRight size={18} />
+              {healthLoading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> Checking...
+                </>
+              ) : (
+                <>
+                  Check My Financial Health <ArrowRight size={18} />
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -280,6 +337,73 @@ export default function LandingPageNew() {
               Explore Tools
             </button>
           </div>
+          {(healthResult || healthError) && (
+            <div
+              className="mt-6 max-w-xl mx-auto text-left glass-card p-5 rounded-2xl"
+              style={{
+                border: healthError
+                  ? "1px solid rgba(255,80,80,0.3)"
+                  : "1px solid rgba(47,230,255,0.25)",
+                background: healthError
+                  ? "rgba(255,80,80,0.05)"
+                  : "rgba(47,230,255,0.05)",
+              }}
+            >
+              {healthError ? (
+                <div className="flex items-start gap-3">
+                  <span className="text-red-400 text-lg">⚠️</span>
+                  <div>
+                    <div className="font-semibold text-red-400 text-sm mb-1">
+                      Connection Error
+                    </div>
+                    <div className="text-xs" style={{ color: "#9AA6BF" }}>
+                      {healthError}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                healthResult && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: "#31E981" }}
+                      />
+                      <span
+                        className="font-semibold text-sm"
+                        style={{ color: "#31E981" }}
+                      >
+                        API Response
+                      </span>
+                      <button
+                        type="button"
+                        className="ml-auto text-xs"
+                        style={{ color: "#9AA6BF" }}
+                        onClick={() => setHealthResult(null)}
+                      >
+                        ✕ Close
+                      </button>
+                    </div>
+                    {healthResult.message && (
+                      <p className="text-sm font-medium text-white mb-3">
+                        {healthResult.message}
+                      </p>
+                    )}
+                    <pre
+                      className="text-xs rounded-lg p-3 overflow-x-auto"
+                      style={{
+                        background: "rgba(0,0,0,0.3)",
+                        color: "#9AA6BF",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      {JSON.stringify(healthResult, null, 2)}
+                    </pre>
+                  </div>
+                )
+              )}
+            </div>
+          )}
           <div className="mt-12 flex flex-wrap gap-6 justify-center">
             {[
               ["10+", "AI-Powered Tools"],

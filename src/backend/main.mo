@@ -2,13 +2,13 @@ import Map "mo:core/Map";
 import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
 import Principal "mo:core/Principal";
-import Migration "migration";
+
 import OutCall "http-outcalls/outcall";
 import Stripe "stripe/stripe";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-(with migration = Migration.run)
+
 actor {
   // Authorization
   let accessControlState = AccessControl.initState();
