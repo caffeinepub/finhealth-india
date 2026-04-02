@@ -97,12 +97,15 @@ export default function LandingPageNew() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [apiStatus, setApiStatus] = useState<string | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
+  const [wakingUp, setWakingUp] = useState(false);
   const [healthResult, setHealthResult] =
     useState<BackendStatusResponse | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
 
   useEffect(() => {
-    callBackendStatus()
+    callBackendStatus(() => {
+      setApiStatus("Waking up server...");
+    })
       .then((data) => setApiStatus(data.message ?? "Connected"))
       .catch(() => setApiStatus("Backend unreachable"));
   }, []);
@@ -112,10 +115,17 @@ export default function LandingPageNew() {
     setHealthError(null);
     setHealthResult(null);
     try {
-      const data = await callBackendStatus();
+      const data = await callBackendStatus(() => {
+        setWakingUp(true);
+        setHealthError(null);
+      });
+      setWakingUp(false);
       setHealthResult(data);
     } catch (_e) {
-      setHealthError("Unable to reach backend. Please try again.");
+      setWakingUp(false);
+      setHealthError(
+        "Connection Error: Unable to reach the backend server after multiple attempts.",
+      );
     } finally {
       setHealthLoading(false);
     }
@@ -316,10 +326,15 @@ export default function LandingPageNew() {
               type="button"
               className="gradient-btn px-8 py-3.5 rounded-xl text-base flex items-center justify-center gap-2 glow-cyan"
               onClick={handleCheckHealth}
-              disabled={healthLoading}
+              disabled={healthLoading || wakingUp}
               data-ocid="hero.check_health.button"
             >
-              {healthLoading ? (
+              {wakingUp ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> Waking up
+                  server...
+                </>
+              ) : healthLoading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" /> Checking...
                 </>
